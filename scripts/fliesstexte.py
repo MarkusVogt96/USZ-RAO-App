@@ -334,9 +334,9 @@ def define_austritt_texte(austritt_typ, patdata, glossary):
             print("geschlecht konnte weder als m noch w erkannt werden. Breche Programm ab. Bitte checke patdata-JSON.")
 
         text_epi = (
-            f"Der elektive Eintritt {g('artikel_genitiv_klein')} {alter}-{g('jährig_genitiv')} {g('patient_genitiv')} erfolgte am {eintrittsdatum} anlässlich des ___. Zyklus der simultan zur Radiotherapie bei {tumor} durchgeführten Chemotherapie mittels {chemotherapeutikum}.\n\n"
+            f"Der elektive Eintritt {g('artikel_genitiv_klein')} {alter}-{g('jährig_genitiv')} {g('patient_genitiv')} erfolgte am {eintrittsdatum} anlässlich des ___. Zyklus der simultan zur Radiotherapie bei {tumor} durchgeführten Systemtherapie mittels {chemotherapeutikum}.\n\n"
             f"{g('artikel_nominativ_gross')} {g('patient_nominativ')} präsentierte sich kardiopulmonal stabil sowie in {beschreibung_ecog.get(ecog, "____")} Allgemeinzustand (ECOG {ecog}). Im Rahmen der initial durchgeführten Laboranalyse sowie der körperlichen Eintrittsuntersuchung liessen sich keine interventionsbedürftigen Befunde eruieren.\n\n"
-            f"Nach Ausschluss klinischer sowie laboranalytischer Kontraindikationen konnte die Chemotherapie mit {chemotherapeutikum} wie geplant verabreicht werden. Eine medikamentös forcierte Steigerung der Diurese war bei {asymppat} und mangels bestehender Beinödeme oder sonstiger Zeichen der Hypervolämie trotz vor der Chemotherapie erfolgter Hydrierung nicht notwendig.\n"
+            f"Nach Ausschluss klinischer sowie laboranalytischer Kontraindikationen konnte die Systemtherapie mit {chemotherapeutikum} wie geplant verabreicht werden. Eine medikamentös forcierte Steigerung der Diurese war bei {asymppat} und mangels bestehender Beinödeme oder sonstiger Zeichen der Hypervolämie trotz vor der Systemtherapie erfolgter Hydrierung nicht notwendig.\n"
             f"Es präsentierten sich die antizipierten, mild ausgeprägten Akuttoxizitäten der {rct} mit leichter Nausea, jedoch ohne Emesis.\n\n"
             f"Wir konnten {g('artikel_akkusativ_klein')} {g('patient_akkusativ')} somit am __.__.2025 in gutem Allgemeinzustand in die ambulante Weiterbehandlung entlassen.")
         
