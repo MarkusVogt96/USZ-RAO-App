@@ -13,7 +13,3 @@ license_state.txt
 # Ignoriere Build-Ausgabe
 build/
 dist/
-
-# Ignoriere IDE-Dateien (Beispiele)
-.vscode/
-.cursor/
