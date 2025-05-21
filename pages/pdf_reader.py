@@ -4,7 +4,7 @@ import logging
 from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QToolBar,
                              QPushButton, QApplication, QMessageBox, QLabel)
 from PyQt6.QtWebEngineWidgets import QWebEngineView
-from PyQt6.QtWebEngineCore import QWebEngineSettings, QWebEngineProfile # Added QWebEngineProfile
+from PyQt6.QtWebEngineCore import QWebEngineSettings
 from PyQt6.QtCore import Qt, QUrl, pyqtSlot
 from PyQt6.QtGui import QAction, QIcon
 
@@ -18,10 +18,6 @@ class PdfReaderPage(QWidget):
         self.entity_name = entity_name
         logging.info(f"Initializing PdfReaderPage (WebEngine) for: {pdf_path} (Group: {group_name}, Entity: {entity_name})")
 
-        # Initialize WebEngine settings before creating the view
-        self._initialize_webengine_settings()
-
-        # Check for WebEngine availability (should be present if import worked)
         try:
             # Basic check if the class exists
             _ = QWebEngineView()
@@ -41,21 +37,6 @@ class PdfReaderPage(QWidget):
 
         self.setup_ui()
         self.load_pdf()
-
-    def _initialize_webengine_settings(self):
-        """Initialize WebEngine settings globally."""
-        try:
-            # Get the default profile
-            profile = QWebEngineProfile.defaultProfile()
-
-            # Configure the profile
-            profile.setPersistentCookiesPolicy(QWebEngineProfile.PersistentCookiesPolicy.NoPersistentCookies)
-            profile.setHttpCacheType(QWebEngineProfile.HttpCacheType.MemoryHttpCache)
-
-            logging.info("WebEngine settings initialized successfully")
-        except Exception as e:
-            logging.error(f"Error initializing WebEngine settings: {e}")
-            # Continue anyway, as some settings might still work
 
     def _setup_error_ui(self, message):
         """Sets up the UI to display an error message."""
