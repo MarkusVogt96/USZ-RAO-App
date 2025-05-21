@@ -1,0 +1,19 @@
+*.pyc
+__pycache__/
+venv/
+.venv/
+
+# Ignoriere Abhängigkeitsordner
+offline_packages/
+
+# Ignoriere sensible Dateien
+private_key.pem
+license_state.txt
+
+# Ignoriere Build-Ausgabe
+build/
+dist/
+
+# Ignoriere IDE-Dateien (Beispiele)
+.vscode/
+.cursor/
