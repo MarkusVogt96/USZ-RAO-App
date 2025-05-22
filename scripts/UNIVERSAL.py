@@ -297,7 +297,15 @@ def get_reader_easyocr():
     return reader_easyocr
 ###################################
 ###################################
+def key():
+    with open(r"C:\Users\votma\api_key.txt", "r") as f:
+        api_key = f.read().strip()
 
+    print(api_key)
+
+
+###################################
+###################################
 def ocr_mit_easyocr(image_path):
     """
     Liest Text aus der angegebenen Bilddatei mittels EasyOCR.
@@ -415,6 +423,180 @@ def ocr_mit_easyocr(image_path):
         logging.warning(f"--- {function_name}() likely finished with errors (raw_results is None). Returning None. ---")
         print(f"--- {function_name}() mit Fehlern abgeschlossen. Gibt None zurück. ---")
         return None # Explicitly return None on error path
+
+###################################
+###################################
+
+# In UNIVERSAL.py
+
+# ... (andere imports am Anfang der Datei)
+# import sys # ist schon da
+# import time # ist schon da
+# import importlib # ist schon da
+# pyautogui wird für einen optionalen Fallback-Klick benötigt.
+# Stelle sicher, dass es importiert ist, wenn du den Fallback nutzen willst.
+
+def KISIM_im_vordergrund():
+    """
+    Bringt das erste gefundene Fenster mit 'KISIM' im Titel in den Vordergrund
+    und maximiert es auf dem Hauptbildschirm (nur Windows).
+    Stellt sicher, dass es wiederhergestellt wird, falls es minimiert ist.
+    Verwendet Wiederholungsversuche und ruft Fensterobjekte neu ab.
+    Gibt True bei Erfolg, sonst False.
+    """
+    pyautogui_module = None
+    pyautogui_available = False
+    try:
+        # pygetwindow dynamisch importieren
+        if "pygetwindow" not in sys.modules:
+            pygetwindow = importlib.import_module("pygetwindow")
+        else:
+            pygetwindow = sys.modules["pygetwindow"]
+
+        # PyAutoGUI für optionalen Fallback laden (optional, aber kann helfen)
+        if "pyautogui" not in sys.modules:
+            pyautogui_module = importlib.import_module("pyautogui")
+        else:
+            pyautogui_module = sys.modules["pyautogui"]
+        pyautogui_available = True
+
+    except ImportError:
+        print("Das Modul 'pygetwindow' (und optional 'pyautogui') ist nicht installiert.")
+        return False
+
+    MAX_ATTEMPTS_OVERALL = 3 # Wie oft der gesamte Prozess versucht wird
+    
+    for overall_attempt in range(MAX_ATTEMPTS_OVERALL):
+        print(f"\nGesamtversuch {overall_attempt + 1}/{MAX_ATTEMPTS_OVERALL}, KISIM in den Vordergrund zu bringen...")
+        try:
+            # 1. Finde den KISIM-Fenstertitel
+            all_titles = pygetwindow.getAllTitles()
+            if not all_titles:
+                print("Konnte keine Fenstertitel abrufen.")
+                time.sleep(1)
+                continue # Nächster Gesamtversuch
+
+            kisim_window_titles = [title for title in all_titles if "KISIM" in title.upper()]
+            if not kisim_window_titles:
+                print("Kein offenes Fenster mit 'KISIM' im Titel gefunden.")
+                return False # Wenn kein KISIM da ist, Abbruch
+
+            target_title = kisim_window_titles[0]
+            print(f"Ziel-Fenstertitel: '{target_title}'")
+
+            # 2. Hole das Fensterobjekt und stelle es ggf. wieder her
+            win_list = pygetwindow.getWindowsWithTitle(target_title)
+            if not win_list:
+                print(f"Konnte Fensterobjekt für '{target_title}' initial nicht abrufen.")
+                time.sleep(1)
+                continue
+            win = win_list[0]
+            print(f"Initiales Fensterobjekt: {win}")
+
+            if win.isMinimized:
+                print(f"KISIM '{win.title}' ist minimiert. Stelle wieder her...")
+                win.restore()
+                time.sleep(1.5) # Längere Pause nach restore
+
+                # Fensterobjekt nach restore unbedingt neu holen!
+                win_list_after_restore = pygetwindow.getWindowsWithTitle(target_title)
+                if not win_list_after_restore:
+                    print("Konnte Fensterobjekt nach 'restore' nicht erneut abrufen.")
+                    time.sleep(1)
+                    continue
+                win = win_list_after_restore[0]
+                print(f"Fensterobjekt nach restore: {win}")
+
+            # 3. Aktiviere das Fenster (mehrere Versuche)
+            activated_successfully = False
+            for activate_attempt in range(3): # Bis zu 3 Versuche für die Aktivierung
+                # Fensterobjekt *direkt vor* activate neu holen
+                current_win_list_activate = pygetwindow.getWindowsWithTitle(target_title)
+                if not current_win_list_activate:
+                    print(f"Konnte Fensterobjekt vor Aktivierungsversuch {activate_attempt+1} nicht abrufen.")
+                    time.sleep(0.5)
+                    continue
+                win_to_activate = current_win_list_activate[0]
+
+                print(f"Versuche KISIM '{win_to_activate.title}' zu aktivieren (Versuch {activate_attempt+1}/3)...")
+                win_to_activate.activate()
+                time.sleep(1.0) # Pause nach activate
+
+                active_win = pygetwindow.getActiveWindow()
+                if active_win and active_win.title == target_title:
+                    print(f"KISIM '{target_title}' erfolgreich aktiviert.")
+                    activated_successfully = True
+                    break # Aktivierung erfolgreich
+                else:
+                    print(f"Aktivierung fehlgeschlagen. Aktives Fenster: '{active_win.title if active_win else 'None'}'")
+                    # Optionaler Fallback mit Klick, wenn pyautogui verfügbar ist
+                    if pyautogui_available and win_to_activate.visible and win_to_activate.left > -10000 : # Sichtbar und gültige Koordinaten
+                        try:
+                            print("Versuche Fallback-Aktivierung durch Klick in die Fenstermitte...")
+                            pyautogui_module.click(win_to_activate.centerx, win_to_activate.centery)
+                            time.sleep(0.7)
+                            active_win_after_click = pygetwindow.getActiveWindow()
+                            if active_win_after_click and active_win_after_click.title == target_title:
+                                print("Fallback-Klick-Aktivierung war erfolgreich.")
+                                activated_successfully = True
+                                break
+                            else: print("Fallback-Klick-Aktivierung war NICHT erfolgreich.")
+                        except Exception as click_err:
+                            print(f"Fehler beim Fallback-Klick: {click_err}")
+                time.sleep(0.5) # Kurze Pause vor nächstem Aktivierungsversuch
+
+            if not activated_successfully:
+                print("Konnte KISIM nach mehreren Versuchen nicht aktivieren.")
+                time.sleep(1)
+                continue # Nächster Gesamtversuch
+
+            # 4. Maximiere das Fenster
+            # Fensterobjekt *direkt vor* maximize neu holen
+            current_win_list_maximize = pygetwindow.getWindowsWithTitle(target_title)
+            if not current_win_list_maximize:
+                print("Konnte Fensterobjekt vor 'maximize' nicht abrufen.")
+                time.sleep(0.5)
+                continue
+            win_to_maximize = current_win_list_maximize[0]
+
+            if not win_to_maximize.isMaximized:
+                print(f"Maximiere KISIM '{win_to_maximize.title}'...")
+                win_to_maximize.maximize()
+                time.sleep(0.5) # Pause nach maximize
+            
+            # Finale Prüfung
+            final_win_list = pygetwindow.getWindowsWithTitle(target_title)
+            if not final_win_list:
+                print("Konnte Zustand nach Maximierung nicht prüfen.")
+                time.sleep(0.5)
+                continue
+
+            final_win = final_win_list[0]
+            final_active_win = pygetwindow.getActiveWindow()
+
+            if final_active_win and final_active_win.title == target_title and final_win.isMaximized:
+                print(f"ERFOLG: KISIM '{target_title}' ist aktiv und maximiert.")
+                return True
+            else:
+                print("FINALE PRÜFUNG FEHLGESCHLAGEN:")
+                print(f"  Sollte aktiv sein: {target_title}, ist aktiv: {final_active_win.title if final_active_win else 'None'}")
+                print(f"  Sollte maximiert sein, ist maximiert: {final_win.isMaximized}")
+                time.sleep(0.5)
+                # continue ist implizit für den nächsten Gesamtversuch
+
+        except pygetwindow.PyGetWindowException as pex:
+            print(f"PyGetWindow-Fehler (Gesamtversuch {overall_attempt + 1}): {pex}")
+            if "Error code from Windows: 6" in str(pex):
+                print("  Handle war ungültig. Das Fenster könnte geschlossen worden sein oder ist nicht ansprechbar.")
+            time.sleep(0.5)
+        except Exception as e:
+            print(f"Allgemeiner Fehler (Gesamtversuch {overall_attempt + 1}): {e}")
+            import traceback
+            traceback.print_exc()
+            time.sleep(0.5)
+
+    print(f"Konnte KISIM nach {MAX_ATTEMPTS_OVERALL} Gesamtversuchen nicht zuverlässig in den Vordergrund bringen und maximieren.")
+    return False
 
 ###################################
 ###################################
@@ -539,7 +721,8 @@ def find_and_click_button(image_name, description="Button", base_path=None, max_
 
 
 def find_and_click_button_offset(
-    image_path,          # Direkter, vollständiger Pfad zur Bilddatei
+    image_name, 
+    base_path=None,
     clicks=1,            # Anzahl der Klicks (umbenannt von num_clicks)
     x_offset=0,
     y_offset=0,
@@ -568,6 +751,7 @@ def find_and_click_button_offset(
         pyautogui = importlib.import_module("pyautogui") if "pyautogui" not in sys.modules else sys.modules["pyautogui"]
 
         # Direkte Prüfung des übergebenen Pfades
+        image_path = os.path.join(base_path, image_name) if base_path else image_name
         if not image_path or not isinstance(image_path, str):
             print(f"FEHLER (find_and_click_offset): Ungültiger 'image_path' übergeben: {image_path}")
             return False
