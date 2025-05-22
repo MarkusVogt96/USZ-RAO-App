@@ -18,74 +18,112 @@ Die Anwendung ist in mehrere Reiter (Tabs) unterteilt:
 *   **Tumor Boards Page:** Zeigt eine Übersicht über die Tumorboards der Woche sowie Kacheln für die jeweiligen Tumorboards an, mit denen interagiert werden kann, um Listen einzusehen oder Fälle zu digitalisieren.
 
 ## 3. Wichtige Ordner und Dateien
-Use code with caution.
-Markdown
+C:.
+├───.cursor
+│   └───rules
 ├───assets
-│ └───sop
-│ ├───Fernmetastasen
-│ │ ├───Hirnmetastasen
-│ │ ├───palliative RT von Knochenmetastasen
-│ │ └───SBRT extrakranieller Hirnmetastasen
-│ ├───Gastrointestinale Tumore
-│ │ ├───Anal-Ca
-│ │ ├───CCC
-│ │ ├───HCC
-│ │ ├───Pankreas-Ca
-│ │ ├───Rektum-Ca
-│ │ └───Ösophagus-Ca
-│ ├───Gutartige Erkrankungen
-│ ├───Gynäkologische Tumore
-│ │ ├───Cervix-Ca
-│ │ ├───Endometrium-Ca
-│ │ ├───Mamma-Ca
-│ │ └───Vulva-Ca
-│ ├───Hauttumore
-│ │ ├───BCC und cSCC
-│ │ ├───Melanom
-│ │ └───Merkelzell-Ca
-│ ├───Kopf-Hals-Tumore
-│ │ ├───Larynx und Hypopharynx
-│ │ ├───Nasenkarzinom
-│ │ ├───Nasopharynxkarzinom
-│ │ ├───Oropharynxkarzinom
-│ │ └───Speicheldrüsenkarzinom
-│ ├───Lymphome
-│ │ ├───DLBCL
-│ │ ├───Hodgkin-Lymphom
-│ │ ├───MALT
-│ │ └───Plasmozytom
-│ ├───Neuroonkologie
-│ │ ├───Anaplastisches Astrozytom
-│ │ ├───Glioblastom
-│ │ ├───Meningeom
-│ │ ├───Oligodendrogliom
-│ │ ├───Schwannom
-│ │ └───Vestibularisschwannom
-│ ├───Thorakale Tumore
-│ │ ├───Mesotheliom
-│ │ ├───NSCLC
-│ │ └───SCLC
-│ └───Urogenitale Tumore
-│ ├───Blasen-Ca
-│ ├───Prostata-Ca
-│ └───RCC
+│   └───sop
+│       ├───Fernmetastasen
+│       │   ├───Hirnmetastasen
+│       │   ├───palliative RT von Knochenmetastasen
+│       │   └───SBRT extrakranieller Hirnmetastasen
+│       ├───Gastrointestinale Tumore
+│       │   ├───Anal-Ca
+│       │   ├───CCC
+│       │   ├───HCC
+│       │   ├───Pankreas-Ca
+│       │   ├───Rektum-Ca
+│       │   └───Ösophagus-Ca
+│       ├───Gutartige Erkrankungen
+│       ├───Gynäkologische Tumore
+│       │   ├───Cervix-Ca
+│       │   ├───Endometrium-Ca
+│       │   ├───Mamma-Ca
+│       │   └───Vulva-Ca
+│       ├───Hauttumore
+│       │   ├───BCC und cSCC
+│       │   ├───Melanom
+│       │   └───Merkelzell-Ca
+│       ├───Kopf-Hals-Tumore
+│       │   ├───Larynx und Hypopharynx
+│       │   ├───Nasenkarzinom
+│       │   ├───Nasopharynxkarzinom
+│       │   ├───Oropharynxkarzinom
+│       │   └───Speicheldrüsenkarzinom
+│       ├───Lymphome
+│       │   ├───DLBCL
+│       │   ├───Hodgkin-Lymphom
+│       │   ├───MALT
+│       │   └───Plasmozytom
+│       ├───Neuroonkologie
+│       │   ├───Anaplastisches Astrozytom
+│       │   ├───Glioblastom
+│       │   ├───Meningeom
+│       │   ├───Oligodendrogliom
+│       │   ├───Schwannom
+│       │   └───Vestibularisschwannom
+│       ├───Thorakale Tumore
+│       │   ├───Mesotheliom
+│       │   ├───NSCLC
+│       │   └───SCLC
+│       └───Urogenitale Tumore
+│           ├───Blasen-Ca
+│           ├───Prostata-Ca
+│           └───RCC
 ├───components
+│   └───__pycache__
 ├───offline_packages
-│ ├───easyocr_models
-│ ├───python_modules
-│ └───tesseract
-│ └───tessdata
+│   ├───easyocr_models
+│   ├───python_modules
+│   └───tesseract
+│       ├───doc
+│       └───tessdata
+│           ├───configs
+│           ├───script
+│           └───tessconfigs
 ├───pages
-│ ├───entity_pages
-│ └───tumorgroup_pages
+│   ├───entity_pages
+│   │   └───__pycache__
+│   ├───tumorgroup_pages
+│   │   └───__pycache__
+│   └───__pycache__
 └───scripts
-├───screenshots pyautogui
-│ └───UNIVERSAL
-│ ├───bereiche
-│ ├───bereich_berichte
-│ ├───KG_management
-│ └───kisim_suche
-└───UNIVERSAL.py
+    ├───screenshots pyautogui
+    │   ├───atrao
+    │   ├───chemo
+    │   ├───ecres
+    │   ├───etrao
+    │   ├───icd
+    │   ├───kons
+    │   ├───lab
+    │   ├───m
+    │   ├───patdata
+    │   ├───physio
+    │   ├───reha
+    │   ├───sb
+    │   ├───spitex
+    │   ├───stemp
+    │   └───UNIVERSAL
+    │       ├───bereiche
+    │       ├───bereich_berichte
+    │       ├───bereich_bilder
+    │       ├───bereich_dashboard
+    │       ├───bereich_einzelresultate
+    │       ├───bereich_exttools
+    │       ├───bereich_kurve
+    │       ├───bereich_laborkumulativ
+    │       ├───bereich_leistungen
+    │       ├───bereich_pflegedok
+    │       ├───bereich_pflegeprozess
+    │       ├───bereich_pflegeprozesse
+    │       ├───bereich_physioergo
+    │       ├───bereich_probleme
+    │       ├───bereich_stammdaten
+    │       ├───bereich_workflows
+    │       ├───image_preprocessing
+    │       ├───KG_management
+    │       └───kisim_suche
+    └───__pycache__
 
 ## 4. Wichtige Mechanismen
 
