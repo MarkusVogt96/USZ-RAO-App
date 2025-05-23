@@ -427,176 +427,137 @@ def ocr_mit_easyocr(image_path):
 ###################################
 ###################################
 
-# In UNIVERSAL.py
 
-# ... (andere imports am Anfang der Datei)
-# import sys # ist schon da
-# import time # ist schon da
-# import importlib # ist schon da
-# pyautogui wird für einen optionalen Fallback-Klick benötigt.
-# Stelle sicher, dass es importiert ist, wenn du den Fallback nutzen willst.
-
-def KISIM_im_vordergrund():
+def KISIM_im_vordergrund(prefix: str = "KISIM - ") -> bool:
+    import ctypes
+    from ctypes import wintypes
     """
-    Bringt das erste gefundene Fenster mit 'KISIM' im Titel in den Vordergrund
-    und maximiert es auf dem Hauptbildschirm (nur Windows).
-    Stellt sicher, dass es wiederhergestellt wird, falls es minimiert ist.
-    Verwendet Wiederholungsversuche und ruft Fensterobjekte neu ab.
-    Gibt True bei Erfolg, sonst False.
+    Sucht nach dem ersten sichtbaren Fenster, dessen Titel mit `prefix` beginnt,
+    maximiert es und holt es in den Vordergrund.
+
+    Verwendet AttachThreadInput, um SetForegroundWindow-Einschränkungen zu umgehen.
+
+    Returns:
+        True, falls das Fenster gefunden und aktiviert wurde, False sonst.
     """
-    pyautogui_module = None
-    pyautogui_available = False
-    try:
-        # pygetwindow dynamisch importieren
-        if "pygetwindow" not in sys.modules:
-            pygetwindow = importlib.import_module("pygetwindow")
-        else:
-            pygetwindow = sys.modules["pygetwindow"]
+    user32 = ctypes.WinDLL('user32', use_last_error=True)
+    kernel32 = ctypes.WinDLL('kernel32', use_last_error=True)
 
-        # PyAutoGUI für optionalen Fallback laden (optional, aber kann helfen)
-        if "pyautogui" not in sys.modules:
-            pyautogui_module = importlib.import_module("pyautogui")
-        else:
-            pyautogui_module = sys.modules["pyautogui"]
-        pyautogui_available = True
+    SW_SHOWMAXIMIZED = 3
 
-    except ImportError:
-        print("Das Modul 'pygetwindow' (und optional 'pyautogui') ist nicht installiert.")
+    # Definition der WinAPI-Funktionen und ihrer Argument-/Rückgabetypen
+    # Das hilft ctypes bei der Typprüfung und stellt korrekte Aufrufe sicher.
+    # KORRIGIERT: ctypes.WINFUNCTYPE statt wintypes.WINFUNCTYPE
+    user32.EnumWindows.argtypes = [ctypes.WINFUNCTYPE(wintypes.BOOL, wintypes.HWND, wintypes.LPARAM), wintypes.LPARAM]
+    user32.EnumWindows.restype = wintypes.BOOL
+
+    user32.IsWindowVisible.argtypes = [wintypes.HWND]
+    user32.IsWindowVisible.restype = wintypes.BOOL
+
+    user32.GetWindowTextLengthW.argtypes = [wintypes.HWND]
+    user32.GetWindowTextLengthW.restype = wintypes.INT
+
+    user32.GetWindowTextW.argtypes = [wintypes.HWND, wintypes.LPWSTR, wintypes.INT]
+    user32.GetWindowTextW.restype = wintypes.INT
+
+    user32.ShowWindow.argtypes = [wintypes.HWND, wintypes.INT]
+    user32.ShowWindow.restype = wintypes.BOOL
+
+    user32.SetForegroundWindow.argtypes = [wintypes.HWND]
+    user32.SetForegroundWindow.restype = wintypes.BOOL
+
+    user32.GetForegroundWindow.restype = wintypes.HWND
+
+    user32.GetWindowThreadProcessId.argtypes = [wintypes.HWND, wintypes.LPDWORD]
+    user32.GetWindowThreadProcessId.restype = wintypes.DWORD
+
+    kernel32.GetCurrentThreadId.restype = wintypes.DWORD
+
+    user32.AttachThreadInput.argtypes = [wintypes.DWORD, wintypes.DWORD, wintypes.BOOL]
+    user32.AttachThreadInput.restype = wintypes.BOOL
+
+    # --- Fenster finden ---
+    hwnd_container = {'hwnd': None}
+    # Diese Zeile war schon korrekt und verwendet ctypes.WINFUNCTYPE
+    EnumWindowsProc = ctypes.WINFUNCTYPE(wintypes.BOOL, wintypes.HWND, wintypes.LPARAM)
+
+    def _enum_cb(hwnd, lParam, prefix=prefix):
+        if user32.IsWindowVisible(hwnd):
+            length = user32.GetWindowTextLengthW(hwnd)
+            if length > 0:
+                buf = ctypes.create_unicode_buffer(length + 1)
+                user32.GetWindowTextW(hwnd, buf, length + 1)
+                title = buf.value
+                if title.startswith(prefix):
+                    hwnd_container['hwnd'] = hwnd
+                    return False
+        return True
+
+    user32.EnumWindows(EnumWindowsProc(_enum_cb), 0)
+
+    hwnd = hwnd_container['hwnd']
+    if not hwnd:
+        print(f"Kein Fenster mit Präfix '{prefix}' gefunden.")
         return False
 
-    MAX_ATTEMPTS_OVERALL = 3 # Wie oft der gesamte Prozess versucht wird
-    
-    for overall_attempt in range(MAX_ATTEMPTS_OVERALL):
-        print(f"\nGesamtversuch {overall_attempt + 1}/{MAX_ATTEMPTS_OVERALL}, KISIM in den Vordergrund zu bringen...")
-        try:
-            # 1. Finde den KISIM-Fenstertitel
-            all_titles = pygetwindow.getAllTitles()
-            if not all_titles:
-                print("Konnte keine Fenstertitel abrufen.")
-                time.sleep(1)
-                continue # Nächster Gesamtversuch
+    # --- Fenster maximieren (falls nötig) ---
+    user32.ShowWindow(hwnd, SW_SHOWMAXIMIZED)
 
-            kisim_window_titles = [title for title in all_titles if "KISIM" in title.upper()]
-            if not kisim_window_titles:
-                print("Kein offenes Fenster mit 'KISIM' im Titel gefunden.")
-                return False # Wenn kein KISIM da ist, Abbruch
+    # --- Fenster in den Vordergrund bringen ---
+    current_thread_id = kernel32.GetCurrentThreadId()
+    target_thread_id = user32.GetWindowThreadProcessId(hwnd, None)
 
-            target_title = kisim_window_titles[0]
-            print(f"Ziel-Fenstertitel: '{target_title}'")
+    foreground_hwnd = user32.GetForegroundWindow()
+    foreground_thread_id = 0
+    if foreground_hwnd:
+        foreground_thread_id = user32.GetWindowThreadProcessId(foreground_hwnd, None)
 
-            # 2. Hole das Fensterobjekt und stelle es ggf. wieder her
-            win_list = pygetwindow.getWindowsWithTitle(target_title)
-            if not win_list:
-                print(f"Konnte Fensterobjekt für '{target_title}' initial nicht abrufen.")
-                time.sleep(1)
-                continue
-            win = win_list[0]
-            print(f"Initiales Fensterobjekt: {win}")
+    attached_to_target = False
+    attached_to_foreground = False
+    success = False
 
-            if win.isMinimized:
-                print(f"KISIM '{win.title}' ist minimiert. Stelle wieder her...")
-                win.restore()
-                time.sleep(1.5) # Längere Pause nach restore
+    try:
+        if hwnd == foreground_hwnd:
+            print("KISIM ist bereits im Vordergrund und maximiert.")
+            return True
 
-                # Fensterobjekt nach restore unbedingt neu holen!
-                win_list_after_restore = pygetwindow.getWindowsWithTitle(target_title)
-                if not win_list_after_restore:
-                    print("Konnte Fensterobjekt nach 'restore' nicht erneut abrufen.")
-                    time.sleep(1)
-                    continue
-                win = win_list_after_restore[0]
-                print(f"Fensterobjekt nach restore: {win}")
-
-            # 3. Aktiviere das Fenster (mehrere Versuche)
-            activated_successfully = False
-            for activate_attempt in range(3): # Bis zu 3 Versuche für die Aktivierung
-                # Fensterobjekt *direkt vor* activate neu holen
-                current_win_list_activate = pygetwindow.getWindowsWithTitle(target_title)
-                if not current_win_list_activate:
-                    print(f"Konnte Fensterobjekt vor Aktivierungsversuch {activate_attempt+1} nicht abrufen.")
-                    time.sleep(0.5)
-                    continue
-                win_to_activate = current_win_list_activate[0]
-
-                print(f"Versuche KISIM '{win_to_activate.title}' zu aktivieren (Versuch {activate_attempt+1}/3)...")
-                win_to_activate.activate()
-                time.sleep(1.0) # Pause nach activate
-
-                active_win = pygetwindow.getActiveWindow()
-                if active_win and active_win.title == target_title:
-                    print(f"KISIM '{target_title}' erfolgreich aktiviert.")
-                    activated_successfully = True
-                    break # Aktivierung erfolgreich
-                else:
-                    print(f"Aktivierung fehlgeschlagen. Aktives Fenster: '{active_win.title if active_win else 'None'}'")
-                    # Optionaler Fallback mit Klick, wenn pyautogui verfügbar ist
-                    if pyautogui_available and win_to_activate.visible and win_to_activate.left > -10000 : # Sichtbar und gültige Koordinaten
-                        try:
-                            print("Versuche Fallback-Aktivierung durch Klick in die Fenstermitte...")
-                            pyautogui_module.click(win_to_activate.centerx, win_to_activate.centery)
-                            time.sleep(0.7)
-                            active_win_after_click = pygetwindow.getActiveWindow()
-                            if active_win_after_click and active_win_after_click.title == target_title:
-                                print("Fallback-Klick-Aktivierung war erfolgreich.")
-                                activated_successfully = True
-                                break
-                            else: print("Fallback-Klick-Aktivierung war NICHT erfolgreich.")
-                        except Exception as click_err:
-                            print(f"Fehler beim Fallback-Klick: {click_err}")
-                time.sleep(0.5) # Kurze Pause vor nächstem Aktivierungsversuch
-
-            if not activated_successfully:
-                print("Konnte KISIM nach mehreren Versuchen nicht aktivieren.")
-                time.sleep(1)
-                continue # Nächster Gesamtversuch
-
-            # 4. Maximiere das Fenster
-            # Fensterobjekt *direkt vor* maximize neu holen
-            current_win_list_maximize = pygetwindow.getWindowsWithTitle(target_title)
-            if not current_win_list_maximize:
-                print("Konnte Fensterobjekt vor 'maximize' nicht abrufen.")
-                time.sleep(0.5)
-                continue
-            win_to_maximize = current_win_list_maximize[0]
-
-            if not win_to_maximize.isMaximized:
-                print(f"Maximiere KISIM '{win_to_maximize.title}'...")
-                win_to_maximize.maximize()
-                time.sleep(0.5) # Pause nach maximize
-            
-            # Finale Prüfung
-            final_win_list = pygetwindow.getWindowsWithTitle(target_title)
-            if not final_win_list:
-                print("Konnte Zustand nach Maximierung nicht prüfen.")
-                time.sleep(0.5)
-                continue
-
-            final_win = final_win_list[0]
-            final_active_win = pygetwindow.getActiveWindow()
-
-            if final_active_win and final_active_win.title == target_title and final_win.isMaximized:
-                print(f"ERFOLG: KISIM '{target_title}' ist aktiv und maximiert.")
-                return True
+        if current_thread_id != target_thread_id:
+            if user32.AttachThreadInput(current_thread_id, target_thread_id, True):
+                attached_to_target = True
             else:
-                print("FINALE PRÜFUNG FEHLGESCHLAGEN:")
-                print(f"  Sollte aktiv sein: {target_title}, ist aktiv: {final_active_win.title if final_active_win else 'None'}")
-                print(f"  Sollte maximiert sein, ist maximiert: {final_win.isMaximized}")
-                time.sleep(0.5)
-                # continue ist implizit für den nächsten Gesamtversuch
+                error_code = ctypes.get_last_error()
+                print(f"Warnung: Konnte unseren Thread nicht an den KISIM-Thread (ID: {target_thread_id}) anhängen. Fehler: {error_code} ({ctypes.FormatError(error_code)})")
 
-        except pygetwindow.PyGetWindowException as pex:
-            print(f"PyGetWindow-Fehler (Gesamtversuch {overall_attempt + 1}): {pex}")
-            if "Error code from Windows: 6" in str(pex):
-                print("  Handle war ungültig. Das Fenster könnte geschlossen worden sein oder ist nicht ansprechbar.")
-            time.sleep(0.5)
-        except Exception as e:
-            print(f"Allgemeiner Fehler (Gesamtversuch {overall_attempt + 1}): {e}")
-            import traceback
-            traceback.print_exc()
-            time.sleep(0.5)
+            if foreground_thread_id and \
+               foreground_thread_id != current_thread_id and \
+               foreground_thread_id != target_thread_id:
+                if user32.AttachThreadInput(current_thread_id, foreground_thread_id, True):
+                    attached_to_foreground = True
+                else:
+                    error_code = ctypes.get_last_error()
+                    print(f"Warnung: Konnte unseren Thread nicht an den Vordergrund-Thread (ID: {foreground_thread_id}) anhängen. Fehler: {error_code} ({ctypes.FormatError(error_code)})")
 
-    print(f"Konnte KISIM nach {MAX_ATTEMPTS_OVERALL} Gesamtversuchen nicht zuverlässig in den Vordergrund bringen und maximieren.")
-    return False
+        success = user32.SetForegroundWindow(hwnd)
+        if not success:
+            error_code = ctypes.get_last_error()
+            print(f"Warnung: SetForegroundWindow konnte nicht direkt ausgeführt werden. Fehler: {error_code} ({ctypes.FormatError(error_code)})")
+
+    except Exception as e:
+        print(f"Ein unerwarteter Fehler ist aufgetreten: {e}")
+    finally:
+        if attached_to_target:
+            user32.AttachThreadInput(current_thread_id, target_thread_id, False)
+        if attached_to_foreground:
+            user32.AttachThreadInput(current_thread_id, foreground_thread_id, False)
+
+    if not success:
+        print(f"KISIM konnte nicht erfolgreich in den Vordergrund gebracht werden.")
+        return False
+
+    print("KISIM ist jetzt im Vordergrund und maximiert.")
+    return True
+
+
 
 ###################################
 ###################################
@@ -3905,7 +3866,22 @@ def diagnose_uebernehmen():
 ###################################
 ###################################
 
-
+def prozent_zoom_100():
+    print("Starte prozent_zoom_100() aus UNIVERSAL")
+    local_screenshots_dir = os.path.join(screenshots_dir, 'UNIVERSAL', 'bereich_berichte')
+    print("probiere find_button() mit button_prozent_confirm.png")
+    if not find_button('button_prozent_confirm.png', base_path=local_screenshots_dir, max_attempts=150, interval=0.1):
+        print("button_prozent_confirm nicht gefunden.")
+        return False
+    print("button_prozent_confirm gefunden, versuche button_prozent_100.png")
+    if not find_and_click_button('button_prozent_100.png', base_path=local_screenshots_dir, max_attempts=5, interval=0.1):
+        print("button_prozent_100 nicht gefunden. Stelle Zoom manuell auf 100%.")
+        if not find_and_click_button_offset(image_name='button_prozent_confirm.png', base_path=local_screenshots_dir, x_offset=-10): print("button_prozent_confirm nicht gefunden."); return False
+        if not find_and_click_button_offset(image_name='button_100_prozent_auswahl.png', base_path=local_screenshots_dir, x_offset=-10): print("button_100_prozent_auswahl nicht gefunden."); return False
+        return True
+    else:
+        print("100% Zoom bereits ausgewählt.")
+        return True
 
 ###################################
 ###################################

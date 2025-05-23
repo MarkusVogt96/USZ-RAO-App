@@ -192,6 +192,7 @@ def main():
 
 
     # --- 3. Start Automation ---
+    UNIVERSAL.KISIM_im_vordergrund()
     try:
         print("Starte REHA Anmeldung...")
         
@@ -212,6 +213,8 @@ def main():
         if not find_and_click_reha('button_einweisungreha.png'): sys.exit("Abbruch: button_einweisungreha nicht gefunden.")
 
         # Wait for form to load
+        print("Warte auf Bericht..."); time.sleep(0.1)
+        if not UNIVERSAL.prozent_zoom_100(): print("Fehler: UNIVERSAL.prozent_zoom_100() == False. Breche ab. Bitte bei Admin melden."); sys.exit()
         if not find_and_click_reha('button_reha_offen_confirm.png'): sys.exit("Abbruch: button_einweisungreha nicht gefunden.")
         time.sleep(0.2)
 

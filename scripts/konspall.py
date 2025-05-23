@@ -181,6 +181,8 @@ def konspall_anlegen():
     find_and_click_kons('button_x.png')
     pyautogui.typewrite('konsilium rad')
     find_and_click_kons('button_konspall.png')
+    print("Warte auf Bericht..."); time.sleep(0.1)
+    if not UNIVERSAL.prozent_zoom_100(): print("Fehler: UNIVERSAL.prozent_zoom_100() == False. Breche ab. Bitte bei Admin melden."); sys.exit()
     return True
 
 def konsilium_radioonkologie():
@@ -365,6 +367,7 @@ def main():
         print(f"User Input: ECOG={ecog}, PV={patverfügung}, Pflege={pflege}, Minuten={minuten}")
 
         # --- 2. Read Data using UNIVERSAL ---
+        UNIVERSAL.KISIM_im_vordergrund()
         print("Lese Patientendaten aus KISIM via UNIVERSAL...")
         global nachname, vorname, geburtsdatum, alter, geschlecht, patientennummer, eintrittsdatum, rea, ips, spi
         nachname, vorname, geburtsdatum, alter, geschlecht, patientennummer, eintrittsdatum = UNIVERSAL.auslesen_patdata_KISIMzeile()

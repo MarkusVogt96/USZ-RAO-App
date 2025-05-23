@@ -64,6 +64,7 @@ def click_unbestimmt():
 def main():
     print("\n--- Starte physio.py Skriptausführung ---")
 
+    UNIVERSAL.KISIM_im_vordergrund()
     try:
         # --- Start Automation ---
         print("Starte Physiotherapie Anmeldung...")
@@ -131,53 +132,17 @@ def main():
 
         # Warten bis Diagnosen geladen sind
         print("Warte auf button_diagnosenoffen...")
-        found_diagnosen = False
-        for _ in range(50): 
-             try:
-                  if pyautogui.locateOnScreen(os.path.join(physio_screenshots_dir, 'button_diagnosenoffen.png'), confidence=0.9):
-                       print('button_diagnosenoffen.png gefunden.')
-                       found_diagnosen = True
-                       break
-             except pyautogui.ImageNotFoundException:
-                  pass
-             except Exception as e:
-                  print(f"Fehler bei Suche nach button_diagnosenoffen.png: {e}")
-             time.sleep(0.05)
-        if not found_diagnosen:
-             print("FEHLER: Diagnosenbereich (button_diagnosenoffen.png) nicht gefunden.")
-             sys.exit("Abbruch: Diagnosenbereich konnte nicht bestätigt werden.")
 
-        time.sleep(0.2) # Short pause
-
-        # Check for grünes Dreieck and handle accordingly
-        print("Prüfe auf grünes Dreieck...")
-        gruenes_dreieck_gefunden = False
-        try:
-            # Suche nach dem Button auf dem Bildschirm
-            button_gruenesdreieck_path = os.path.join(physio_screenshots_dir, 'button_gruenesdreieck.png')
-            if pyautogui.locateOnScreen(button_gruenesdreieck_path, confidence=0.9):
-                print('button_gruenesdreieck.png gefunden.')
-                gruenes_dreieck_gefunden = True
-            else:
-                print('button_gruenesdreieck.png nicht gefunden.')
-        except pyautogui.ImageNotFoundException:
-             print('button_gruenesdreieck.png nicht gefunden (Exception).')
-        except Exception as e:
-             print(f"Fehler bei Suche nach button_gruenesdreieck.png: {e}")
-
-        # --- Corrected Logic ---
-        if not gruenes_dreieck_gefunden:
-            print("Grünes Dreieck nicht gefunden. Klicke 'unbestimmt' und navigiere...")
-            if click_unbestimmt():
-                pyautogui.press('tab')
-                pyautogui.press('tab')
-                pyautogui.press('enter')
-            else:
-                 sys.exit("Abbruch: Konnte 'unbestimmt' nicht klicken.")
-
-        # button_diagnose (Doppelklick)
-        herkunft_path = os.path.join(physio_screenshots_dir, 'button_herkunft.png')
-        if not UNIVERSAL.find_and_click_button_offset(image_path=herkunft_path, clicks=2, y_offset=35, max_attempts=50): print("double click auf Diagnose fehlgeschlagen, schliesse Fenster"); pyautogui.hotkey('alt', 'f4')
+        if not UNIVERSAL.find_and_click_button_offset(image_name='button_herkunft.png', base_path=physio_screenshots_dir, y_offset=40):
+            print("WARNUNG: button_herkunft.png nicht gefunden/geklickt.")
+        else:
+            print("Diagnose ausgewählt.")
+            time.sleep(0.3)
+            pyautogui.press('enter') # Confirm selection
+            time.sleep(0.5)
+        
+        if UNIVERSAL.find_button("button_inhalt_uebernehmen_aus.png", base_path=physio_screenshots_dir, max_attempts=3):
+            pyautogui.hotkey('alt', 'f4') #Diagnosenfenster schliessen, falls nicht erfolgreich
 
         print("\n--- physio.py Skript beendet ---")
 
