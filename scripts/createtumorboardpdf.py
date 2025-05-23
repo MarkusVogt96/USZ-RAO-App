@@ -5,6 +5,8 @@ import time
 import pyautogui
 import clipboard
 from datetime import datetime
+import shutil
+import re
 
 # Get the absolute path of the directory containing the current script (patdata.py)
 script_dir = os.path.dirname(os.path.abspath(__file__))
@@ -18,22 +20,38 @@ user_home = os.path.expanduser("~")
 
 
 #Definne global variables
-alle_tumorboards = sorted([
-    "GAS-CHI-ONK", 
-    "Gastrointestinal", 
-    "HCC", 
-    "LLMZ", 
-    "Sarkom", 
-    "Schädelbasis", 
-    "Thorax"
-])
+alle_tumorboards = [
+    "GAS-CHI-ONK",
+    "GIT",
+    "Gyn",
+    "HCC",
+    "HPB",
+    "Hämato-Onkologie/Lymphome",
+    "Hyperthermie",
+    "LLMZ",
+    "Melanome",
+    "Neuro-Onkologie",
+    "NET",
+    "ORL",
+    "Paragangliome",
+    "Pädiatrie",
+    "Protonentherapie",
+    "Sarkom",
+    "Schädelbasis",
+    "Schilddrüse",
+    "Thorax",
+    "Transplantationsboard",
+    "Uro",
+    "Vascular",
+    "ZKGS"
+]
 
 tumorboard_auswahl = None
 
 
 tumorboard_png_mapping = {
     "GAS-CHI-ONK": "button_tumorboard_gas-chi-onk.png",
-    "Gastrointestinal": "button_tumorboard_gi.png",
+    "GIT": "button_tumorboard_gi.png",
     "HCC": "button_tumorboard_hcc.png",
     "LLMZ": "button_tumorboard_llmz.png",
     "Sarkom": "button_tumorboard_sarkom.png",
@@ -162,12 +180,17 @@ def als_pdf_speichern():
     time.sleep(2)
     pyautogui.press('enter') #Bestätigen
 
+
+    time.sleep(2)
+    if not UNIVERSAL.find_and_click_button("button_ja_rot.png", base_path=local_screenshots_dir, confidence=0.90, max_attempts=5): print("button_ja_rot.png wurde nicht gefunden, fahre fort.")
+    
     # PDF-Speichern-Loop für alle Tumorboard-Anmeldungen
     #Export dir definieren
     if not UNIVERSAL.find_and_click_button("button_export_zeile.png", base_path=local_screenshots_dir, confidence=0.90): print("Fehler: Konnte button_export_zeile.png nicht klicken."); sys.exit()
-    export_dir = os.path.join(tb_folder, "Export")
-    clipboard.copy(export_dir)
+    clipboard.copy(tb_folder)
     pyautogui.hotkey('ctrl', 'v') #fügt den Text "Export" ein
+    pyautogui.press('enter') #Bestätigen
+    time.sleep(0.5)
 
     nummer = 1
     while UNIVERSAL.find_and_click_button(
@@ -183,9 +206,65 @@ def als_pdf_speichern():
         nummer += 1
     print("Alle Tumorboard-Anmeldung erfolgreich als PDFs einzeln exportiert")
 
+    # Erstelle einen neuen Ordner mit aktuellem Datum im tb_folder
+    date_str = datetime.now().strftime("%d.%m.%Y")
+    global dated_folder
+    dated_folder = os.path.join(tb_folder, date_str)
+    if os.path.exists(dated_folder):
+        # Lösche alle Inhalte im Ordner
+        for filename in os.listdir(dated_folder):
+            file_path = os.path.join(dated_folder, filename)
+            if os.path.isfile(file_path) or os.path.islink(file_path):
+                os.unlink(file_path)
+            elif os.path.isdir(file_path):
+                shutil.rmtree(file_path)
+    else:
+        os.makedirs(dated_folder, exist_ok=True)
+
+    # Verschiebe alle PDFs mit nur Zahlen im Namen in den neuen Ordner
+    for filename in os.listdir(tb_folder):
+        if filename.lower().endswith(".pdf") and re.fullmatch(r"\d+\.pdf", filename):
+            src = os.path.join(tb_folder, filename)
+            dst = os.path.join(dated_folder, filename)
+            shutil.move(src, dst)
+    print(f"Alle exportierten PDFs wurden nach {dated_folder} verschoben.")
 
 
 
+def pdfs_umbenennen(dated_folder):
+    import fitz  # PyMuPDF
+
+    # Regex für 5-10-stellige Zahl
+    patient_num_re = re.compile(r"\b\d{5,10}\b")
+
+    for filename in os.listdir(dated_folder):
+        if filename.lower().endswith(".pdf") and re.fullmatch(r"\d+\.pdf", filename):
+            pdf_path = os.path.join(dated_folder, filename)
+            try:
+                with fitz.open(pdf_path) as doc:
+                    text = ""
+                    for page in doc:
+                        text += page.get_text()
+                # Suche nach "Patienteninformationen" und dann nach erster 5-10-stelliger Zahl danach
+                idx = text.find("Patienteninformationen")
+                patientennummer = None
+                if idx != -1:
+                    # Nur Text nach "Patienteninformationen" durchsuchen
+                    after = text[idx:]
+                    match = patient_num_re.search(after)
+                    if match:
+                        patientennummer = match.group()
+                if patientennummer:
+                    new_filename = f"{os.path.splitext(filename)[0]} - {patientennummer}.pdf"
+                    new_path = os.path.join(dated_folder, new_filename)
+                    os.rename(pdf_path, new_path)
+                    print(f"{filename} umbenannt in {new_filename}")
+                else:
+                    print(f"Keine Patientennummer in {filename} gefunden.")
+            except Exception as e:
+                print(f"Fehler beim Auslesen von {filename}: {e}")
+
+    
 
 
 def main():
@@ -210,9 +289,9 @@ def main():
     open_tumorboard()
     tumorboard_nach_nachname_sortieren()
     als_pdf_speichern()
+    # Nach dem Verschieben der PDFs aufrufen:
+    pdfs_umbenennen(dated_folder)
 
 
 if __name__ == "__main__":
     main()
-
-
