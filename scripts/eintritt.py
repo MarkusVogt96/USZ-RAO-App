@@ -17,6 +17,7 @@ script_dir = os.path.dirname(os.path.abspath(__file__))
 app_dir = os.path.dirname(script_dir)
 screenshots_dir = os.path.join(script_dir, 'screenshots pyautogui')
 eintritt_screenshots_dir = os.path.join(screenshots_dir, 'etrao') # Common dir
+bereich_berichte_screenshots_dir = os.path.join(screenshots_dir, 'UNIVERSAL', 'bereich_berichte')
 # Define the absolute path to patdata in the user's home directory
 user_home = os.path.expanduser("~") 
 patdata_dir = os.path.join(user_home, "patdata")
@@ -153,6 +154,7 @@ def main():
 
         # --- Start Automation ---
         print("Starte KISIM Automatisierung für Eintrittsbericht...")
+        UNIVERSAL.KISIM_im_vordergrund()
         UNIVERSAL.navigiere_bereich_berichte()
         if not find_and_click_eintritt('button_neu.png'): sys.exit("Abbruch: Neu")
         # --- ÄNDERUNG: Suche nach 'button_suchleiste.png' ---
@@ -168,8 +170,11 @@ def main():
         time.sleep(0.1)
 
         if not find_and_click_eintritt('button_eintrittradioonkologie.png'): sys.exit("Abbruch: Berichtwahl")
-
+        
         print("Warte auf Bericht..."); time.sleep(0.1)
+        if not UNIVERSAL.prozent_zoom_100(): print("Fehler: UNIVERSAL.prozent_zoom_100() == False. Breche ab. Bitte bei Admin melden."); sys.exit()
+
+
         # --- Klicke auf "Jetziges Leiden", um sicher im ersten Feld zu sein ---
         if not find_and_click_eintritt('button_jetziges_leiden.png'): sys.exit("Abbruch: Jetziges Leiden (Anker)")
         print("Bericht geöffnet."); time.sleep(0.1)

@@ -297,7 +297,15 @@ def get_reader_easyocr():
     return reader_easyocr
 ###################################
 ###################################
+def key():
+    with open(r"C:\Users\votma\api_key.txt", "r") as f:
+        api_key = f.read().strip()
 
+    print(api_key)
+
+
+###################################
+###################################
 def ocr_mit_easyocr(image_path):
     """
     Liest Text aus der angegebenen Bilddatei mittels EasyOCR.
@@ -415,6 +423,141 @@ def ocr_mit_easyocr(image_path):
         logging.warning(f"--- {function_name}() likely finished with errors (raw_results is None). Returning None. ---")
         print(f"--- {function_name}() mit Fehlern abgeschlossen. Gibt None zurück. ---")
         return None # Explicitly return None on error path
+
+###################################
+###################################
+
+
+def KISIM_im_vordergrund(prefix: str = "KISIM - ") -> bool:
+    import ctypes
+    from ctypes import wintypes
+    """
+    Sucht nach dem ersten sichtbaren Fenster, dessen Titel mit `prefix` beginnt,
+    maximiert es und holt es in den Vordergrund.
+
+    Verwendet AttachThreadInput, um SetForegroundWindow-Einschränkungen zu umgehen.
+
+    Returns:
+        True, falls das Fenster gefunden und aktiviert wurde, False sonst.
+    """
+    user32 = ctypes.WinDLL('user32', use_last_error=True)
+    kernel32 = ctypes.WinDLL('kernel32', use_last_error=True)
+
+    SW_SHOWMAXIMIZED = 3
+
+    # Definition der WinAPI-Funktionen und ihrer Argument-/Rückgabetypen
+    # Das hilft ctypes bei der Typprüfung und stellt korrekte Aufrufe sicher.
+    # KORRIGIERT: ctypes.WINFUNCTYPE statt wintypes.WINFUNCTYPE
+    user32.EnumWindows.argtypes = [ctypes.WINFUNCTYPE(wintypes.BOOL, wintypes.HWND, wintypes.LPARAM), wintypes.LPARAM]
+    user32.EnumWindows.restype = wintypes.BOOL
+
+    user32.IsWindowVisible.argtypes = [wintypes.HWND]
+    user32.IsWindowVisible.restype = wintypes.BOOL
+
+    user32.GetWindowTextLengthW.argtypes = [wintypes.HWND]
+    user32.GetWindowTextLengthW.restype = wintypes.INT
+
+    user32.GetWindowTextW.argtypes = [wintypes.HWND, wintypes.LPWSTR, wintypes.INT]
+    user32.GetWindowTextW.restype = wintypes.INT
+
+    user32.ShowWindow.argtypes = [wintypes.HWND, wintypes.INT]
+    user32.ShowWindow.restype = wintypes.BOOL
+
+    user32.SetForegroundWindow.argtypes = [wintypes.HWND]
+    user32.SetForegroundWindow.restype = wintypes.BOOL
+
+    user32.GetForegroundWindow.restype = wintypes.HWND
+
+    user32.GetWindowThreadProcessId.argtypes = [wintypes.HWND, wintypes.LPDWORD]
+    user32.GetWindowThreadProcessId.restype = wintypes.DWORD
+
+    kernel32.GetCurrentThreadId.restype = wintypes.DWORD
+
+    user32.AttachThreadInput.argtypes = [wintypes.DWORD, wintypes.DWORD, wintypes.BOOL]
+    user32.AttachThreadInput.restype = wintypes.BOOL
+
+    # --- Fenster finden ---
+    hwnd_container = {'hwnd': None}
+    # Diese Zeile war schon korrekt und verwendet ctypes.WINFUNCTYPE
+    EnumWindowsProc = ctypes.WINFUNCTYPE(wintypes.BOOL, wintypes.HWND, wintypes.LPARAM)
+
+    def _enum_cb(hwnd, lParam, prefix=prefix):
+        if user32.IsWindowVisible(hwnd):
+            length = user32.GetWindowTextLengthW(hwnd)
+            if length > 0:
+                buf = ctypes.create_unicode_buffer(length + 1)
+                user32.GetWindowTextW(hwnd, buf, length + 1)
+                title = buf.value
+                if title.startswith(prefix):
+                    hwnd_container['hwnd'] = hwnd
+                    return False
+        return True
+
+    user32.EnumWindows(EnumWindowsProc(_enum_cb), 0)
+
+    hwnd = hwnd_container['hwnd']
+    if not hwnd:
+        print(f"Kein Fenster mit Präfix '{prefix}' gefunden.")
+        return False
+
+    # --- Fenster maximieren (falls nötig) ---
+    user32.ShowWindow(hwnd, SW_SHOWMAXIMIZED)
+
+    # --- Fenster in den Vordergrund bringen ---
+    current_thread_id = kernel32.GetCurrentThreadId()
+    target_thread_id = user32.GetWindowThreadProcessId(hwnd, None)
+
+    foreground_hwnd = user32.GetForegroundWindow()
+    foreground_thread_id = 0
+    if foreground_hwnd:
+        foreground_thread_id = user32.GetWindowThreadProcessId(foreground_hwnd, None)
+
+    attached_to_target = False
+    attached_to_foreground = False
+    success = False
+
+    try:
+        if hwnd == foreground_hwnd:
+            print("KISIM ist bereits im Vordergrund und maximiert.")
+            return True
+
+        if current_thread_id != target_thread_id:
+            if user32.AttachThreadInput(current_thread_id, target_thread_id, True):
+                attached_to_target = True
+            else:
+                error_code = ctypes.get_last_error()
+                print(f"Warnung: Konnte unseren Thread nicht an den KISIM-Thread (ID: {target_thread_id}) anhängen. Fehler: {error_code} ({ctypes.FormatError(error_code)})")
+
+            if foreground_thread_id and \
+               foreground_thread_id != current_thread_id and \
+               foreground_thread_id != target_thread_id:
+                if user32.AttachThreadInput(current_thread_id, foreground_thread_id, True):
+                    attached_to_foreground = True
+                else:
+                    error_code = ctypes.get_last_error()
+                    print(f"Warnung: Konnte unseren Thread nicht an den Vordergrund-Thread (ID: {foreground_thread_id}) anhängen. Fehler: {error_code} ({ctypes.FormatError(error_code)})")
+
+        success = user32.SetForegroundWindow(hwnd)
+        if not success:
+            error_code = ctypes.get_last_error()
+            print(f"Warnung: SetForegroundWindow konnte nicht direkt ausgeführt werden. Fehler: {error_code} ({ctypes.FormatError(error_code)})")
+
+    except Exception as e:
+        print(f"Ein unerwarteter Fehler ist aufgetreten: {e}")
+    finally:
+        if attached_to_target:
+            user32.AttachThreadInput(current_thread_id, target_thread_id, False)
+        if attached_to_foreground:
+            user32.AttachThreadInput(current_thread_id, foreground_thread_id, False)
+
+    if not success:
+        print(f"KISIM konnte nicht erfolgreich in den Vordergrund gebracht werden.")
+        return False
+
+    print("KISIM ist jetzt im Vordergrund und maximiert.")
+    return True
+
+
 
 ###################################
 ###################################
@@ -539,7 +682,8 @@ def find_and_click_button(image_name, description="Button", base_path=None, max_
 
 
 def find_and_click_button_offset(
-    image_path,          # Direkter, vollständiger Pfad zur Bilddatei
+    image_name, 
+    base_path=None,
     clicks=1,            # Anzahl der Klicks (umbenannt von num_clicks)
     x_offset=0,
     y_offset=0,
@@ -568,6 +712,7 @@ def find_and_click_button_offset(
         pyautogui = importlib.import_module("pyautogui") if "pyautogui" not in sys.modules else sys.modules["pyautogui"]
 
         # Direkte Prüfung des übergebenen Pfades
+        image_path = os.path.join(base_path, image_name) if base_path else image_name
         if not image_path or not isinstance(image_path, str):
             print(f"FEHLER (find_and_click_offset): Ungültiger 'image_path' übergeben: {image_path}")
             return False
@@ -3721,7 +3866,22 @@ def diagnose_uebernehmen():
 ###################################
 ###################################
 
-
+def prozent_zoom_100():
+    print("Starte prozent_zoom_100() aus UNIVERSAL")
+    local_screenshots_dir = os.path.join(screenshots_dir, 'UNIVERSAL', 'bereich_berichte')
+    print("probiere find_button() mit button_prozent_confirm.png")
+    if not find_button('button_prozent_confirm.png', base_path=local_screenshots_dir, max_attempts=150, interval=0.1):
+        print("button_prozent_confirm nicht gefunden.")
+        return False
+    print("button_prozent_confirm gefunden, versuche button_prozent_100.png")
+    if not find_and_click_button('button_prozent_100.png', base_path=local_screenshots_dir, max_attempts=5, interval=0.1):
+        print("button_prozent_100 nicht gefunden. Stelle Zoom manuell auf 100%.")
+        if not find_and_click_button_offset(image_name='button_prozent_confirm.png', base_path=local_screenshots_dir, x_offset=-10): print("button_prozent_confirm nicht gefunden."); return False
+        if not find_and_click_button_offset(image_name='button_100_prozent_auswahl.png', base_path=local_screenshots_dir, x_offset=-10): print("button_100_prozent_auswahl nicht gefunden."); return False
+        return True
+    else:
+        print("100% Zoom bereits ausgewählt.")
+        return True
 
 ###################################
 ###################################

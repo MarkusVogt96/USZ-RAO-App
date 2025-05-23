@@ -102,6 +102,7 @@ def main():
         userinput_auswahl()
 
         # --- 2. Navigate to Kurve ---
+        UNIVERSAL.KISIM_im_vordergrund()
         print("Navigiere zu Bereich Kurve...")
         if not UNIVERSAL.navigiere_bereich_kurve():
             sys.exit("FEHLER: Navigation zum Bereich Kurve fehlgeschlagen.")

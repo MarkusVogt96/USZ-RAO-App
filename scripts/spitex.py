@@ -58,7 +58,7 @@ def main():
     try:
         # --- Start Automation ---
         print("Starte SPITEX Anmeldung...")
-
+        UNIVERSAL.KISIM_im_vordergrund()
         UNIVERSAL.navigiere_bereich_berichte()
         # Button neu
         if not find_and_click_spitex('button_neu.png'): sys.exit("Abbruch: button_neu nicht gefunden.")
@@ -75,41 +75,27 @@ def main():
         # Button spitexauftrag
         if not find_and_click_spitex('button_spitexauftrag.png'): sys.exit("Abbruch: button_spitexauftrag nicht gefunden.")
 
-        # Wait for form/elements to load
-        print("Warte auf button_leiste...")
-        found_leiste = False
-        for _ in range(50):
-             try:
-                  if pyautogui.locateOnScreen(os.path.join(spitex_screenshots_dir, 'button_leiste.png'), confidence=0.9):
-                       print('button_leiste.png gefunden. Continue.')
-                       found_leiste = True
-                       break
-             except pyautogui.ImageNotFoundException:
-                  pass
-             except Exception as e:
-                  print(f"Fehler bei Suche nach button_leiste.png: {e}")
-             time.sleep(0.1)
-        if not found_leiste:
-             print("FEHLER: button_leiste.png nicht gefunden. Form eventuell nicht geladen.")
-             sys.exit("Abbruch: Bestätigungselement nicht gefunden.")
+        print("Warte auf Bericht..."); time.sleep(0.1)
+        if not UNIVERSAL.prozent_zoom_100(): print("Fehler: UNIVERSAL.prozent_zoom_100() == False. Breche ab. Bitte bei Admin melden."); sys.exit()
 
+
+        if not find_and_click_spitex('button_kostentraeger.png'): sys.exit("Abbruch: button_kostentraeger.png nicht gefunden.")
         # button_krankheit
-        if not find_and_click_spitex('button_krankheit.png'): sys.exit("Abbruch: button_krankheit nicht gefunden.")
+        UNIVERSAL.ctrl_tabs(6)
+        pyautogui.press('enter') # Select 'Krankheit
 
         # Click Maßnahmen buttons
-        if not find_and_click_spitex('button_massnahmen1.png'): print("WARNUNG: button_massnahmen1 nicht gefunden/geklickt.")
-        if not find_and_click_spitex('button_massnahmen2.png'): print("WARNUNG: button_massnahmen2 nicht gefunden/geklickt.")
-        if not find_and_click_spitex('button_massnahmen3.png'): print("WARNUNG: button_massnahmen3 nicht gefunden/geklickt.")
-
-        # Button textfeld
-        if not find_and_click_spitex('button_textfeld.png', confidence=0.8): sys.exit("Abbruch: button_textfeld nicht gefunden.")
-
-        # Navigate and select Gültigkeit
-        print("Setze Gültigkeit...")
+        UNIVERSAL.ctrl_tabs(3)
+        pyautogui.press('enter') # Select 'Massnahmen'
         time.sleep(0.1)
-        for i in range(8):
-            pyautogui.press('tab')
-        pyautogui.press('enter') # Select '3 Monate'
+        UNIVERSAL.ctrl_tabs(1)
+        pyautogui.press('enter') # Select 'Massnahmen'
+        time.sleep(0.1)
+        UNIVERSAL.ctrl_tabs(4)
+        pyautogui.press('enter') # Select 'Massnahmen'
+        time.sleep(0.1)
+        UNIVERSAL.ctrl_tabs(5)
+        pyautogui.press('enter') # Select '3 Monate gültig'
 
         # Button speichern
         if not find_and_click_spitex('button_speichern.png'): sys.exit("Abbruch: button_speichern nicht gefunden.")
@@ -125,7 +111,6 @@ def main():
         traceback.print_exc()
 
 
-print("DEBUG: main() ist definiert, jetzt erfolgt der Aufruf mittels if __name__ == '__main__'")
 if __name__ == "__main__":
     print("DEBUG: if __name__ == '__main__' ist wahr, daher wird main() aufgerufen")
     main()

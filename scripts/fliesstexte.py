@@ -257,7 +257,7 @@ def define_austritt_texte(austritt_typ, patdata, glossary):
             f"Zeitraum: {datum_erste_rt} - {datum_letzte_rt}\n\n"
             f"Dosiskonzept: {therapieintention_gross} Radiotherapie bei {tumor}\n\n"
             f"{konzept_alle_serien}\n\n"
-            f"Fraktionen pro Woche: {fraktionen_woche}x\n\n"
+            f"Fraktionen pro Woche: {fraktionen_woche}\n\n"
             f"Technik: Nach CT / MR-gestützter Planung erfolgte die Radiotherapie im Bereich oben genannter Lokalisationen am Linearbeschleuniger mit 6MV Photonen in VMAT Technik.\n\n"
             f"Im Rahmen der Hospitalisation verabreichte Fraktionen: __/__\n\n"
             f"Die Radiotherapie wird somit bis voraussichtlich {datum_letzte_rt} fortgeführt.    ODER     Die Radiotherapie ist somit nach Applikation aller Fraktionen abgeschlossen."

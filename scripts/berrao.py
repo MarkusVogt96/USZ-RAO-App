@@ -433,6 +433,8 @@ def run_woko_automation(texte_dict): # Nimmt jetzt Texte als Argument
 
     # --- Schritt 2: Warten auf und Klicken des Ankers 'Subjektiv' ---
     if success: # Nur weitermachen, wenn bisher alles ok war
+        print("Warte auf Bericht..."); time.sleep(0.1)
+        if not UNIVERSAL.prozent_zoom_100(): print("Fehler: UNIVERSAL.prozent_zoom_100() == False. Breche ab. Bitte bei Admin melden."); sys.exit()
         if UNIVERSAL.find_button("button_verlaufsbericht_radioonkologie_confirm.png", base_path=local_screenshots_dir): print("button_verlaufsbericht_radioonkologie_confirm.png gefunden, warte 0.3s un Klick")
         time.sleep(0.3)
         if not UNIVERSAL.find_and_click_button("button_verlaufsbericht_radioonkologie_confirm.png", base_path=local_screenshots_dir): print("button_verlaufsbericht_radioonkologie_confirm.png nicht gefunden. Breche Funktion ab."); return False
@@ -501,7 +503,8 @@ def main():
             # Entity ist hier nicht relevant für Textgenerierung, aber vorhanden
             texte_dict = fliesstexte.define_berrao_texte(bericht_typ, None, patdata, glossary)
             print("Texte für Wochenkontrolle erhalten.")
-
+            
+            UNIVERSAL.KISIM_im_vordergrund()
             if not UNIVERSAL.navigiere_bereich_berichte(): sys.exit("Abbruch: Navigation fehlgeschlagen.")
             if run_woko_automation(texte_dict): # Übergebe Texte
                 automation_success = True
@@ -525,6 +528,7 @@ def main():
             print(f"Texte für Berichtstyp '{bericht_typ}' erhalten.")
 
             print("Starte KISIM Automatisierung für Bericht Radioonkologie...")
+            UNIVERSAL.KISIM_im_vordergrund()
             if not UNIVERSAL.navigiere_bereich_berichte(): sys.exit("Abbruch: Navigation fehlgeschlagen.")
             time.sleep(0.1)
             if not find_and_click_berrao("button_neu.png"): sys.exit("Abbruch: Neu")
@@ -534,6 +538,10 @@ def main():
             clipboard.copy(berichtrao)
             pyautogui.hotkey('ctrl', 'v')
             if not find_and_click_berrao("button_bericht_radioonkologie.png", confidence=0.9): sys.exit("Abbruch: Berichtwahl")
+            
+            print("Warte auf Bericht..."); time.sleep(0.1)
+            if not UNIVERSAL.prozent_zoom_100(): print("Fehler: UNIVERSAL.prozent_zoom_100() == False. Breche ab. Bitte bei Admin melden."); sys.exit()
+
             if not find_image("button_bericht_radioonkologie_confirm.png"):
                 time.sleep(1)
                 if not find_image("button_bericht_radioonkologie_confirm.png"): sys.exit("Abbruch: Bestätigung")
