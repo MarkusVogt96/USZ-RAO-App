@@ -193,8 +193,8 @@ def main():
             print("klicke auf x=340, y=34 für nächste Akte..")
             pyautogui.click(340, 34)
             pyautogui.click(340, 5)
-            if not UNIVERSAL.find_button('button_neue_kg_offen.png', base_path=local_screenshots_dir): print('button_neue_kg_offen.png konnte nicht gefunden werden.')
-            time.sleep(0.5)
+            if not UNIVERSAL.find_button('button_neue_kg_offen.png', base_path=local_screenshots_dir, max_attempts=120, confidence=0.95): print('button_neue_kg_offen.png konnte nicht gefunden werden.'); sys.exit()
+            time.sleep(1)
             continue
         else:
             print(f"final KGs_geschlossen = {KGs_geschlossen}, break Loop")

@@ -157,6 +157,9 @@ def main():
         UNIVERSAL.KISIM_im_vordergrund()
         UNIVERSAL.navigiere_bereich_berichte()
         if not find_and_click_eintritt('button_neu.png'): sys.exit("Abbruch: Neu")
+
+        UNIVERSAL.find_and_click_button_offset(image_name='button_bericht_for_offset.png', base_path=eintritt_screenshots_dir, y_offset=55, confidence=0.9)
+
         # --- ÄNDERUNG: Suche nach 'button_suchleiste.png' ---
         if not find_and_click_eintritt('button_suchleiste.png'): sys.exit("Abbruch: Suche")
 

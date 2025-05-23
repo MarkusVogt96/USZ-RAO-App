@@ -417,6 +417,8 @@ def run_woko_automation(texte_dict): # Nimmt jetzt Texte als Argument
         success = False
         print("FEHLER: Konnte 'Neu'-Button nicht klicken.")
 
+    UNIVERSAL.find_and_click_button_offset(image_name='button_bericht_for_offset.png', base_path=local_screenshots_dir, y_offset=55, confidence=0.9)
+
     if success and not find_and_click_berrao("button_x_von_suchleiste.png", confidence=0.85):
         # Dies ist oft nicht kritisch, nur eine Warnung ausgeben
         print("WARNUNG: 'X' in Suchleiste nicht gefunden oder geklickt.")
@@ -532,6 +534,8 @@ def main():
             if not UNIVERSAL.navigiere_bereich_berichte(): sys.exit("Abbruch: Navigation fehlgeschlagen.")
             time.sleep(0.1)
             if not find_and_click_berrao("button_neu.png"): sys.exit("Abbruch: Neu")
+            UNIVERSAL.find_and_click_button_offset(image_name='button_bericht_for_offset.png', base_path=os.path.join(screenshots_dir, 'UNIVERSAL', 'bereich_berichte'), y_offset=55, confidence=0.9)
+
             if find_and_click_berrao("button_x_von_suchleiste.png", confidence=0.85): time.sleep(ACTION_DELAY)
             else: print("WARNUNG: 'X' nicht gefunden...")
             berichtrao = "Bericht Radioonkologie"
