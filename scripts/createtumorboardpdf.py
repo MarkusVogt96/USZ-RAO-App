@@ -163,6 +163,12 @@ def als_pdf_speichern():
     pyautogui.press('enter') #Bestätigen
 
     # PDF-Speichern-Loop für alle Tumorboard-Anmeldungen
+    #Export dir definieren
+    if not UNIVERSAL.find_and_click_button("button_export_zeile.png", base_path=local_screenshots_dir, confidence=0.90): print("Fehler: Konnte button_export_zeile.png nicht klicken."); sys.exit()
+    export_dir = os.path.join(tb_folder, "Export")
+    clipboard.copy(export_dir)
+    pyautogui.hotkey('ctrl', 'v') #fügt den Text "Export" ein
+
     nummer = 1
     while UNIVERSAL.find_and_click_button(
         "button_dateiname.png",
