@@ -27,6 +27,9 @@ from pages.tumorgroup_pages.LymphomePage import LymphomePage
 from pages.tumorgroup_pages.FernmetastasenPage import FernmetastasenPage
 from pages.tumorgroup_pages.GutartigeErkrankungenPage import GutartigeErkrankungenPage
 from pages.tumorgroup_pages.placeholder_group_page import PlaceholderGroupPage
+from pages.tumorboards_overview_page import TumorboardsOverviewPage
+from pages.specific_tumorboard_page import SpecificTumorboardPage
+from pages.tumorboard_excel_view_page import TumorboardExcelViewPage
 
 from pages.kisim_page import KisimPage
 from pages.cmdscripts_page import CmdScriptsPage
@@ -155,7 +158,7 @@ class TumorGuideApp(QMainWindow):
         self.stacked_widget = QStackedWidget(); self.content_layout.addWidget(self.stacked_widget)
         self.main_layout.addWidget(content_widget); self.setCentralWidget(main_widget)
         self.tumor_group_page = TumorGroupPage(self); self.stacked_widget.addWidget(self.tumor_group_page)
-        self.kisim_page = None; self.cmd_scripts_page = None
+        self.kisim_page = None; self.cmd_scripts_page = None; self.tumorboards_overview_page = None
         self.stacked_widget.currentChanged.connect(self.update_breadcrumb)
         self.stacked_widget.currentChanged.connect(self.handle_page_change)
         
@@ -238,10 +241,12 @@ class TumorGuideApp(QMainWindow):
         else:logo_label.setText("USZ")
         dept_label=QLabel("Department of Radiation Oncology");dept_label.setFont(QFont("Helvetica",11,QFont.Weight.Bold));dept_label.setStyleSheet("color: #00BFFF; padding: 0; margin: 0; background: transparent;");dept_label.setWordWrap(True);logo_layout.addWidget(logo_label,0,Qt.AlignmentFlag.AlignLeft);logo_layout.addWidget(dept_label,0,Qt.AlignmentFlag.AlignLeft);menu_layout.addWidget(logo_container);separator=QFrame();separator.setFrameShape(QFrame.Shape.HLine);separator.setStyleSheet("background-color: #2a3642; min-height: 1px; max-height: 1px;");menu_layout.addWidget(separator);menu_layout.addSpacing(20)
         self.active_menu_style="QPushButton { background-color: #3292ea; color: white; font-weight: bold; font-size: 16px; text-align: left; padding-left: 15px; border: none; } QPushButton:hover { background-color: #4da2fa; }";self.inactive_menu_style="QPushButton { background-color: transparent; color: white; font-size: 15px; text-align: left; padding-left: 15px; border: none; border-bottom: 1px solid #2a3642; } QPushButton:hover { background-color: #2a3642; }"
-        menu_items=["Tumor navigator","KISIM scripts","Placeholder","Placeholder","Placeholder"]
+        menu_items=["Tumor navigator","KISIM scripts","Tumorboards","Placeholder","Placeholder"]
         for i,item_text in enumerate(menu_items):
             menu_button=QPushButton(item_text);menu_button.setCursor(Qt.CursorShape.PointingHandCursor);menu_button.setFixedHeight(60)
             if i==0:menu_button.setStyleSheet(self.active_menu_style);menu_button.clicked.connect(self.go_home)
+            elif item_text == "Tumorboards": 
+                menu_button.clicked.connect(self.open_tumorboards_overview_page)
             else:
                 menu_button.setStyleSheet(self.inactive_menu_style)
                 if item_text=="KISIM scripts":menu_button.clicked.connect(self.open_kisim_page)
@@ -299,18 +304,77 @@ class TumorGuideApp(QMainWindow):
             add_separator();add_button("KISIM Scripts",KisimPage);add_separator();script_name_full=getattr(current_widget.title_label,'text',lambda:"Script Output")();script_name=script_name_full.split(" (")[0] if " (" in script_name_full else script_name_full
             if not script_name or script_name.startswith("Error:")or script_name=="Script Output":script_name="Script Output"
             add_label(script_name)
+        elif isinstance(current_widget, TumorboardsOverviewPage): # NEU
+            add_separator()
+            add_label("Tumorboards")
+        elif isinstance(current_widget, SpecificTumorboardPage): # NEU
+            board_name = getattr(current_widget.board_info, 'get', lambda k,d: d)('name', 'Board Detail') # Sicherer Zugriff
+            add_separator()
+            add_button("Tumorboards", TumorboardsOverviewPage)
+            add_separator()
+            add_label(board_name)
+        elif isinstance(current_widget, TumorboardExcelViewPage): # NEU
+            board_name = getattr(current_widget, 'board_name', 'Board')
+            excel_date = getattr(current_widget, 'excel_file_date', 'Liste')
+            # Finde die übergeordnete SpecificTumorboardPage (braucht board_folder_name)
+            # Dies ist etwas tricky, da wir die board_info der SpecificPage hier nicht direkt haben.
+            # Wir könnten den date_folder_path verwenden, um die board_info zu rekonstruieren, falls nötig.
+            # Einfacher: Knopf zur Tumorboard-Übersichtsseite und dann den Namen des Boards
+            add_separator()
+            add_button("Tumorboards", TumorboardsOverviewPage)
+            # Den spezifischen Board-Namen als Button zu machen, erfordert, die board_info zu kennen
+            # oder die SpecificTumorboardPage-Instanz zu finden.
+            # Fürs Erste: Button zum spezifischen Board (wenn wir die Instanz finden könnten)
+            # oder Label, wenn nicht.
+            # Nehmen wir an, SpecificTumorboardPage speichert `board_folder_name`
+            
+            # Den parent_board_folder_name aus dem date_folder_path extrahieren
+            parent_board_folder_name = os.path.basename(os.path.dirname(current_widget.date_folder_path))
+
+            add_separator()
+            # Button zur SpecificTumorboardPage, die diesen Ordner verwaltet
+            add_button(board_name, SpecificTumorboardPage, board_folder_name=parent_board_folder_name)
+            add_separator()
+            add_label(f"Liste vom {excel_date}")
         else:add_separator();add_label(page_name.replace('Page',''))
         self.breadcrumb_layout.addStretch()
-    def find_page_index(self,page_type,entity_name=None,group_name=None):
+    def find_page_index(self, page_type, entity_name=None, group_name=None, **kwargs):
         for i in range(self.stacked_widget.count()):
             widget=self.stacked_widget.widget(i)
-            if isinstance(widget,page_type):
+            if isinstance(widget, page_type):
                 match=True
                 if entity_name is not None:
                     widget_entity_name=getattr(widget,'entity_name',getattr(widget,'tumor_type',None));widget_group_name_attr=getattr(widget,'group_name',None)
                     if not(widget_entity_name==entity_name or(isinstance(widget,PlaceholderGroupPage)and widget_group_name_attr==entity_name)):match=False
                 if match and group_name is not None and getattr(widget,'group_name',None)!=group_name:match=False
                 if match:return i
+            if isinstance(widget, page_type):
+                match = True
+                # Check entity name if provided (für SOPPage, ContouringPage, EntityPage)
+                if entity_name is not None and hasattr(widget, 'entity_name'):
+                    if getattr(widget, 'entity_name', None) != entity_name: match = False
+                elif entity_name is not None and hasattr(widget, 'tumor_type'): # Für SOP/Contouring
+                    if getattr(widget, 'tumor_type', None) != entity_name: match = False
+                
+                # Check group name if provided (für SOPPage, ContouringPage, EntityPage)
+                if match and group_name is not None and hasattr(widget, 'group_name'):
+                    if getattr(widget, 'group_name', None) != group_name: match = False
+
+                # NEU: Check für SpecificTumorboardPage
+                if match and page_type == SpecificTumorboardPage and hasattr(kwargs, 'get'): # Sicherstellen, dass kwargs ein Dict ist
+                    board_folder_name_arg = kwargs.get('board_folder_name')
+                    if board_folder_name_arg is not None and getattr(widget, 'board_folder_name', None) != board_folder_name_arg:
+                        match = False
+                
+                # NEU: Check für TumorboardExcelViewPage
+                if match and page_type == TumorboardExcelViewPage and hasattr(kwargs, 'get'):
+                    date_folder_path_arg = kwargs.get('date_folder_path')
+                    if date_folder_path_arg is not None and getattr(widget, 'date_folder_path', None) != date_folder_path_arg:
+                        match = False
+                        
+                if match:
+                    return i
+            return None
         return None
     def go_home(self):
         if self.stacked_widget.count()>0 and isinstance(self.stacked_widget.widget(0),TumorGroupPage):self.stacked_widget.setCurrentIndex(0);self._update_active_menu("Tumor navigator");print(f"{APP_PREFIX}Navigated to TumorGroupPage (Home).")
@@ -323,6 +387,55 @@ class TumorGuideApp(QMainWindow):
         if not script_key:print(f"ERROR: {APP_PREFIX}No script key provided for CmdScriptsPage.");QMessageBox.warning(self,"Navigation Error","No script selected to run.");return
         if self.cmd_scripts_page is None:print(f"{APP_PREFIX}Creating CmdScriptsPage instance.");self.cmd_scripts_page=CmdScriptsPage(self);self.stacked_widget.addWidget(self.cmd_scripts_page)
         self.stacked_widget.setCurrentWidget(self.cmd_scripts_page);print(f"{APP_PREFIX}Switched to CmdScriptsPage.");self.cmd_scripts_page.run_script_by_key(script_key);self._update_active_menu("KISIM scripts")
+    def open_tumorboards_overview_page(self):
+        print(f"{APP_PREFIX}Opening Tumorboards Overview Page...")
+        if self.tumorboards_overview_page is None:
+            print(f"{APP_PREFIX}Creating TumorboardsOverviewPage instance.")
+            self.tumorboards_overview_page = TumorboardsOverviewPage(self)
+            self.stacked_widget.addWidget(self.tumorboards_overview_page)
+        
+        self.stacked_widget.setCurrentWidget(self.tumorboards_overview_page)
+        self._update_active_menu("Tumorboards")
+        print(f"{APP_PREFIX}Navigated to Tumorboards Overview Page.")
+
+    def open_specific_tumorboard_page(self, board_info):
+        board_folder_name = board_info.get('folder_name', 'UnknownBoard')
+        print(f"{APP_PREFIX}Opening Specific Tumorboard Page for folder: {board_folder_name}")
+        
+        # Dynamischer Import hier, um Circular Import beim Start zu vermeiden
+        from pages.specific_tumorboard_page import SpecificTumorboardPage
+
+        # Jede SpecificTumorboardPage ist einzigartig pro board_folder_name
+        page_index = self.find_page_index(SpecificTumorboardPage, board_folder_name=board_folder_name)
+
+        if page_index is not None:
+            print(f"{APP_PREFIX}Found existing SpecificTumorboardPage for {board_folder_name}, switching.")
+            self.stacked_widget.setCurrentIndex(page_index)
+        else:
+            print(f"{APP_PREFIX}Creating new SpecificTumorboardPage for {board_folder_name}.")
+            specific_page = SpecificTumorboardPage(self, board_info)
+            new_index = self.stacked_widget.addWidget(specific_page)
+            self.stacked_widget.setCurrentIndex(new_index)
+        self._update_active_menu("Tumorboards") # Behalte "Tumorboards" im Hauptmenü aktiv
+
+    def open_tumorboard_excel_view_page(self, date_folder_path, excel_file_name, board_name):
+        print(f"{APP_PREFIX}Opening Tumorboard Excel View Page for: {excel_file_name} in {date_folder_path}")
+        
+        # Dynamischer Import
+        from pages.tumorboard_excel_view_page import TumorboardExcelViewPage
+
+        # Jede ExcelViewPage ist einzigartig pro date_folder_path
+        page_index = self.find_page_index(TumorboardExcelViewPage, date_folder_path=date_folder_path)
+
+        if page_index is not None:
+            print(f"{APP_PREFIX}Found existing TumorboardExcelViewPage for {date_folder_path}, switching.")
+            self.stacked_widget.setCurrentIndex(page_index)
+        else:
+            print(f"{APP_PREFIX}Creating new TumorboardExcelViewPage for {date_folder_path}.")
+            excel_page = TumorboardExcelViewPage(self, date_folder_path, excel_file_name, board_name)
+            new_index = self.stacked_widget.addWidget(excel_page)
+            self.stacked_widget.setCurrentIndex(new_index)
+        self._update_active_menu("Tumorboards") # Behalte "Tumorboards" im Hauptmenü aktiv
     def handle_page_change(self,index):
         current_widget=self.stacked_widget.widget(index);page_name=current_widget.__class__.__name__ if current_widget else"None";print(f"{APP_PREFIX}Page changed to index {index}, widget: {page_name}")
         if hasattr(self,'cmd_scripts_page')and self.cmd_scripts_page is not None:
@@ -332,6 +445,8 @@ class TumorGuideApp(QMainWindow):
         for item_text,button in self.menu_buttons.items():button.setStyleSheet(self.active_menu_style if item_text==active_item_key else self.inactive_menu_style)
     def apply_dark_blue_theme(self):
         palette=QPalette();palette.setColor(QPalette.ColorRole.Window,QColor(25,35,45));palette.setColor(QPalette.ColorRole.WindowText,Qt.GlobalColor.white);palette.setColor(QPalette.ColorRole.Base,QColor(35,45,55));palette.setColor(QPalette.ColorRole.AlternateBase,QColor(45,55,65));palette.setColor(QPalette.ColorRole.ToolTipBase,QColor(25,35,45));palette.setColor(QPalette.ColorRole.ToolTipText,Qt.GlobalColor.white);palette.setColor(QPalette.ColorRole.Text,Qt.GlobalColor.white);palette.setColor(QPalette.ColorRole.Button,QColor(35,45,55));palette.setColor(QPalette.ColorRole.ButtonText,Qt.GlobalColor.white);palette.setColor(QPalette.ColorRole.BrightText,Qt.GlobalColor.red);palette.setColor(QPalette.ColorRole.Link,QColor(42,130,218));palette.setColor(QPalette.ColorRole.Highlight,QColor(42,130,218));palette.setColor(QPalette.ColorRole.HighlightedText,Qt.GlobalColor.black);QApplication.setPalette(palette)
+
+
 
 if __name__ == '__main__':
     print(f"{APP_PREFIX}__main__ block started.")
