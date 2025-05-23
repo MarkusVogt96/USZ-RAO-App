@@ -7,6 +7,9 @@ import clipboard
 from datetime import datetime
 import shutil
 import re
+import openpyxl
+from openpyxl import load_workbook
+
 
 # Get the absolute path of the directory containing the current script (patdata.py)
 script_dir = os.path.dirname(os.path.abspath(__file__))
@@ -121,8 +124,8 @@ def open_tumorboard():
             f.write(f"Aktuell sind keine Patienten für das Tumorboard {tumorboard_auswahl} angemeldet.\n")
         return
 
-    if not UNIVERSAL.find_and_click_button("button_freier_bereich.png", base_path=local_screenshots_dir, confidence=0.95): print("Fehler: freier_bereich_Button nicht gefunden."); sys.exit()
-    time.sleep(3)
+    if not UNIVERSAL.find_and_click_button_offset(image_name="button_erledigt_am.png", base_path=local_screenshots_dir, y_offset=30): print("Fehler: freier_bereich_Button nicht gefunden."); sys.exit()
+    time.sleep(2)
     pyautogui.hotkey('ctrl', 'a') #wählt alles aus
     time.sleep(2)
 
@@ -264,6 +267,95 @@ def pdfs_umbenennen(dated_folder):
             except Exception as e:
                 print(f"Fehler beim Auslesen von {filename}: {e}")
 
+def create_excel_file():
+    import fitz  # PyMuPDF
+
+    # Regex patterns
+    patient_num_re = re.compile(r"\b\d{5,10}\b")
+    geschlecht_geb_re = re.compile(r"\b([MW])\s*/\s*(\d{2}\.\d{2}\.\d{4})")
+    diagnose_re = re.compile(r"Diagnose\s*\n([^\n\r]*)", re.IGNORECASE)
+
+    # Collect data for each PDF
+    patient_data = []
+
+    # Sort files numerically (1.pdf, 2.pdf, ...)
+    pdf_files = sorted(
+        [f for f in os.listdir(dated_folder) if f.lower().endswith(".pdf") and re.fullmatch(r"\d+(\s-\s\d+)?\.pdf", f)],
+        key=lambda x: int(re.match(r"(\d+)", x).group(1))
+    )
+
+    for filename in pdf_files:
+        pdf_path = os.path.join(dated_folder, filename)
+        try:
+            with fitz.open(pdf_path) as doc:
+                text = ""
+                for page in doc:
+                    text += page.get_text()
+            # Suche nach "Patienteninformationen"
+            idx = text.find("Patienteninformationen")
+            patientennummer = name = geschlecht = geburtsdatum = diagnose = ""
+            if idx != -1:
+                after = text[idx + len("Patienteninformationen"):].lstrip()
+                # Patientennummer
+                match_num = patient_num_re.search(after)
+                if match_num:
+                    patientennummer = match_num.group()
+                    # Name: Zeile direkt unter Patientennummer
+                    lines = after[match_num.end():].lstrip().splitlines()
+                    if lines:
+                        name = lines[0].strip()
+                # Geschlecht und Geburtsdatum
+                match_geschlecht = geschlecht_geb_re.search(after)
+                if match_geschlecht:
+                    geschlecht = match_geschlecht.group(1)
+                    geburtsdatum = match_geschlecht.group(2)
+            # Diagnose extrahieren
+            idx_diag = text.lower().find("diagnose")
+            if idx_diag != -1:
+                diag_after = text[idx_diag + len("diagnose"):].lstrip()
+                # Diagnose ist die erste nicht-leere Zeile nach "Diagnose"
+                diag_lines = diag_after.splitlines()
+                for line in diag_lines:
+                    line = line.strip()
+                    if line:
+                        diagnose = line
+                        break
+            patient_data.append([patientennummer, name, geschlecht, geburtsdatum, diagnose])
+        except Exception as e:
+            print(f"Fehler beim Auslesen von {filename}: {e}")
+            patient_data.append(["", "", "", "", ""])
+
+    # Excel-Template kopieren
+    template_path = os.path.join(user_home, "tumorboards", "template.xlsx")
+    if not os.path.exists(template_path):
+        print(f"Excel-Template nicht gefunden: {template_path}")
+        return
+    excel_dst = os.path.join(dated_folder, "template.xlsx")
+    shutil.copy(template_path, excel_dst)
+
+    # Excel ausfüllen
+    wb = load_workbook(excel_dst)
+    ws = wb.active
+    for idx, (patnum, name, geschlecht, geburtsdatum, diagnose) in enumerate(patient_data, start=2):
+        ws[f"B{idx}"] = patnum
+        ws[f"C{idx}"] = name
+        ws[f"D{idx}"] = geschlecht
+        ws[f"E{idx}"] = geburtsdatum
+        ws[f"F{idx}"] = diagnose
+    # Speichern und umbenennen
+    date_str = datetime.now().strftime("%d.%m.%Y")
+    excel_final = os.path.join(dated_folder, f"{date_str}.xlsx")
+    wb.save(excel_final)
+    print(f"Excel-Datei gespeichert als {excel_final}")
+
+    # Template-Datei im Zielordner löschen
+    try:
+        os.remove(excel_dst)
+        print(f"Template-Datei {excel_dst} wurde gelöscht.")
+    except Exception as e:
+        print(f"Fehler beim Löschen der Template-Datei: {e}")
+
+
     
 
 
@@ -291,6 +383,8 @@ def main():
     als_pdf_speichern()
     # Nach dem Verschieben der PDFs aufrufen:
     pdfs_umbenennen(dated_folder)
+    create_excel_file()
+    print("Tumorboard PDF-Erstellung abgeschlossen und Excel befüllt.")
 
 
 if __name__ == "__main__":
