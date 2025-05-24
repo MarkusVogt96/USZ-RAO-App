@@ -9,33 +9,7 @@ from PyQt6.QtGui import QPalette, QColor, QFont, QPixmap, QIcon
 from PyQt6.QtWebEngineWidgets import QWebEngineView
 from PyQt6.QtWebEngineCore import QWebEngineSettings, QWebEngineProfile
 
-# Page Imports (ensure these paths are correct relative to main.py)
-from pages.tumorgroup_pages.tumor_group_page import TumorGroupPage
-from pages.entity_pages.EntityPage import EntityPage
-from pages.entity_pages.sop_page import SOPPage
-from pages.entity_pages.contouring_page import ContouringPage
-
-from pages.tumorgroup_pages.neuroonkologie_page import NeuroonkologiePage
-from pages.tumorgroup_pages.bindegewebstumore_page import BindegewebstumorePage
-from pages.tumorgroup_pages.KopfHalsTumorePage import KopfHalsTumorePage
-from pages.tumorgroup_pages.ThorakaleTumorePage import ThorakaleTumorePage
-from pages.tumorgroup_pages.GastrointestinaleTumorePage import GastrointestinaleTumorePage
-from pages.tumorgroup_pages.UrogenitaleTumorePage import UrogenitaleTumorePage
-from pages.tumorgroup_pages.GynPage import GynPage
-from pages.tumorgroup_pages.HauttumorePage import HauttumorePage
-from pages.tumorgroup_pages.LymphomePage import LymphomePage
-from pages.tumorgroup_pages.FernmetastasenPage import FernmetastasenPage
-from pages.tumorgroup_pages.GutartigeErkrankungenPage import GutartigeErkrankungenPage
-from pages.tumorgroup_pages.placeholder_group_page import PlaceholderGroupPage
-
-from pages.kisim_page import KisimPage
-from pages.cmdscripts_page import CmdScriptsPage
-from pages.pdf_reader import PdfReaderPage
-
-from pages.tumorboards_page import TumorboardsPage
-from pages.specific_tumorboard_page import SpecificTumorboardPage
-from pages.excel_viewer_page import ExcelViewerPage
-
+# Page Imports (ensure these paths are correct relative to main.py)from pages.tumorgroup_pages.tumor_group_page import TumorGroupPagefrom pages.entity_pages.EntityPage import EntityPagefrom pages.entity_pages.sop_page import SOPPagefrom pages.entity_pages.contouring_page import ContouringPagefrom pages.tumorgroup_pages.neuroonkologie_page import NeuroonkologiePagefrom pages.tumorgroup_pages.bindegewebstumore_page import BindegewebstumorePagefrom pages.tumorgroup_pages.KopfHalsTumorePage import KopfHalsTumorePagefrom pages.tumorgroup_pages.ThorakaleTumorePage import ThorakaleTumorePagefrom pages.tumorgroup_pages.GastrointestinaleTumorePage import GastrointestinaleTumorePagefrom pages.tumorgroup_pages.UrogenitaleTumorePage import UrogenitaleTumorePagefrom pages.tumorgroup_pages.GynPage import GynPagefrom pages.tumorgroup_pages.HauttumorePage import HauttumorePagefrom pages.tumorgroup_pages.LymphomePage import LymphomePagefrom pages.tumorgroup_pages.FernmetastasenPage import FernmetastasenPagefrom pages.tumorgroup_pages.GutartigeErkrankungenPage import GutartigeErkrankungenPagefrom pages.tumorgroup_pages.placeholder_group_page import PlaceholderGroupPagefrom pages.kisim_page import KisimPagefrom pages.cmdscripts_page import CmdScriptsPagefrom pages.pdf_reader import PdfReaderPagefrom pages.tumorboards_page import TumorboardsPagefrom pages.specific_tumorboard_page import SpecificTumorboardPagefrom pages.excel_viewer_page import ExcelViewerPage
 
 # Standard Library Imports
 import sys
@@ -160,7 +134,7 @@ class TumorGuideApp(QMainWindow):
         self.stacked_widget = QStackedWidget(); self.content_layout.addWidget(self.stacked_widget)
         self.main_layout.addWidget(content_widget); self.setCentralWidget(main_widget)
         self.tumor_group_page = TumorGroupPage(self); self.stacked_widget.addWidget(self.tumor_group_page)
-        self.kisim_page = None; self.cmd_scripts_page = None; self.tumorboards_page = None
+        self.kisim_page = None; self.cmd_scripts_page = None; self.tumorboards_page = None; self.tumorboards_page = None
         self.stacked_widget.currentChanged.connect(self.update_breadcrumb)
         self.stacked_widget.currentChanged.connect(self.handle_page_change)
         
@@ -243,14 +217,13 @@ class TumorGuideApp(QMainWindow):
         else:logo_label.setText("USZ")
         dept_label=QLabel("Department of Radiation Oncology");dept_label.setFont(QFont("Helvetica",11,QFont.Weight.Bold));dept_label.setStyleSheet("color: #00BFFF; padding: 0; margin: 0; background: transparent;");dept_label.setWordWrap(True);logo_layout.addWidget(logo_label,0,Qt.AlignmentFlag.AlignLeft);logo_layout.addWidget(dept_label,0,Qt.AlignmentFlag.AlignLeft);menu_layout.addWidget(logo_container);separator=QFrame();separator.setFrameShape(QFrame.Shape.HLine);separator.setStyleSheet("background-color: #2a3642; min-height: 1px; max-height: 1px;");menu_layout.addWidget(separator);menu_layout.addSpacing(20)
         self.active_menu_style="QPushButton { background-color: #3292ea; color: white; font-weight: bold; font-size: 16px; text-align: left; padding-left: 15px; border: none; } QPushButton:hover { background-color: #4da2fa; }";self.inactive_menu_style="QPushButton { background-color: transparent; color: white; font-size: 15px; text-align: left; padding-left: 15px; border: none; border-bottom: 1px solid #2a3642; } QPushButton:hover { background-color: #2a3642; }"
-        menu_items=["Tumor navigator","KISIM Scripts","Tumorboards","Placeholder","Placeholder"]
+        menu_items=["Tumor navigator","Tumorboards","Placeholder","Placeholder","Placeholder"]
         for i,item_text in enumerate(menu_items):
             menu_button=QPushButton(item_text);menu_button.setCursor(Qt.CursorShape.PointingHandCursor);menu_button.setFixedHeight(60)
             if i==0:menu_button.setStyleSheet(self.active_menu_style);menu_button.clicked.connect(self.go_home)
             else:
                 menu_button.setStyleSheet(self.inactive_menu_style)
-                if item_text=="KISIM Scripts":menu_button.clicked.connect(self.open_kisim_page)
-                elif item_text=="Tumorboards":menu_button.clicked.connect(self.open_tumorboards_page)
+                if item_text=="Tumorboards":menu_button.clicked.connect(self.open_tumorboards_page)
             self.menu_buttons[item_text]=menu_button;menu_layout.addWidget(menu_button)
         menu_layout.addStretch();return menu_frame
     def _create_header(self): header_layout=QHBoxLayout();header_layout.setContentsMargins(0,0,30,0);header_layout.setSpacing(0);header_layout.addStretch();return header_layout
@@ -303,7 +276,7 @@ class TumorGuideApp(QMainWindow):
         elif isinstance(current_widget,TumorboardsPage):add_separator();add_label("Tumorboards")
         elif isinstance(current_widget,SpecificTumorboardPage):add_separator();add_button("Tumorboards",TumorboardsPage);add_separator();add_label(getattr(current_widget,'tumorboard_name','Tumorboard'))
         elif isinstance(current_widget,ExcelViewerPage):add_separator();add_button("Tumorboards",TumorboardsPage);add_separator();add_button(getattr(current_widget,'tumorboard_name','Tumorboard'),SpecificTumorboardPage,entity_name=getattr(current_widget,'tumorboard_name','Tumorboard'));add_separator();add_label(getattr(current_widget,'date_str','Datum'))
-        elif isinstance(current_widget,KisimPage):add_separator();add_label("KISIM Scripts")
+                elif isinstance(current_widget,KisimPage):add_separator();add_label("KISIM Scripts")
         elif isinstance(current_widget,CmdScriptsPage):
             add_separator();add_button("KISIM Scripts",KisimPage);add_separator();script_name_full=getattr(current_widget.title_label,'text',lambda:"Script Output")();script_name=script_name_full.split(" (")[0] if " (" in script_name_full else script_name_full
             if not script_name or script_name.startswith("Error:")or script_name=="Script Output":script_name="Script Output"
@@ -320,34 +293,12 @@ class TumorGuideApp(QMainWindow):
                     if not(widget_entity_name==entity_name or(isinstance(widget,PlaceholderGroupPage)and widget_group_name_attr==entity_name)):match=False
                 if match and group_name is not None and getattr(widget,'group_name',None)!=group_name:match=False
                 if match:return i
-        return None    
-    def go_home(self):        
-        if self.stacked_widget.count()>0 and isinstance(self.stacked_widget.widget(0),TumorGroupPage):
-            self.stacked_widget.setCurrentIndex(0);self._update_active_menu("Tumor navigator");print(f"{APP_PREFIX}Navigated to TumorGroupPage (Home).")        
-        else:print(f"WARNUNG: {APP_PREFIX}Could not navigate home, initial page is not TumorGroupPage or doesn't exist.")    
-    def open_kisim_page(self):        
-        if self.kisim_page is None:
-            print(f"{APP_PREFIX}Creating KisimPage instance.")
-            self.kisim_page=KisimPage(self)
-            self.stacked_widget.addWidget(self.kisim_page)
-        
-        self.stacked_widget.setCurrentWidget(self.kisim_page)
-        self._update_active_menu("KISIM Scripts")
-        print(f"{APP_PREFIX}Navigated to KISIM Scripts page.")    
-    def open_tumorboards_page(self):        
-        if self.tumorboards_page is None:
-            print(f"{APP_PREFIX}Creating TumorboardsPage instance.")
-            self.tumorboards_page=TumorboardsPage(self)
-            self.stacked_widget.addWidget(self.tumorboards_page)
-        
-        self.stacked_widget.setCurrentWidget(self.tumorboards_page)
-        self._update_active_menu("Tumorboards")
-        print(f"{APP_PREFIX}Navigated to Tumorboards page.")
+        return None    def go_home(self):        if self.stacked_widget.count()>0 and isinstance(self.stacked_widget.widget(0),TumorGroupPage):self.stacked_widget.setCurrentIndex(0);self._update_active_menu("Tumor navigator");print(f"{APP_PREFIX}Navigated to TumorGroupPage (Home).")        else:print(f"WARNUNG: {APP_PREFIX}Could not navigate home, initial page is not TumorGroupPage or doesn't exist.")    def open_kisim_page(self):        if self.kisim_page is None:print(f"{APP_PREFIX}Creating KisimPage instance.");self.kisim_page=KisimPage(self);self.stacked_widget.addWidget(self.kisim_page)        self.stacked_widget.setCurrentWidget(self.kisim_page);self._update_active_menu("KISIM scripts");print(f"{APP_PREFIX}Navigated to KISIM Scripts page.")    def open_tumorboards_page(self):        if self.tumorboards_page is None:print(f"{APP_PREFIX}Creating TumorboardsPage instance.");self.tumorboards_page=TumorboardsPage(self);self.stacked_widget.addWidget(self.tumorboards_page)        self.stacked_widget.setCurrentWidget(self.tumorboards_page);self._update_active_menu("Tumorboards");print(f"{APP_PREFIX}Navigated to Tumorboards page.")
     def open_cmd_scripts_page(self,script_key:str):
         print(f"{APP_PREFIX}Attempting to open CmdScriptsPage for script key: {script_key}")
         if not script_key:print(f"ERROR: {APP_PREFIX}No script key provided for CmdScriptsPage.");QMessageBox.warning(self,"Navigation Error","No script selected to run.");return
         if self.cmd_scripts_page is None:print(f"{APP_PREFIX}Creating CmdScriptsPage instance.");self.cmd_scripts_page=CmdScriptsPage(self);self.stacked_widget.addWidget(self.cmd_scripts_page)
-        self.stacked_widget.setCurrentWidget(self.cmd_scripts_page);print(f"{APP_PREFIX}Switched to CmdScriptsPage.");self.cmd_scripts_page.run_script_by_key(script_key);self._update_active_menu("KISIM Scripts")
+        self.stacked_widget.setCurrentWidget(self.cmd_scripts_page);print(f"{APP_PREFIX}Switched to CmdScriptsPage.");self.cmd_scripts_page.run_script_by_key(script_key);self._update_active_menu("KISIM scripts")
     def handle_page_change(self,index):
         current_widget=self.stacked_widget.widget(index);page_name=current_widget.__class__.__name__ if current_widget else"None";print(f"{APP_PREFIX}Page changed to index {index}, widget: {page_name}")
         if hasattr(self,'cmd_scripts_page')and self.cmd_scripts_page is not None:
