@@ -20,7 +20,6 @@ class ExcelViewerPage(QWidget):
         
         self.setup_ui()
         self.load_excel_file()
-        self.refresh_finalization_state()  # Check if tumorboard is finalized
         logging.info(f"ExcelViewerPage UI setup complete for {tumorboard_name} on {date_str}.")
 
     def setup_ui(self):
@@ -43,14 +42,6 @@ class ExcelViewerPage(QWidget):
         date_label.setStyleSheet("color: #00BFFF; margin-bottom: 20px;")
         date_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         main_layout.addWidget(date_label)
-        
-        # Timestamp label (initially hidden)
-        self.timestamp_label = QLabel("")
-        self.timestamp_label.setFont(QFont("Helvetica", 12))
-        self.timestamp_label.setStyleSheet("color: #90EE90; margin-bottom: 10px;")
-        self.timestamp_label.setAlignment(Qt.AlignmentFlag.AlignLeft)
-        self.timestamp_label.setVisible(False)
-        main_layout.addWidget(self.timestamp_label)
 
         # "Starte Tumor Board" Button (50px spacing from breadcrumb)
         start_button_container = QWidget()
@@ -151,24 +142,7 @@ class ExcelViewerPage(QWidget):
             self.table_widget.setRowCount(len(df))
             self.table_widget.setColumnCount(len(df.columns))
             
-            # Set column headers
-            self.table_widget.setHorizontalHeaderLabels([str(col) for col in df.columns])
-
-            # Fill the table with data
-            for row_idx, row in df.iterrows():
-                for col_idx, value in enumerate(row):
-                    # Convert value to string, handle NaN values
-                    if pd.isna(value):
-                        display_value = ""
-                    else:
-                        display_value = str(value)
-                        # Clean patient numbers - remove .0 if present
-                        if col_idx < len(df.columns) and str(df.columns[col_idx]).lower() == 'patientennummer':
-                            if display_value.endswith('.0'):
-                                display_value = display_value[:-2]
-                    
-                    item = QTableWidgetItem(display_value)
-                    self.table_widget.setItem(row_idx, col_idx, item)
+                        # Set column headers            self.table_widget.setHorizontalHeaderLabels([str(col) for col in df.columns])            # Fill the table with data            for row_idx, row in df.iterrows():                for col_idx, value in enumerate(row):                    # Convert value to string, handle NaN values                    if pd.isna(value):                        display_value = ""                    else:                        display_value = str(value)                        # Clean patient numbers - remove .0 if present                        if col_idx < len(df.columns) and str(df.columns[col_idx]).lower() == 'patientennummer':                            if display_value.endswith('.0'):                                display_value = display_value[:-2]                                        item = QTableWidgetItem(display_value)                    self.table_widget.setItem(row_idx, col_idx, item)
 
             # Resize columns to content
             self.table_widget.resizeColumnsToContents()
@@ -259,99 +233,3 @@ class ExcelViewerPage(QWidget):
             session_page = TumorboardSessionPage(self.main_window, self.tumorboard_name, self.date_str)
             new_index = self.main_window.stacked_widget.addWidget(session_page)
             self.main_window.stacked_widget.setCurrentIndex(new_index) 
-
-    def refresh_finalization_state(self):
-        """Check if tumorboard is finalized and update UI accordingly"""
-        timestamp_file = Path.home() / "tumorboards" / self.tumorboard_name / self.date_str / "finalized_timestamp.txt"
-        
-        if timestamp_file.exists():
-            try:
-                with open(timestamp_file, 'r', encoding='utf-8') as f:
-                    timestamp_content = f.read().strip()
-                
-                # Update timestamp label
-                self.timestamp_label.setText(f"Abgeschlossen: {timestamp_content}")
-                self.timestamp_label.setVisible(True)
-                
-                # Update button text and style
-                self.start_tumorboard_button.setText("Bearbeite abgeschlossenes Tumorboard")
-                self.start_tumorboard_button.setStyleSheet("""
-                    QPushButton {
-                        background-color: #114473;
-                        color: white;
-                        border: none;
-                        border-radius: 8px;
-                        padding: 10px 20px;
-                        font-weight: bold;
-                    }
-                    QPushButton:hover {
-                        background-color: #1a5a9e;
-                    }
-                    QPushButton:pressed {
-                        background-color: #0f3a63;
-                    }
-                """)
-                self.start_tumorboard_button.clicked.disconnect()  # Remove existing connection
-                self.start_tumorboard_button.clicked.connect(self.edit_finalized_tumorboard)
-                
-                logging.info(f"Tumorboard marked as finalized: {timestamp_content}")
-                
-            except Exception as e:
-                logging.error(f"Error reading timestamp file: {e}")
-                self.timestamp_label.setVisible(False)
-        else:
-            # Not finalized - use original green button
-            self.timestamp_label.setVisible(False)
-            self.start_tumorboard_button.setText("Starte Tumor Board")
-            self.start_tumorboard_button.setStyleSheet("""
-                QPushButton {
-                    background-color: #2E8B57;
-                    color: white;
-                    border: none;
-                    border-radius: 8px;
-                    padding: 10px 20px;
-                    font-weight: bold;
-                }
-                QPushButton:hover {
-                    background-color: #3CB371;
-                }
-                QPushButton:pressed {
-                    background-color: #228B22;
-                }
-            """)
-            self.start_tumorboard_button.clicked.disconnect()  # Remove existing connection
-            self.start_tumorboard_button.clicked.connect(self.start_tumorboard_session)
-    
-    def edit_finalized_tumorboard(self):
-        """Handle editing of a finalized tumorboard with warning dialog"""
-        msg_box = QMessageBox(self)
-        msg_box.setWindowTitle("Abgeschlossenes Tumorboard bearbeiten")
-        msg_box.setText("Möchten Sie das abgeschlossene Tumorboard nachträglich bearbeiten?\n\n"
-                        "Bitte beachten Sie: Wenn Sie das bearbeitete Tumorboard speichern "
-                        "erfolgt die Dokumentation mittels eines Timestamps und Ihren Benutzerdaten.")
-        msg_box.setStandardButtons(QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No)
-        msg_box.setDefaultButton(QMessageBox.StandardButton.No)
-        msg_box.setStyleSheet("""
-            QMessageBox {
-                background-color: #1a2633;
-                color: white;
-            }
-            QPushButton {
-                background-color: #114473;
-                color: white;
-                border: none;
-                border-radius: 4px;
-                padding: 8px 16px;
-                font-weight: bold;
-                min-width: 80px;
-            }
-            QPushButton:hover {
-                background-color: #1a5a9e;
-            }
-        """)
-        
-        result = msg_box.exec()
-        
-        if result == QMessageBox.StandardButton.Yes:
-            # Proceed with editing
-            self.start_tumorboard_session() 

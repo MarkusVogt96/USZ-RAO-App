@@ -35,6 +35,7 @@ from pages.pdf_reader import PdfReaderPage
 from pages.tumorboards_page import TumorboardsPage
 from pages.specific_tumorboard_page import SpecificTumorboardPage
 from pages.excel_viewer_page import ExcelViewerPage
+from pages.tumorboard_session_page import TumorboardSessionPage
 
 
 # Standard Library Imports
@@ -303,6 +304,7 @@ class TumorGuideApp(QMainWindow):
         elif isinstance(current_widget,TumorboardsPage):add_separator();add_label("Tumorboards")
         elif isinstance(current_widget,SpecificTumorboardPage):add_separator();add_button("Tumorboards",TumorboardsPage);add_separator();add_label(getattr(current_widget,'tumorboard_name','Tumorboard'))
         elif isinstance(current_widget,ExcelViewerPage):add_separator();add_button("Tumorboards",TumorboardsPage);add_separator();add_button(getattr(current_widget,'tumorboard_name','Tumorboard'),SpecificTumorboardPage,entity_name=getattr(current_widget,'tumorboard_name','Tumorboard'));add_separator();add_label(getattr(current_widget,'date_str','Datum'))
+        elif isinstance(current_widget,TumorboardSessionPage):add_separator();add_button("Tumorboards",TumorboardsPage);add_separator();add_button(getattr(current_widget,'tumorboard_name','Tumorboard'),SpecificTumorboardPage,entity_name=getattr(current_widget,'tumorboard_name','Tumorboard'));add_separator();add_button(getattr(current_widget,'date_str','Datum'),ExcelViewerPage,entity_name=f"{getattr(current_widget,'tumorboard_name','Tumorboard')}_{getattr(current_widget,'date_str','Datum')}");add_separator();add_label("Session")
         elif isinstance(current_widget,KisimPage):add_separator();add_label("KISIM Scripts")
         elif isinstance(current_widget,CmdScriptsPage):
             add_separator();add_button("KISIM Scripts",KisimPage);add_separator();script_name_full=getattr(current_widget.title_label,'text',lambda:"Script Output")();script_name=script_name_full.split(" (")[0] if " (" in script_name_full else script_name_full
@@ -348,6 +350,28 @@ class TumorGuideApp(QMainWindow):
         if not script_key:print(f"ERROR: {APP_PREFIX}No script key provided for CmdScriptsPage.");QMessageBox.warning(self,"Navigation Error","No script selected to run.");return
         if self.cmd_scripts_page is None:print(f"{APP_PREFIX}Creating CmdScriptsPage instance.");self.cmd_scripts_page=CmdScriptsPage(self);self.stacked_widget.addWidget(self.cmd_scripts_page)
         self.stacked_widget.setCurrentWidget(self.cmd_scripts_page);print(f"{APP_PREFIX}Switched to CmdScriptsPage.");self.cmd_scripts_page.run_script_by_key(script_key);self._update_active_menu("KISIM Scripts")
+    
+    def navigate_back_to_excel_viewer(self, tumorboard_name, date_str):
+        """Navigate back to excel viewer page and refresh it to show timestamp"""
+        print(f"{APP_PREFIX}Navigating back to Excel viewer for {tumorboard_name} on {date_str}")
+        
+        # Find existing Excel viewer page
+        existing_page_index = self.find_page_index(ExcelViewerPage, 
+                                                   entity_name=f"{tumorboard_name}_{date_str}")
+        if existing_page_index is not None:
+            print(f"{APP_PREFIX}Found existing Excel viewer page, switching to it.")
+            self.stacked_widget.setCurrentIndex(existing_page_index)
+            
+            # Refresh the page to update button state if needed
+            excel_page = self.stacked_widget.widget(existing_page_index)
+            if hasattr(excel_page, 'refresh_finalization_state'):
+                excel_page.refresh_finalization_state()
+        else:
+            print(f"{APP_PREFIX}Creating new Excel viewer page.")
+            excel_page = ExcelViewerPage(self, tumorboard_name, date_str)
+            new_index = self.stacked_widget.addWidget(excel_page)
+            self.stacked_widget.setCurrentIndex(new_index)
+
     def handle_page_change(self,index):
         current_widget=self.stacked_widget.widget(index);page_name=current_widget.__class__.__name__ if current_widget else"None";print(f"{APP_PREFIX}Page changed to index {index}, widget: {page_name}")
         if hasattr(self,'cmd_scripts_page')and self.cmd_scripts_page is not None:
