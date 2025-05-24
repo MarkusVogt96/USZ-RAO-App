@@ -59,8 +59,8 @@ class ExcelViewerPage(QWidget):
 
         self.start_tumorboard_button = QPushButton("Starte Tumor Board")
         self.start_tumorboard_button.setFont(QFont("Helvetica", 14, QFont.Weight.Bold))
-        self.start_tumorboard_button.setFixedHeight(50)
-        self.start_tumorboard_button.setMaximumWidth(300)
+        self.start_tumorboard_button.setFixedHeight(70)  # Consistent height
+        self.start_tumorboard_button.setMaximumWidth(200)  # Consistent width
         self.start_tumorboard_button.setCursor(Qt.CursorShape.PointingHandCursor)
         self.start_tumorboard_button.setStyleSheet("""
             QPushButton {
@@ -270,11 +270,13 @@ class ExcelViewerPage(QWidget):
                     timestamp_content = f.read().strip()
                 
                 # Update timestamp label
-                self.timestamp_label.setText(f"Abgeschlossen: {timestamp_content}")
+                self.timestamp_label.setText(f"{timestamp_content}")
                 self.timestamp_label.setVisible(True)
                 
                 # Update button text and style
-                self.start_tumorboard_button.setText("Bearbeite abgeschlossenes Tumorboard")
+                self.start_tumorboard_button.setText("Editiere\nTumorboard")
+                self.start_tumorboard_button.setFixedHeight(70)  # Increased height for 2 lines
+                self.start_tumorboard_button.setMaximumWidth(200)  # Reduced width
                 self.start_tumorboard_button.setStyleSheet("""
                     QPushButton {
                         background-color: #114473;
@@ -283,6 +285,7 @@ class ExcelViewerPage(QWidget):
                         border-radius: 8px;
                         padding: 10px 20px;
                         font-weight: bold;
+                        font-size: 12px;
                     }
                     QPushButton:hover {
                         background-color: #1a5a9e;
@@ -303,6 +306,8 @@ class ExcelViewerPage(QWidget):
             # Not finalized - use original green button
             self.timestamp_label.setVisible(False)
             self.start_tumorboard_button.setText("Starte Tumor Board")
+            self.start_tumorboard_button.setFixedHeight(70)  # Consistent height
+            self.start_tumorboard_button.setMaximumWidth(200)  # Consistent width
             self.start_tumorboard_button.setStyleSheet("""
                 QPushButton {
                     background-color: #2E8B57;
@@ -311,6 +316,7 @@ class ExcelViewerPage(QWidget):
                     border-radius: 8px;
                     padding: 10px 20px;
                     font-weight: bold;
+                    font-size: 14px;
                 }
                 QPushButton:hover {
                     background-color: #3CB371;

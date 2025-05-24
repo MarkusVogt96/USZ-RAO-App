@@ -121,14 +121,46 @@ class BenutzerdatenDialog(QDialog):
         self.nachname_edit.setStyleSheet(input_style)
         
         # Labels
-        vorname_label = QLabel("Vorname:")
-        nachname_label = QLabel("Nachname:")
-        label_style = "color: white;"
-        vorname_label.setStyleSheet(label_style)
-        nachname_label.setStyleSheet(label_style)
+        label_style = "color: white; font-weight: bold;"
+        optional_style = "color: #cccccc; font-size: 12px; margin-top: 2px;"
         
-        form_layout.addRow(vorname_label, self.vorname_edit)
-        form_layout.addRow(nachname_label, self.nachname_edit)
+        name_label = QLabel("Name:")
+        birth_date_label = QLabel("Geburtsdatum:")
+        birth_date_optional = QLabel("(optional)")
+        birth_date_optional.setStyleSheet(optional_style)
+        
+        patient_number_label = QLabel("Patientennummer:")
+        diagnosis_label = QLabel("Diagnose:")
+        icd_code_label = QLabel("ICD-Code:")
+        icd_code_optional = QLabel("(optional)")
+        icd_code_optional.setStyleSheet(optional_style)
+        
+        name_label.setStyleSheet(label_style)
+        birth_date_label.setStyleSheet(label_style)
+        patient_number_label.setStyleSheet(label_style)
+        diagnosis_label.setStyleSheet(label_style)
+        icd_code_label.setStyleSheet(label_style)
+        
+        # Create containers for labels with optional text
+        birth_date_container = QWidget()
+        birth_date_layout = QVBoxLayout(birth_date_container)
+        birth_date_layout.setContentsMargins(0, 0, 0, 0)
+        birth_date_layout.setSpacing(0)
+        birth_date_layout.addWidget(birth_date_label)
+        birth_date_layout.addWidget(birth_date_optional)
+        
+        icd_code_container = QWidget()
+        icd_code_layout = QVBoxLayout(icd_code_container)
+        icd_code_layout.setContentsMargins(0, 0, 0, 0)
+        icd_code_layout.setSpacing(0)
+        icd_code_layout.addWidget(icd_code_label)
+        icd_code_layout.addWidget(icd_code_optional)
+        
+        form_layout.addRow(name_label, self.vorname_edit)
+        form_layout.addRow(birth_date_container, self.nachname_edit)
+        form_layout.addRow(patient_number_label, self.patient_number_edit)
+        form_layout.addRow(diagnosis_label, self.diagnosis_edit)
+        form_layout.addRow(icd_code_container, self.icd_code_edit)
         
         layout.addLayout(form_layout)
         
@@ -225,6 +257,174 @@ class BenutzerdatenDialog(QDialog):
                 }
             """)
             msg_box.exec()
+
+class AddPatientDialog(QDialog):
+    """Dialog for adding a new patient manually"""
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setWindowTitle("Neuen Patienten anlegen")
+        self.setModal(True)
+        self.setFixedSize(500, 450)
+        
+        layout = QVBoxLayout()
+        
+        # Header
+        header_label = QLabel("Neuen Patienten hinzufügen")
+        header_label.setFont(QFont("Helvetica", 16, QFont.Weight.Bold))
+        header_label.setStyleSheet("color: #4FC3F7; margin-bottom: 15px;")
+        header_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        layout.addWidget(header_label)
+        
+        # Form layout
+        form_layout = QFormLayout()
+        form_layout.setHorizontalSpacing(20)
+        form_layout.setVerticalSpacing(10)
+        
+        # Input fields
+        self.name_edit = QLineEdit()
+        self.birth_date_edit = QLineEdit()
+        self.birth_date_edit.setPlaceholderText("DD.MM.YYYY")
+        self.patient_number_edit = QLineEdit()
+        self.diagnosis_edit = QTextEdit()
+        self.diagnosis_edit.setFixedHeight(60)
+        self.icd_code_edit = QLineEdit()
+        
+        # Styling for input fields
+        input_style = """
+            background-color: #114473; 
+            color: white; 
+            border: 1px solid #2a3642; 
+            border-radius: 4px; 
+            padding: 6px; 
+            font-size: 14px;
+        """
+        text_style = """
+            QTextEdit {
+                background-color: #114473; 
+                color: white; 
+                border: 1px solid #2a3642; 
+                border-radius: 4px; 
+                padding: 6px; 
+                font-size: 14px;
+            }
+        """
+        
+        self.name_edit.setStyleSheet(input_style)
+        self.birth_date_edit.setStyleSheet(input_style)
+        self.patient_number_edit.setStyleSheet(input_style)
+        self.diagnosis_edit.setStyleSheet(text_style)
+        self.icd_code_edit.setStyleSheet(input_style)
+        
+        # Labels
+        label_style = "color: white; font-weight: bold;"
+        optional_style = "color: #cccccc; font-size: 12px; margin-top: 2px;"
+        
+        name_label = QLabel("Name:")
+        birth_date_label = QLabel("Geburtsdatum:")
+        birth_date_optional = QLabel("(optional)")
+        birth_date_optional.setStyleSheet(optional_style)
+        
+        patient_number_label = QLabel("Patientennummer:")
+        diagnosis_label = QLabel("Diagnose:")
+        icd_code_label = QLabel("ICD-Code:")
+        icd_code_optional = QLabel("(optional)")
+        icd_code_optional.setStyleSheet(optional_style)
+        
+        name_label.setStyleSheet(label_style)
+        birth_date_label.setStyleSheet(label_style)
+        patient_number_label.setStyleSheet(label_style)
+        diagnosis_label.setStyleSheet(label_style)
+        icd_code_label.setStyleSheet(label_style)
+        
+        # Create containers for labels with optional text
+        birth_date_container = QWidget()
+        birth_date_layout = QVBoxLayout(birth_date_container)
+        birth_date_layout.setContentsMargins(0, 0, 0, 0)
+        birth_date_layout.setSpacing(0)
+        birth_date_layout.addWidget(birth_date_label)
+        birth_date_layout.addWidget(birth_date_optional)
+        
+        icd_code_container = QWidget()
+        icd_code_layout = QVBoxLayout(icd_code_container)
+        icd_code_layout.setContentsMargins(0, 0, 0, 0)
+        icd_code_layout.setSpacing(0)
+        icd_code_layout.addWidget(icd_code_label)
+        icd_code_layout.addWidget(icd_code_optional)
+        
+        form_layout.addRow(name_label, self.name_edit)
+        form_layout.addRow(birth_date_container, self.birth_date_edit)
+        form_layout.addRow(patient_number_label, self.patient_number_edit)
+        form_layout.addRow(diagnosis_label, self.diagnosis_edit)
+        form_layout.addRow(icd_code_container, self.icd_code_edit)
+        
+        layout.addLayout(form_layout)
+        
+        # Buttons
+        button_layout = QHBoxLayout()
+        button_layout.setSpacing(10)
+        
+        self.add_button = QPushButton("Hinzufügen")
+        self.cancel_button = QPushButton("Abbrechen")
+        
+        button_style = """
+            QPushButton {
+                background-color: #2E8B57;
+                color: white;
+                padding: 8px 16px;
+                border: none;
+                border-radius: 4px;
+                font-weight: bold;
+                min-width: 100px;
+            }
+            QPushButton:hover {
+                background-color: #3CB371;
+            }
+        """
+        cancel_style = """
+            QPushButton {
+                background-color: #666;
+                color: white;
+                padding: 8px 16px;
+                border: none;
+                border-radius: 4px;
+                font-weight: bold;
+                min-width: 100px;
+            }
+            QPushButton:hover {
+                background-color: #777;
+            }
+        """
+        
+        self.add_button.setStyleSheet(button_style)
+        self.cancel_button.setStyleSheet(cancel_style)
+        
+        self.add_button.clicked.connect(self.accept)
+        self.cancel_button.clicked.connect(self.reject)
+        
+        button_layout.addStretch()
+        button_layout.addWidget(self.cancel_button)
+        button_layout.addWidget(self.add_button)
+        
+        layout.addLayout(button_layout)
+        self.setLayout(layout)
+        
+        # Apply dark theme
+        self.setStyleSheet("""
+            QDialog {
+                background-color: #1a2633;
+                color: white;
+            }
+        """)
+    
+    def get_patient_data(self):
+        """Get the entered patient data"""
+        return {
+            'name': self.name_edit.text().strip(),
+            'birth_date': self.birth_date_edit.text().strip(),
+            'patient_number': self.patient_number_edit.text().strip(),
+            'diagnosis': self.diagnosis_edit.toPlainText().strip(),
+            'icd_code': self.icd_code_edit.text().strip()
+        }
 
 class TumorboardSessionPage(QWidget):
     def __init__(self, main_window, tumorboard_name, date_str):
@@ -349,6 +549,33 @@ class TumorboardSessionPage(QWidget):
         header_label.setStyleSheet("color: #4FC3F7; margin-bottom: 10px; border: none;")
         header_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         patient_layout.addWidget(header_label)
+        
+        # Add new patient button
+        self.add_patient_button = QPushButton("Neuen Patienten\nanlegen")
+        self.add_patient_button.setFixedHeight(50)
+        self.add_patient_button.setFixedWidth(210)
+        self.add_patient_button.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.add_patient_button.setStyleSheet("""
+            QPushButton {
+                background-color: #2E8B57;
+                color: white;
+                border: none;
+                border-radius: 4px;
+                font-weight: bold;
+                font-size: 12px;
+                text-align: center;
+                padding: 5px;
+                margin-bottom: 10px;
+            }
+            QPushButton:hover {
+                background-color: #3CB371;
+            }
+            QPushButton:pressed {
+                background-color: #228B22;
+            }
+        """)
+        self.add_patient_button.clicked.connect(self.add_new_patient)
+        patient_layout.addWidget(self.add_patient_button)
         
         # Scrollable patient list
         scroll_area = QScrollArea()
@@ -636,7 +863,8 @@ class TumorboardSessionPage(QWidget):
             self.aufgebot_label.setStyleSheet(self.get_label_style(aufgebot_filled))
         
         # Bemerkung label
-        bemerkung_filled = bool(self.bemerkung_text.toPlainText().strip())
+        bemerkung_text = self.bemerkung_text.toPlainText().strip()
+        bemerkung_filled = bool(bemerkung_text) and bemerkung_text != "-"
         self.bemerkung_label.setStyleSheet(self.get_label_style(bemerkung_filled))
 
     def on_radiotherapy_changed(self, text):
@@ -680,13 +908,19 @@ class TumorboardSessionPage(QWidget):
                 birth_date_str = str(row.get('Geburtsdatum', '-'))
                 calculated_age = self.calculate_age(birth_date_str)
                 
+                # Handle ICD code with multiple possible column names and clean data
+                icd_code_raw = row.get('ICD-Code') or row.get('ICD-10') or row.get('ICD Code') or row.get('ICD10') or '-'
+                icd_code = str(icd_code_raw).strip()
+                if icd_code.lower() == 'nan' or pd.isna(icd_code_raw) or icd_code == '':
+                    icd_code = '-'
+                
                 patient_data = {
                     'index': index,
                     'name': patient_name,
                     'birth_date': birth_date_str,
                     'age': calculated_age,
                     'diagnosis': str(row.get('Diagnose', '-')),
-                    'icd_code': str(row.get('ICD-Code', '-')),
+                    'icd_code': icd_code,
                     'patient_number': patient_number_clean,
                     'radiotherapy': str(row.get('Radiotherapie indiziert', '')),
                     'aufgebot': str(row.get('Art des Aufgebots', '')),
@@ -703,6 +937,9 @@ class TumorboardSessionPage(QWidget):
             # Load first patient
             if self.patients_data:
                 self.load_patient(0)
+            
+            # Set initial finalize button state
+            self.update_finalize_button_state()
                 
             logging.info(f"Loaded {len(self.patients_data)} patients from Excel file")
             
@@ -903,6 +1140,58 @@ class TumorboardSessionPage(QWidget):
             button = self.patient_list_layout.itemAt(i).widget()
             if isinstance(button, QPushButton):
                 self.update_patient_button_style(button, i)
+        
+        # Also update finalize button state
+        self.update_finalize_button_state()
+
+    def update_finalize_button_state(self):
+        """Update finalize button color based on patient completion states"""
+        unprocessed_count = 0
+        
+        for patient_index in range(len(self.patients_data)):
+            state = self.patient_states.get(patient_index, 'normal')
+            if state == 'normal':  # Not completed or skipped
+                unprocessed_count += 1
+        
+        if unprocessed_count == 0:
+            # All patients processed - orange button
+            self.finalize_button.setStyleSheet("""
+                QPushButton {
+                    background-color: #FF8C00;
+                    color: white;
+                    border: none;
+                    border-radius: 6px;
+                    font-weight: bold;
+                    font-size: 14px;
+                }
+                QPushButton:hover {
+                    background-color: #FFA500;
+                }
+                QPushButton:pressed {
+                    background-color: #FF7F00;
+                }
+            """)
+        else:
+            # Still unprocessed patients - gray button
+            self.finalize_button.setStyleSheet("""
+                QPushButton {
+                    background-color: #666666;
+                    color: white;
+                    border: none;
+                    border-radius: 6px;
+                    font-weight: bold;
+                    font-size: 14px;
+                }
+                QPushButton:hover {
+                    background-color: #777777;
+                }
+                QPushButton:pressed {
+                    background-color: #555555;
+                }
+            """)
+        
+        # Store unprocessed count for use in finalize dialog
+        self.unprocessed_patient_count = unprocessed_count
 
     def save_patient_data(self):
         """Save current patient data to Excel (silent save)"""
@@ -945,8 +1234,8 @@ class TumorboardSessionPage(QWidget):
         if radiotherapy == "Ja" and (aufgebot == "-" or aufgebot == ""):
             return False
         
-        # Bemerkung must have content
-        if not bemerkung:
+        # Bemerkung must have content (not empty and not just "-")
+        if not bemerkung or bemerkung == "-":
             return False
         
         return True
@@ -965,7 +1254,7 @@ class TumorboardSessionPage(QWidget):
         if radiotherapy == "Ja" and (aufgebot == "-" or aufgebot == ""):
             missing.append("Art des Aufgebots")
         
-        if not bemerkung:
+        if not bemerkung or bemerkung == "-":
             missing.append("Bemerkung/Procedere")
         
         return missing
@@ -1041,7 +1330,16 @@ class TumorboardSessionPage(QWidget):
         # Show confirmation dialog
         msg_box = QMessageBox(self)
         msg_box.setWindowTitle("Tumorboard abschließen")
-        msg_box.setText("Sind Sie sicher dass Sie das Tumorboard finalisieren und exportieren möchten?")
+        
+        # Check if there are unprocessed patients
+        if hasattr(self, 'unprocessed_patient_count') and self.unprocessed_patient_count > 0:
+            msg_text = (f"Sind Sie sicher, dass Sie das Tumor Board abschließen wollen?\n\n"
+                       f"Aktuell wurden {self.unprocessed_patient_count} Patient(en) weder als bearbeitet "
+                       f"noch als übersprungen definiert.")
+        else:
+            msg_text = "Sind Sie sicher dass Sie das Tumorboard finalisieren und exportieren möchten?"
+        
+        msg_box.setText(msg_text)
         msg_box.setStandardButtons(QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No)
         msg_box.setDefaultButton(QMessageBox.StandardButton.No)
         msg_box.setStyleSheet("""
@@ -1191,4 +1489,113 @@ class TumorboardSessionPage(QWidget):
             return False
         except Exception as e:
             logging.error(f"Error saving user data to '{benutzerdaten_file}': {e}")
-            return False 
+            return False
+
+    def add_new_patient(self):
+        """Add a new patient manually through dialog"""
+        dialog = AddPatientDialog(self)
+        result = dialog.exec()
+        
+        if result == QDialog.DialogCode.Accepted:
+            patient_data = dialog.get_patient_data()
+            
+            # Validate required fields
+            if not patient_data['name'] or not patient_data['patient_number'] or not patient_data['diagnosis']:
+                missing_fields = []
+                if not patient_data['name']:
+                    missing_fields.append("Name")
+                if not patient_data['patient_number']:
+                    missing_fields.append("Patientennummer") 
+                if not patient_data['diagnosis']:
+                    missing_fields.append("Diagnose")
+                
+                missing_text = ", ".join(missing_fields)
+                QMessageBox.warning(self, "Eingabe fehlt", 
+                                  f"Folgende Felder müssen ausgefüllt werden: {missing_text}")
+                return
+            
+            # Check if patient number already exists
+            for existing_patient in self.patients_data:
+                if existing_patient['patient_number'] == patient_data['patient_number']:
+                    QMessageBox.warning(self, "Patient existiert", 
+                                      f"Ein Patient mit der Nummer {patient_data['patient_number']} existiert bereits.")
+                    return
+            
+            # Calculate age if birth date provided
+            calculated_age = "-"
+            if patient_data['birth_date']:
+                calculated_age = self.calculate_age(patient_data['birth_date'])
+            
+            # Create new patient data entry
+            new_patient = {
+                'index': len(self.patients_data),  # Temporary index
+                'name': patient_data['name'],
+                'birth_date': patient_data['birth_date'] if patient_data['birth_date'] else '-',
+                'age': calculated_age,
+                'diagnosis': patient_data['diagnosis'] if patient_data['diagnosis'] else '-',
+                'icd_code': patient_data['icd_code'] if patient_data['icd_code'] else '-',
+                'patient_number': patient_data['patient_number'],
+                'radiotherapy': '',
+                'aufgebot': '',
+                'bemerkung': ''
+            }
+            
+            # Add to patients list
+            self.patients_data.append(new_patient)
+            
+            # Initialize patient state
+            patient_index = len(self.patients_data) - 1
+            self.patient_states[patient_index] = 'normal'
+            
+            # Add to Excel file
+            try:
+                self.add_patient_to_excel(new_patient)
+                
+                # Refresh patient buttons
+                self.create_patient_buttons()
+                
+                # Load the new patient
+                self.load_patient(patient_index)
+                
+                QMessageBox.information(self, "Erfolg", 
+                                      f"Patient {patient_data['name']} wurde erfolgreich hinzugefügt.")
+                
+                logging.info(f"Successfully added new patient: {patient_data['name']}")
+                
+            except Exception as e:
+                logging.error(f"Error adding patient to Excel: {e}")
+                QMessageBox.critical(self, "Fehler", 
+                                   f"Fehler beim Hinzufügen des Patienten zur Excel-Datei: {e}")
+                # Remove from patients_data if Excel save failed
+                self.patients_data.pop()
+                del self.patient_states[patient_index]
+    
+    def add_patient_to_excel(self, patient_data):
+        """Add new patient to Excel file"""
+        excel_path = Path.home() / "tumorboards" / self.tumorboard_name / self.date_str / f"{self.date_str}.xlsx"
+        
+        # Read current Excel file
+        df = pd.read_excel(excel_path, engine='openpyxl')
+        
+        # Create new row - use empty string for optional fields if not provided
+        new_row = {
+            'Name': patient_data['name'],
+            'Geburtsdatum': patient_data['birth_date'] if patient_data['birth_date'] else '',
+            'Diagnose': patient_data['diagnosis'],
+            'ICD-Code': patient_data['icd_code'] if patient_data['icd_code'] else '',
+            'Patientennummer': patient_data['patient_number'],
+            'Radiotherapie indiziert': '',
+            'Art des Aufgebots': '',
+            'Bemerkung/Procedere': ''
+        }
+        
+        # Use pd.concat to append new row (this ensures it goes to the end)
+        new_row_df = pd.DataFrame([new_row])
+        df = pd.concat([df, new_row_df], ignore_index=True)
+        
+        # Update the index in patient_data to match Excel row (should be the last row)
+        patient_data['index'] = len(df) - 1
+        
+        # Save back to Excel
+        df.to_excel(excel_path, index=False, engine='openpyxl')
+        logging.info(f"Added new patient to Excel at row {patient_data['index']}: {patient_data['name']}") 
