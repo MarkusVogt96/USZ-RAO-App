@@ -162,7 +162,7 @@ class TumorGuideApp(QMainWindow):
         self.stacked_widget = QStackedWidget(); self.content_layout.addWidget(self.stacked_widget)
         self.main_layout.addWidget(content_widget); self.setCentralWidget(main_widget)
         self.tumor_group_page = TumorGroupPage(self); self.stacked_widget.addWidget(self.tumor_group_page)
-        self.kisim_page = None; self.cmd_scripts_page = None; self.tumorboards_page = None
+        self.kisim_page = None; self.cmd_scripts_page = None; self.tumorboards_page = None; self.developer_area_page = None
         self.stacked_widget.currentChanged.connect(self.update_breadcrumb)
         self.stacked_widget.currentChanged.connect(self.handle_page_change)
         
@@ -296,7 +296,7 @@ class TumorGuideApp(QMainWindow):
         else:logo_label.setText("USZ")
         dept_label=QLabel("Department of Radiation Oncology");dept_label.setFont(QFont("Helvetica",11,QFont.Weight.Bold));dept_label.setStyleSheet("color: #00BFFF; padding: 0; margin: 0; background: transparent;");dept_label.setWordWrap(True);logo_layout.addWidget(logo_label,0,Qt.AlignmentFlag.AlignLeft);logo_layout.addWidget(dept_label,0,Qt.AlignmentFlag.AlignLeft);menu_layout.addWidget(logo_container);separator=QFrame();separator.setFrameShape(QFrame.Shape.HLine);separator.setStyleSheet("background-color: #2a3642; min-height: 1px; max-height: 1px;");menu_layout.addWidget(separator);menu_layout.addSpacing(20)
         self.active_menu_style="QPushButton { background-color: #3292ea; color: white; font-weight: bold; font-size: 16px; text-align: left; padding-left: 15px; border: none; } QPushButton:hover { background-color: #4da2fa; }";self.inactive_menu_style="QPushButton { background-color: transparent; color: white; font-size: 15px; text-align: left; padding-left: 15px; border: none; border-bottom: 1px solid #2a3642; } QPushButton:hover { background-color: #2a3642; }"
-        menu_items=["Tumor navigator","Tumorboards", "KISIM Scripts","Placeholder","Placeholder"]
+        menu_items=["Tumor navigator","Tumorboards", "KISIM Scripts","Placeholder","Developer Area"]
         for i,item_text in enumerate(menu_items):
             menu_button=QPushButton(item_text);menu_button.setCursor(Qt.CursorShape.PointingHandCursor);menu_button.setFixedHeight(60)
             if i==0:menu_button.setStyleSheet(self.active_menu_style);menu_button.clicked.connect(self.go_home)
@@ -304,6 +304,7 @@ class TumorGuideApp(QMainWindow):
                 menu_button.setStyleSheet(self.inactive_menu_style)
                 if item_text=="KISIM Scripts":menu_button.clicked.connect(self.open_kisim_page)
                 elif item_text=="Tumorboards":menu_button.clicked.connect(self.open_tumorboards_page)
+                elif item_text=="Developer Area":menu_button.clicked.connect(self.open_developer_area_page)
             self.menu_buttons[item_text]=menu_button;menu_layout.addWidget(menu_button)
         menu_layout.addStretch();return menu_frame
     def _create_header(self): header_layout=QHBoxLayout();header_layout.setContentsMargins(0,0,30,0);header_layout.setSpacing(0);header_layout.addStretch();return header_layout
@@ -358,10 +359,22 @@ class TumorGuideApp(QMainWindow):
         elif isinstance(current_widget,ExcelViewerPage):add_separator();add_button("Tumorboards",TumorboardsPage);add_separator();add_button(getattr(current_widget,'tumorboard_name','Tumorboard'),SpecificTumorboardPage,entity_name=getattr(current_widget,'tumorboard_name','Tumorboard'));add_separator();add_label(getattr(current_widget,'date_str','Datum'))
         elif isinstance(current_widget,TumorboardSessionPage):add_separator();add_button("Tumorboards",TumorboardsPage);add_separator();add_button(getattr(current_widget,'tumorboard_name','Tumorboard'),SpecificTumorboardPage,entity_name=getattr(current_widget,'tumorboard_name','Tumorboard'));add_separator();add_button(getattr(current_widget,'date_str','Datum'),ExcelViewerPage,entity_name=f"{getattr(current_widget,'tumorboard_name','Tumorboard')}_{getattr(current_widget,'date_str','Datum')}");add_separator();add_label("Session")
         elif isinstance(current_widget,KisimPage):add_separator();add_label("KISIM Scripts")
+        elif current_widget.__class__.__name__ == "DeveloperAreaPage":add_separator();add_label("Developer Area")
         elif isinstance(current_widget,CmdScriptsPage):
-            add_separator();add_button("KISIM Scripts",KisimPage);add_separator();script_name_full=getattr(current_widget.title_label,'text',lambda:"Script Output")();script_name=script_name_full.split(" (")[0] if " (" in script_name_full else script_name_full
+            # Check if we came from Developer Area by looking at the script being run
+            script_name_full=getattr(current_widget.title_label,'text',lambda:"Script Output")();script_name=script_name_full.split(" (")[0] if " (" in script_name_full else script_name_full
             if not script_name or script_name.startswith("Error:")or script_name=="Script Output":script_name="Script Output"
-            add_label(script_name)
+            
+            # Check if this is a database_manager script (from Developer Area)
+            if hasattr(current_widget, 'current_script_key') and current_widget.current_script_key == "database_manager":
+                # Import the DeveloperAreaPage class for breadcrumb button
+                try:
+                    from pages.developer_area_page_simple import DeveloperAreaPage
+                    add_separator();add_button("Developer Area",DeveloperAreaPage);add_separator();add_label(script_name)
+                except ImportError:
+                    add_separator();add_label("Developer Area");add_separator();add_label(script_name)
+            else:
+                add_separator();add_button("KISIM Scripts",KisimPage);add_separator();add_label(script_name)
         else:add_separator();add_label(page_name.replace('Page',''))
         self.breadcrumb_layout.addStretch()
     def find_page_index(self,page_type,entity_name=None,group_name=None):
@@ -419,11 +432,79 @@ class TumorGuideApp(QMainWindow):
         self.stacked_widget.setCurrentWidget(self.tumorboards_page)
         self._update_active_menu("Tumorboards")
         print(f"{APP_PREFIX}Navigated to Tumorboards page.")
+    
+    def open_developer_area_page(self):        
+        if not self.check_tumorboard_session_before_navigation():
+            return  # User cancelled navigation
+        
+        # Show password dialog before opening Developer Area
+        from pages.developer_area_page_simple import PasswordDialog
+        
+        password_dialog = PasswordDialog(self)
+        if password_dialog.exec() == QDialog.DialogCode.Accepted:
+            entered_password = password_dialog.get_password()
+            
+            # Check password
+            if entered_password == "developer":
+                print(f"{APP_PREFIX}Developer Area access granted.")
+                
+                if self.developer_area_page is None:
+                    print(f"{APP_PREFIX}Creating DeveloperAreaPage instance.")
+                    from pages.developer_area_page_simple import DeveloperAreaPage
+                    self.developer_area_page=DeveloperAreaPage(self)
+                    self.stacked_widget.addWidget(self.developer_area_page)
+                
+                self.stacked_widget.setCurrentWidget(self.developer_area_page)
+                self._update_active_menu("Developer Area")
+                print(f"{APP_PREFIX}Navigated to Developer Area page.")
+            else:
+                print(f"{APP_PREFIX}Developer Area access denied - incorrect password.")
+                msg_box = QMessageBox(self)
+                msg_box.setWindowTitle("Zugriff verweigert")
+                msg_box.setText("Falsches Passwort. Zugriff zur Developer Area verweigert.")
+                msg_box.setIcon(QMessageBox.Icon.Warning)
+                msg_box.setStyleSheet("""
+                    QMessageBox {
+                        background-color: #19232D;
+                        color: white;
+                    }
+                    QMessageBox QLabel {
+                        color: white;
+                        font-size: 14px;
+                        padding: 10px;
+                    }
+                    QMessageBox QPushButton {
+                        background-color: #3292ea;
+                        color: white;
+                        padding: 8px 20px;
+                        border: none;
+                        border-radius: 6px;
+                        font-size: 13px;
+                        font-weight: bold;
+                        min-width: 80px;
+                        min-height: 30px;
+                    }
+                    QMessageBox QPushButton:hover {
+                        background-color: #4da2fa;
+                    }
+                    QMessageBox QPushButton:pressed {
+                        background-color: #2a82da;
+                    }
+                """)
+                msg_box.exec()
+        else:
+            print(f"{APP_PREFIX}Developer Area access cancelled by user.")
     def open_cmd_scripts_page(self,script_key:str):
         print(f"{APP_PREFIX}Attempting to open CmdScriptsPage for script key: {script_key}")
         if not script_key:print(f"ERROR: {APP_PREFIX}No script key provided for CmdScriptsPage.");QMessageBox.warning(self,"Navigation Error","No script selected to run.");return
         if self.cmd_scripts_page is None:print(f"{APP_PREFIX}Creating CmdScriptsPage instance.");self.cmd_scripts_page=CmdScriptsPage(self);self.stacked_widget.addWidget(self.cmd_scripts_page)
-        self.stacked_widget.setCurrentWidget(self.cmd_scripts_page);print(f"{APP_PREFIX}Switched to CmdScriptsPage.");self.cmd_scripts_page.run_script_by_key(script_key);self._update_active_menu("KISIM Scripts")
+        self.stacked_widget.setCurrentWidget(self.cmd_scripts_page);print(f"{APP_PREFIX}Switched to CmdScriptsPage.");self.cmd_scripts_page.run_script_by_key(script_key)
+        
+        # Update menu based on script origin
+        if script_key == "database_manager":
+            self._update_active_menu("Developer Area")
+        else:
+            self._update_active_menu("KISIM Scripts")
     
     def navigate_back_to_excel_viewer(self, tumorboard_name, date_str):
         """Navigate back to excel viewer page and refresh it to show timestamp"""

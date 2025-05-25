@@ -39,6 +39,7 @@ class CmdScriptsPage(QWidget):
         self.main_window = main_window # Store if needed later
         self.process = None # QProcess object, managed directly by the widget
         self.output_buffer = "" # Buffer for incomplete lines
+        self.current_script_key = None # Track which script is currently running
         
         # For bundled mode
         self.input_queue = queue.Queue()
@@ -368,6 +369,8 @@ class CmdScriptsPage(QWidget):
         """Starts the execution of a script based on its unique key."""
         
         logging.info(f"Attempting to run script with key: '{script_key}'")
+        # Store the current script key for breadcrumb tracking
+        self.current_script_key = script_key
         # Stop any currently running script first
         self.stop_current_script()
         

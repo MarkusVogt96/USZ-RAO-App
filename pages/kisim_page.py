@@ -27,6 +27,7 @@ script_definitions = [
     ("Physio (stat)", "physio.py"),
     ("Planungs-CT/MRI", "planungsbildgebung.py"),
     ("Ergo (stat)", "ergo.py"),
+    ("Database Manager", "database_manager.py"),
     # Add new scripts here with ("Tile Name", "filename.py")
 ]
 # ---------------------------------------------------------

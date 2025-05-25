@@ -421,8 +421,8 @@ class ExcelViewerPage(QWidget):
         msg_box = QMessageBox(self)
         msg_box.setWindowTitle("Abgeschlossenes Tumorboard bearbeiten")
         msg_box.setText("Möchten Sie das abgeschlossene Tumorboard nachträglich bearbeiten?\n\n"
-                        "Bitte beachten Sie: Wenn Sie das bearbeitete Tumorboard speichern "
-                        "erfolgt die Dokumentation mittels eines Timestamps und Ihren Benutzerdaten.")
+                        "Bitte beachten Sie: Wenn Sie das bearbeitete Tumorboard speichern, "
+                        "erfolgt die Dokumentation mittels Timestamp und Ihrer Benutzerdaten.")
         msg_box.setStandardButtons(QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No)
         msg_box.setDefaultButton(QMessageBox.StandardButton.No)
         msg_box.setStyleSheet("""
