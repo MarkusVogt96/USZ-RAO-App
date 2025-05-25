@@ -1,0 +1,768 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tumorboard Analytics Dashboard</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.js"></script>
+    <script>
+        // Fallback if CDN fails
+        if (typeof Chart === 'undefined') {
+            console.warn('Chart.js CDN failed, loading fallback...');
+            document.write('<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.js"><\/script>');
+        }
+    </script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1a2633 0%, #2a3642 100%);
+            color: #ffffff;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        .dashboard-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            background: linear-gradient(45deg, #4FC3F7, #29B6F6);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .header .subtitle {
+            font-size: 1.1rem;
+            opacity: 0.8;
+            margin-bottom: 10px;
+        }
+
+        .last-updated {
+            font-size: 0.9rem;
+            opacity: 0.6;
+        }
+
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .metric-card {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            padding: 25px;
+            text-align: center;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .metric-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+        }
+
+        .metric-value {
+            font-size: 3rem;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+
+        .metric-label {
+            font-size: 1.1rem;
+            opacity: 0.8;
+        }
+
+        .metric-card:nth-child(1) .metric-value { color: #4FC3F7; }
+        .metric-card:nth-child(2) .metric-value { color: #66BB6A; }
+        .metric-card:nth-child(3) .metric-value { color: #FFA726; }
+        .metric-card:nth-child(4) .metric-value { color: #EF5350; }
+
+        .charts-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .chart-container {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            padding: 25px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            min-height: 400px;
+        }
+
+        .chart-title {
+            font-size: 1.3rem;
+            margin-bottom: 20px;
+            text-align: center;
+            color: #4FC3F7;
+        }
+
+        .chart-wrapper {
+            position: relative;
+            height: 350px;
+        }
+
+        .full-width {
+            grid-column: 1 / -1;
+        }
+
+        .three-column {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .loading {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 200px;
+            font-size: 1.2rem;
+            opacity: 0.7;
+        }
+
+        .spinner {
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top: 3px solid #4FC3F7;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin-right: 15px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .filter-panel {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 30px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .filter-controls {
+            display: flex;
+            gap: 20px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .filter-group {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        .filter-label {
+            font-size: 0.9rem;
+            opacity: 0.8;
+        }
+
+        select, input {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            border-radius: 8px;
+            padding: 8px 12px;
+            color: white;
+            font-size: 0.9rem;
+        }
+
+        select option {
+            background: #1a2633;
+            color: white;
+        }
+
+        .error-message {
+            background: rgba(244, 67, 54, 0.2);
+            border: 1px solid rgba(244, 67, 54, 0.5);
+            border-radius: 10px;
+            padding: 20px;
+            text-align: center;
+            margin: 20px 0;
+        }
+
+        @media (max-width: 768px) {
+            .charts-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .three-column {
+                grid-template-columns: 1fr;
+            }
+            
+            .header h1 {
+                font-size: 2rem;
+            }
+            
+            .metric-value {
+                font-size: 2rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="dashboard-container">
+        <!-- Header -->
+        <div class="header">
+            <h1>🏥 Tumorboard Analytics Dashboard</h1>
+            <div class="subtitle">Interaktive Datenvisualisierung für Tumorboard-Analysen</div>
+            <div class="last-updated" id="lastUpdated">Lade Daten...</div>
+        </div>
+
+        <!-- Filter Panel -->
+        <div class="filter-panel">
+            <div class="filter-controls">
+                <div class="filter-group">
+                    <label class="filter-label">Zeitraum:</label>
+                    <select id="timeRangeFilter">
+                        <option value="all">Alle Daten</option>
+                        <option value="12months">Letzte 12 Monate</option>
+                        <option value="6months">Letzte 6 Monate</option>
+                        <option value="3months">Letzte 3 Monate</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label class="filter-label">Tumorboard:</label>
+                    <select id="tumorboardFilter">
+                        <option value="all">Alle Tumorboards</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label class="filter-label">Ansicht:</label>
+                    <select id="viewModeFilter">
+                        <option value="cases">Patientenfälle</option>
+                        <option value="patients">Eindeutige Patienten</option>
+                        <option value="both">Beide</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        <!-- Key Metrics -->
+        <div class="metrics-grid" id="metricsGrid">
+            <div class="metric-card">
+                <div class="metric-value" id="tumorboardTypes">-</div>
+                <div class="metric-label">Tumorboard-Typen</div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-value" id="totalSessions">-</div>
+                <div class="metric-label">Gesamte Sessions</div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-value" id="uniquePatients">-</div>
+                <div class="metric-label">Eindeutige Patienten</div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-value" id="totalCases">-</div>
+                <div class="metric-label">Gesamte Patientenfälle</div>
+            </div>
+        </div>
+
+        <!-- Main Charts -->
+        <div class="charts-grid">
+            <!-- Temporal Chart -->
+            <div class="chart-container full-width">
+                <div class="chart-title">📈 Zeitliche Entwicklung</div>
+                <div class="chart-wrapper">
+                    <canvas id="temporalChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Secondary Charts -->
+        <div class="charts-grid">
+            <!-- Tumorboard Comparison -->
+            <div class="chart-container">
+                <div class="chart-title">📊 Tumorboard-Vergleich</div>
+                <div class="chart-wrapper">
+                    <canvas id="tumorboardChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Radiotherapy Distribution -->
+            <div class="chart-container">
+                <div class="chart-title">🥧 Radiotherapie-Verteilung</div>
+                <div class="chart-wrapper">
+                    <canvas id="radiotherapyChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Bottom Charts -->
+        <div class="three-column">
+            <!-- ICD Codes -->
+            <div class="chart-container">
+                <div class="chart-title">🔍 Top ICD-Codes</div>
+                <div class="chart-wrapper">
+                    <canvas id="icdChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Patient Flow -->
+            <div class="chart-container">
+                <div class="chart-title">🌊 Patientenfluss</div>
+                <div class="chart-wrapper">
+                    <canvas id="flowChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Additional Stats -->
+            <div class="chart-container">
+                <div class="chart-title">📋 Zusätzliche Statistiken</div>
+                <div class="chart-wrapper">
+                    <canvas id="additionalChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Global variables
+        let dashboardData = null;
+        let charts = {};
+
+        // Chart.js default configuration
+        Chart.defaults.color = '#ffffff';
+        Chart.defaults.borderColor = 'rgba(255, 255, 255, 0.1)';
+        Chart.defaults.backgroundColor = 'rgba(255, 255, 255, 0.1)';
+
+        // Color palette
+        const colors = {
+            primary: '#4FC3F7',
+            secondary: '#66BB6A',
+            accent: '#FFA726',
+            warning: '#EF5350',
+            info: '#AB47BC',
+            success: '#26A69A',
+            gradients: [
+                'rgba(79, 195, 247, 0.8)',
+                'rgba(102, 187, 106, 0.8)',
+                'rgba(255, 167, 38, 0.8)',
+                'rgba(239, 83, 80, 0.8)',
+                'rgba(171, 71, 188, 0.8)',
+                'rgba(38, 166, 154, 0.8)'
+            ]
+        };
+
+        // Load dashboard data
+        async function loadDashboardData() {
+            try {
+                const response = await fetch('dashboard_data.json');
+                if (!response.ok) {
+                    throw new Error('Daten konnten nicht geladen werden');
+                }
+                dashboardData = await response.json();
+                
+                // Update last updated time
+                const lastUpdated = new Date(dashboardData.generated_at);
+                document.getElementById('lastUpdated').textContent = 
+                    `Letzte Aktualisierung: ${lastUpdated.toLocaleString('de-DE')}`;
+                
+                // Initialize dashboard
+                initializeDashboard();
+                
+            } catch (error) {
+                console.error('Error loading dashboard data:', error);
+                showError('Fehler beim Laden der Daten: ' + error.message);
+            }
+        }
+
+        // Show error message
+        function showError(message) {
+            const container = document.querySelector('.dashboard-container');
+            container.innerHTML = `
+                <div class="error-message">
+                    <h2>⚠️ Fehler</h2>
+                    <p>${message}</p>
+                    <p>Bitte stellen Sie sicher, dass die Datenbank synchronisiert wurde.</p>
+                </div>
+            `;
+        }
+
+        // Initialize dashboard
+        function initializeDashboard() {
+            updateKeyMetrics();
+            populateFilters();
+            createCharts();
+            setupEventListeners();
+        }
+
+        // Update key metrics
+        function updateKeyMetrics() {
+            const metrics = dashboardData.key_metrics;
+            document.getElementById('tumorboardTypes').textContent = metrics.tumorboard_types;
+            document.getElementById('totalSessions').textContent = metrics.total_sessions;
+            document.getElementById('uniquePatients').textContent = metrics.unique_patients;
+            document.getElementById('totalCases').textContent = metrics.total_cases;
+        }
+
+        // Populate filter dropdowns
+        function populateFilters() {
+            const tumorboardFilter = document.getElementById('tumorboardFilter');
+            
+            // Add tumorboard options
+            dashboardData.tumorboard_stats.forEach(tb => {
+                if (tb.total_cases > 0) {
+                    const option = document.createElement('option');
+                    option.value = tb.name;
+                    option.textContent = `${tb.name} (${tb.total_cases} Fälle)`;
+                    tumorboardFilter.appendChild(option);
+                }
+            });
+        }
+
+        // Create all charts
+        function createCharts() {
+            createTemporalChart();
+            createTumorboardChart();
+            createRadiotherapyChart();
+            createIcdChart();
+            createFlowChart();
+            createAdditionalChart();
+        }
+
+        // Create temporal chart
+        function createTemporalChart() {
+            const ctx = document.getElementById('temporalChart').getContext('2d');
+            const monthlyData = dashboardData.temporal_data.monthly;
+
+            charts.temporal = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: monthlyData.map(d => d.month),
+                    datasets: [
+                        {
+                            label: 'Eindeutige Patienten',
+                            data: monthlyData.map(d => d.unique_patients),
+                            borderColor: colors.primary,
+                            backgroundColor: colors.gradients[0],
+                            tension: 0.4,
+                            fill: false
+                        },
+                        {
+                            label: 'Gesamte Patientenfälle',
+                            data: monthlyData.map(d => d.total_cases),
+                            borderColor: colors.secondary,
+                            backgroundColor: colors.gradients[1],
+                            tension: 0.4,
+                            fill: false
+                        },
+                        {
+                            label: 'Sessions',
+                            data: monthlyData.map(d => d.sessions),
+                            borderColor: colors.accent,
+                            backgroundColor: colors.gradients[2],
+                            tension: 0.4,
+                            fill: false
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'top',
+                        },
+                        tooltip: {
+                            mode: 'index',
+                            intersect: false,
+                        }
+                    },
+                    scales: {
+                        x: {
+                            display: true,
+                            title: {
+                                display: true,
+                                text: 'Monat'
+                            }
+                        },
+                        y: {
+                            display: true,
+                            title: {
+                                display: true,
+                                text: 'Anzahl'
+                            }
+                        }
+                    },
+                    interaction: {
+                        mode: 'nearest',
+                        axis: 'x',
+                        intersect: false
+                    }
+                }
+            });
+        }
+
+        // Create tumorboard comparison chart
+        function createTumorboardChart() {
+            const ctx = document.getElementById('tumorboardChart').getContext('2d');
+            const tumorboardData = dashboardData.tumorboard_stats.slice(0, 10); // Top 10
+
+            charts.tumorboard = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: tumorboardData.map(d => d.name),
+                    datasets: [{
+                        label: 'Patientenfälle',
+                        data: tumorboardData.map(d => d.total_cases),
+                        backgroundColor: colors.gradients.slice(0, tumorboardData.length),
+                        borderColor: colors.primary,
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    },
+                    scales: {
+                        x: {
+                            ticks: {
+                                maxRotation: 45
+                            }
+                        },
+                        y: {
+                            beginAtZero: true
+                        }
+                    }
+                }
+            });
+        }
+
+        // Create radiotherapy chart
+        function createRadiotherapyChart() {
+            const ctx = document.getElementById('radiotherapyChart').getContext('2d');
+            const radioData = dashboardData.radiotherapy_data.all_patients;
+
+            charts.radiotherapy = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: radioData.map(d => d.status),
+                    datasets: [{
+                        data: radioData.map(d => d.count),
+                        backgroundColor: colors.gradients,
+                        borderColor: colors.primary,
+                        borderWidth: 2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom'
+                        }
+                    }
+                }
+            });
+        }
+
+        // Create ICD chart
+        function createIcdChart() {
+            const ctx = document.getElementById('icdChart').getContext('2d');
+            const icdData = dashboardData.icd_data.top_codes.slice(0, 8); // Top 8
+
+            charts.icd = new Chart(ctx, {
+                type: 'horizontalBar',
+                data: {
+                    labels: icdData.map(d => d.icd_code),
+                    datasets: [{
+                        label: 'Fälle',
+                        data: icdData.map(d => d.total_cases),
+                        backgroundColor: colors.gradients[0],
+                        borderColor: colors.primary,
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    indexAxis: 'y',
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    },
+                    scales: {
+                        x: {
+                            beginAtZero: true
+                        }
+                    }
+                }
+            });
+        }
+
+        // Create flow chart (simplified)
+        function createFlowChart() {
+            const ctx = document.getElementById('flowChart').getContext('2d');
+            const flowData = dashboardData.patient_flow;
+            
+            // Group by target (radiotherapy decision)
+            const groupedData = {};
+            flowData.forEach(item => {
+                if (!groupedData[item.target]) {
+                    groupedData[item.target] = 0;
+                }
+                groupedData[item.target] += item.value;
+            });
+
+            const labels = Object.keys(groupedData);
+            const values = Object.values(groupedData);
+
+            charts.flow = new Chart(ctx, {
+                type: 'pie',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        data: values,
+                        backgroundColor: colors.gradients,
+                        borderColor: colors.primary,
+                        borderWidth: 2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom'
+                        }
+                    }
+                }
+            });
+        }
+
+        // Create additional chart
+        function createAdditionalChart() {
+            const ctx = document.getElementById('additionalChart').getContext('2d');
+            const tumorboardData = dashboardData.tumorboard_stats;
+            
+            // Sessions vs Cases ratio
+            const ratioData = tumorboardData.map(tb => ({
+                name: tb.name,
+                ratio: tb.total_cases / Math.max(tb.sessions, 1)
+            })).filter(d => d.ratio > 0).slice(0, 8);
+
+            charts.additional = new Chart(ctx, {
+                type: 'scatter',
+                data: {
+                    datasets: [{
+                        label: 'Fälle pro Session',
+                        data: ratioData.map((d, i) => ({
+                            x: i,
+                            y: d.ratio
+                        })),
+                        backgroundColor: colors.gradients[3],
+                        borderColor: colors.warning,
+                        borderWidth: 2,
+                        pointRadius: 6
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: false
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    const dataIndex = context.dataIndex;
+                                    const name = ratioData[dataIndex].name;
+                                    const ratio = ratioData[dataIndex].ratio.toFixed(1);
+                                    return `${name}: ${ratio} Fälle/Session`;
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            type: 'linear',
+                            position: 'bottom',
+                            ticks: {
+                                callback: function(value) {
+                                    return ratioData[value] ? ratioData[value].name.substring(0, 8) + '...' : '';
+                                }
+                            }
+                        },
+                        y: {
+                            beginAtZero: true,
+                            title: {
+                                display: true,
+                                text: 'Fälle pro Session'
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        // Setup event listeners
+        function setupEventListeners() {
+            // Filter change handlers
+            document.getElementById('timeRangeFilter').addEventListener('change', applyFilters);
+            document.getElementById('tumorboardFilter').addEventListener('change', applyFilters);
+            document.getElementById('viewModeFilter').addEventListener('change', applyFilters);
+        }
+
+        // Apply filters
+        function applyFilters() {
+            // This would implement filtering logic
+            // For now, just log the filter values
+            const timeRange = document.getElementById('timeRangeFilter').value;
+            const tumorboard = document.getElementById('tumorboardFilter').value;
+            const viewMode = document.getElementById('viewModeFilter').value;
+            
+            console.log('Filters applied:', { timeRange, tumorboard, viewMode });
+            
+            // In a full implementation, this would:
+            // 1. Filter the data based on selections
+            // 2. Update all charts with filtered data
+            // 3. Update key metrics
+        }
+
+        // Initialize dashboard when page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            loadDashboardData();
+        });
+    </script>
+</body>
+</html> 
