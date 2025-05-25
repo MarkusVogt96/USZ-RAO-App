@@ -1,6 +1,6 @@
 from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QLabel, QTableWidget, QTableWidgetItem, 
                              QHeaderView, QScrollArea, QFrame, QMessageBox, QPushButton, QHBoxLayout)
-from PyQt6.QtCore import Qt
+from PyQt6.QtCore import Qt, QTimer
 from PyQt6.QtGui import QFont
 import os
 import logging
@@ -65,11 +65,11 @@ class ExcelViewerPage(QWidget):
         self.edit_tumorboard_button = QPushButton("Editiere Tumorboard")
         self.edit_tumorboard_button.setFont(QFont("Helvetica", 12, QFont.Weight.Bold))
         self.edit_tumorboard_button.setFixedHeight(40)
-        self.edit_tumorboard_button.setFixedWidth(180)
+        self.edit_tumorboard_button.setFixedWidth(220)
         self.edit_tumorboard_button.setCursor(Qt.CursorShape.PointingHandCursor)
         self.edit_tumorboard_button.setStyleSheet("""
             QPushButton {
-                background-color: #FF8C00;
+                background-color: #114473;
                 color: white;
                 border: none;
                 border-radius: 6px;
@@ -153,6 +153,10 @@ class ExcelViewerPage(QWidget):
                 border: 1px solid #425061;
                 font-weight: bold;
             }
+            QTableWidget QTableCornerButton::section {
+                background-color: #1a2633;
+                border: 1px solid #425061;
+            }
         """)
 
         # Set table properties
@@ -170,8 +174,32 @@ class ExcelViewerPage(QWidget):
 
         vertical_header = self.table_widget.verticalHeader()
         vertical_header.setSectionResizeMode(QHeaderView.ResizeMode.ResizeToContents)
+        
+        # Hide the vertical header (row numbers) to avoid offset issues
+        vertical_header.setVisible(False)
+        
+        # Try to fix the corner button styling after widget is created
+        QTimer.singleShot(100, self._fix_corner_button_styling)
 
         main_layout.addWidget(self.table_widget)
+
+    def _fix_corner_button_styling(self):
+        """Fix the corner button styling after the widget is fully initialized"""
+        try:
+            # Find the corner button and apply styling
+            corner_button = self.table_widget.findChild(QPushButton)
+            if corner_button:
+                corner_button.setStyleSheet("""
+                    QPushButton {
+                        background-color: #1a2633;
+                        border: 1px solid #425061;
+                    }
+                """)
+                # Disable the corner button to prevent select all functionality
+                corner_button.setEnabled(False)
+                logging.info("Corner button styling applied successfully")
+        except Exception as e:
+            logging.warning(f"Could not apply corner button styling: {e}")
 
     def load_excel_file(self):
         """Load and display the Excel file for the specific tumorboard and date"""
@@ -192,15 +220,23 @@ class ExcelViewerPage(QWidget):
                 self._show_empty_file_message()
                 return
 
-            # Set up the table
+            # Set up the table with an additional column for row numbers
             self.table_widget.setRowCount(len(df))
-            self.table_widget.setColumnCount(len(df.columns))
+            self.table_widget.setColumnCount(len(df.columns) + 1)
             
-            # Set column headers
-            self.table_widget.setHorizontalHeaderLabels([str(col) for col in df.columns])
+            # Set column headers with row number column first
+            headers = ["#"] + [str(col) for col in df.columns]
+            self.table_widget.setHorizontalHeaderLabels(headers)
 
             # Fill the table with data
             for row_idx, row in df.iterrows():
+                # Add row number in first column with proper numeric sorting
+                row_number_item = QTableWidgetItem()
+                row_number_item.setData(Qt.ItemDataRole.DisplayRole, row_idx + 1)  # Store as integer for proper sorting
+                row_number_item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
+                self.table_widget.setItem(row_idx, 0, row_number_item)
+                
+                # Add data in subsequent columns (offset by 1)
                 for col_idx, value in enumerate(row):
                     # Convert value to string, handle NaN values
                     if pd.isna(value):
@@ -213,14 +249,17 @@ class ExcelViewerPage(QWidget):
                                 display_value = display_value[:-2]
                     
                     item = QTableWidgetItem(display_value)
-                    self.table_widget.setItem(row_idx, col_idx, item)
+                    self.table_widget.setItem(row_idx, col_idx + 1, item)  # Offset by 1 for row number column
 
             # Resize columns to content
             self.table_widget.resizeColumnsToContents()
             
-            # Apply custom column sizing and hiding
-            for col in range(self.table_widget.columnCount()):
-                column_name = str(df.columns[col])
+            # Set width for row number column
+            self.table_widget.setColumnWidth(0, 50)  # Row number column
+            
+            # Apply custom column sizing and hiding (offset by 1 for row number column)
+            for col in range(1, self.table_widget.columnCount()):
+                column_name = str(df.columns[col - 1])  # Offset by 1 for original column index
                 current_width = self.table_widget.columnWidth(col)
                 
                 # Hide specific columns
@@ -236,11 +275,32 @@ class ExcelViewerPage(QWidget):
                     self.table_widget.setColumnWidth(col, 100)
                 
                 # Custom width adjustments
-                if 'name' in column_name.lower() and 'patient' not in column_name.lower():
-                    self.table_widget.setColumnWidth(col, 200)  # HIER BREITE DER NAME SPALTE ANPASSEN
+                if 'patientennummer' in column_name.lower():
+                    self.table_widget.setColumnWidth(col, 126)  # HIER BREITE DER PATIENTENNUMMER SPALTE ANPASSEN
+                
+                elif 'name' in column_name.lower() and 'patient' not in column_name.lower():
+                    self.table_widget.setColumnWidth(col, 180)  # HIER BREITE DER NAME SPALTE ANPASSEN
+
+                elif 'geschlecht' in column_name.lower():
+                    self.table_widget.setColumnWidth(col, 90)  # HIER BREITE DER GESCHLECHT SPALTE ANPASSEN
+
+                elif 'geburt' in column_name.lower() or 'datum' in column_name.lower():
+                    self.table_widget.setColumnWidth(col, 120)  # HIER BREITE DER GEBURTSDATUM SPALTE ANPASSEN
 
                 elif 'diagnose' in column_name.lower():
-                    self.table_widget.setColumnWidth(col, 500)  # HIER BREITE DER DIAGNOSE SPALTE ANPASSEN
+                    self.table_widget.setColumnWidth(col, 400)  # HIER BREITE DER DIAGNOSE SPALTE ANPASSEN
+
+                elif 'icd' in column_name.lower():
+                    self.table_widget.setColumnWidth(col, 80)  # HIER BREITE DER DZD/ICD SPALTE ANPASSEN
+
+                elif 'radiotherapie' in column_name.lower() or 'indiziert' in column_name.lower():
+                    self.table_widget.setColumnWidth(col, 150)  # HIER BREITE DER RADIOTHERAPIE SPALTE ANPASSEN
+
+                elif 'aufgebot' in column_name.lower():
+                    self.table_widget.setColumnWidth(col, 150)  # HIER BREITE DER APPS-AUFGEBOTS SPALTE ANPASSEN
+
+                elif 'bemerkung' in column_name.lower():
+                    self.table_widget.setColumnWidth(col, 150)  # HIER BREITE DER BEMERKUNGSPROZEDERE SPALTE ANPASSEN
 
             logging.info(f"Successfully loaded Excel file with {len(df)} rows and {len(df.columns)} columns")
 
@@ -312,10 +372,12 @@ class ExcelViewerPage(QWidget):
         from .tumorboard_session_page import TumorboardSessionPage
         
         # Check if page already exists
-        existing_page_index = self.main_window.find_page_index(TumorboardSessionPage, 
-                                                               entity_name=f"{self.tumorboard_name}_{self.date_str}_session")
+        existing_page_index = self.main_window.find_page_index(TumorboardSessionPage, entity_name=f"{self.tumorboard_name}_{self.date_str}_session")
         if existing_page_index is not None:
-            logging.info("Found existing tumorboard session page, switching to it.")
+            logging.info("Found existing tumorboard session page, checking for session restoration.")
+            existing_session_page = self.main_window.stacked_widget.widget(existing_page_index)
+            # Always check for session restoration when returning to existing page
+            existing_session_page.check_and_handle_session_restoration()
             self.main_window.stacked_widget.setCurrentIndex(existing_page_index)
         else:
             logging.info("Creating new tumorboard session page.")
@@ -385,7 +447,7 @@ class ExcelViewerPage(QWidget):
         result = msg_box.exec()
         
         if result == QMessageBox.StandardButton.Yes:
-            # Proceed with editing
+            # Proceed with editing - use same logic as start_tumorboard_session
             self.start_tumorboard_session()
 
     def refresh_excel_data(self):

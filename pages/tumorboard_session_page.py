@@ -10,6 +10,7 @@ import logging
 from pathlib import Path
 import pandas as pd
 from datetime import datetime
+from utils.excel_export_utils import export_tumorboard_to_collection
 
 class NoScrollComboBox(QComboBox):
     """Custom QComboBox that ignores wheel events when not focused"""
@@ -514,9 +515,287 @@ class TumorboardSessionPage(QWidget):
         self.current_patient_index = 0
         self.patient_states = {}  # Track patient completion states
         
+        # Temporary file management
+        self.temp_excel_path = None
+        self.source_excel_path = Path.home() / "tumorboards" / self.tumorboard_name / self.date_str / f"{self.date_str}.xlsx"
+        self.has_unsaved_changes = False
+        
         self.setup_ui()
+        
+        # Check for existing temporary session and create/restore temp file
+        # This must happen AFTER UI setup so dialogs can be shown properly
+        # Note: This only runs on initial creation, not when returning to existing page
+        self.handle_temp_session_restoration()
+        
         self.load_patient_data()
         logging.info(f"TumorboardSessionPage UI setup complete for {tumorboard_name} on {date_str}.")
+
+    def check_and_handle_session_restoration(self):
+        """Check for session restoration when returning to an existing session page"""
+        logging.info("Checking for session restoration on existing session page")
+        
+        # Create temporary file name
+        temp_filename = f"{self.date_str}_temp_session.xlsx"
+        temp_excel_path = self.source_excel_path.parent / temp_filename
+        
+        # Check if temporary file exists
+        if temp_excel_path.exists():
+            # Get modification time of temp file
+            import os
+            import datetime
+            mod_time = os.path.getmtime(temp_excel_path)
+            mod_datetime = datetime.datetime.fromtimestamp(mod_time)
+            formatted_time = mod_datetime.strftime("%d.%m.%Y %H:%M")
+            
+            # Show restoration dialog
+            msg_box = QMessageBox(self)
+            msg_box.setWindowTitle("Session gefunden")
+            msg_box.setText(f"Es wurde eine bereits begonnene Session gefunden vom {formatted_time}.\n\n"
+                           f"Möchten Sie, dass diese Session fortgesetzt wird?")
+            
+            continue_button = msg_box.addButton("Ja, fortsetzen", QMessageBox.ButtonRole.YesRole)
+            new_session_button = msg_box.addButton("Nein, neue Session starten", QMessageBox.ButtonRole.NoRole)
+            msg_box.setDefaultButton(continue_button)
+            
+            msg_box.setStyleSheet("""
+                QMessageBox {
+                    background-color: #1a2633;
+                    color: white;
+                }
+                QMessageBox QLabel {
+                    color: white;
+                    font-size: 14px;
+                }
+                QPushButton {
+                    background-color: #114473;
+                    color: white;
+                    border: none;
+                    border-radius: 4px;
+                    padding: 8px 16px;
+                    font-weight: bold;
+                    min-width: 120px;
+                }
+                QPushButton:hover {
+                    background-color: #1a5a9e;
+                }
+            """)
+            
+            msg_box.exec()
+            clicked_button = msg_box.clickedButton()
+            
+            if clicked_button == continue_button:
+                # Continue with existing temp file
+                self.temp_excel_path = temp_excel_path
+                logging.info(f"Continuing existing session from: {self.temp_excel_path}")
+                self.has_unsaved_changes = True  # Mark as having changes since it's a restored session
+                
+                # Reload patient data from existing temp file
+                self.clear_and_reload_patient_data()
+            else:
+                # Delete old temp file and create new one
+                try:
+                    temp_excel_path.unlink()
+                    logging.info(f"Deleted old temporary file: {temp_excel_path}")
+                except Exception as e:
+                    logging.error(f"Error deleting old temporary file: {e}")
+                
+                # Create new temp file from source
+                self.temp_excel_path = temp_excel_path
+                self.create_temp_excel_file()
+                self.has_unsaved_changes = False
+                
+                # Clear memory and reload fresh data from new temp file
+                self.clear_and_reload_patient_data()
+        else:
+            # No temp file exists, ensure we're using source file
+            self.temp_excel_path = None
+            logging.info("No temporary session file found, using source file")
+
+    def clear_and_reload_patient_data(self):
+        """Clear all patient data from memory and reload from Excel file"""
+        logging.info("Clearing patient data from memory and reloading from Excel")
+        
+        # Reset current patient index
+        self.current_patient_index = 0
+        
+        # Clear the patient list UI
+        for i in reversed(range(self.patient_list_layout.count())):
+            child = self.patient_list_layout.itemAt(i).widget()
+            if child:
+                child.setParent(None)
+        
+        # Clear patient info display
+        self.clear_patient_display()
+        
+        # Reload patient data from Excel file (this will clear patients_data and patient_states internally)
+        self.load_patient_data()
+        
+        logging.info(f"Patient data cleared and reloaded. Now have {len(self.patients_data)} patients")
+
+    def handle_temp_session_restoration(self):
+        """Handle temporary session restoration or creation"""
+        # Create temporary file name
+        temp_filename = f"{self.date_str}_temp_session.xlsx"
+        self.temp_excel_path = self.source_excel_path.parent / temp_filename
+        
+        # Check if temporary file already exists
+        if self.temp_excel_path.exists():
+            # Get modification time of temp file
+            import os
+            import datetime
+            mod_time = os.path.getmtime(self.temp_excel_path)
+            mod_datetime = datetime.datetime.fromtimestamp(mod_time)
+            formatted_time = mod_datetime.strftime("%d.%m.%Y %H:%M")
+            
+            # Show restoration dialog
+            msg_box = QMessageBox(self)
+            msg_box.setWindowTitle("Session gefunden")
+            msg_box.setText(f"Es wurde eine bereits begonnene Session gefunden vom {formatted_time}.\n\n"
+                           f"Möchten Sie, dass diese Session fortgesetzt wird?")
+            
+            continue_button = msg_box.addButton("Ja, fortsetzen", QMessageBox.ButtonRole.YesRole)
+            new_session_button = msg_box.addButton("Nein, neue Session starten", QMessageBox.ButtonRole.NoRole)
+            msg_box.setDefaultButton(continue_button)
+            
+            msg_box.setStyleSheet("""
+                QMessageBox {
+                    background-color: #1a2633;
+                    color: white;
+                }
+                QMessageBox QLabel {
+                    color: white;
+                    font-size: 14px;
+                }
+                QPushButton {
+                    background-color: #114473;
+                    color: white;
+                    border: none;
+                    border-radius: 4px;
+                    padding: 8px 16px;
+                    font-weight: bold;
+                    min-width: 120px;
+                }
+                QPushButton:hover {
+                    background-color: #1a5a9e;
+                }
+            """)
+            
+            msg_box.exec()
+            clicked_button = msg_box.clickedButton()
+            
+            if clicked_button == continue_button:
+                # Continue with existing temp file
+                logging.info(f"Continuing existing session from: {self.temp_excel_path}")
+                self.has_unsaved_changes = True  # Mark as having changes since it's a restored session
+            else:
+                # Delete old temp file and create new one
+                try:
+                    self.temp_excel_path.unlink()
+                    logging.info(f"Deleted old temporary file: {self.temp_excel_path}")
+                except Exception as e:
+                    logging.error(f"Error deleting old temporary file: {e}")
+                
+                # Create new temp file
+                self.create_temp_excel_file()
+        else:
+            # No existing temp file, create new one
+            self.create_temp_excel_file()
+
+    def create_temp_excel_file(self):
+        """Create a temporary copy of the Excel file for this session"""
+        try:
+            if not self.source_excel_path.exists():
+                logging.error(f"Source Excel file not found: {self.source_excel_path}")
+                return False
+            
+            # Delete existing temp file if it exists
+            if self.temp_excel_path and self.temp_excel_path.exists():
+                try:
+                    self.temp_excel_path.unlink()
+                    logging.info(f"Deleted existing temporary file: {self.temp_excel_path}")
+                except Exception as e:
+                    logging.warning(f"Could not delete existing temp file: {e}")
+            
+            # Copy source file to temporary file
+            import shutil
+            shutil.copy2(self.source_excel_path, self.temp_excel_path)
+            
+            logging.info(f"Created fresh temporary Excel file: {self.temp_excel_path}")
+            return True
+            
+        except Exception as e:
+            logging.error(f"Error creating temporary Excel file: {e}")
+            return False
+
+    def copy_temp_to_source(self):
+        """Copy temporary Excel file to source file"""
+        try:
+            if self.temp_excel_path and self.temp_excel_path.exists():
+                import shutil
+                shutil.copy2(self.temp_excel_path, self.source_excel_path)
+                logging.info(f"Copied temporary file to source: {self.source_excel_path}")
+                return True
+        except Exception as e:
+            logging.error(f"Error copying temporary file to source: {e}")
+            return False
+
+    def cleanup_temp_file(self):
+        """Clean up the temporary Excel file"""
+        try:
+            if self.temp_excel_path and self.temp_excel_path.exists():
+                self.temp_excel_path.unlink()
+                logging.info(f"Cleaned up temporary Excel file: {self.temp_excel_path}")
+        except Exception as e:
+            logging.error(f"Error cleaning up temporary file: {e}")
+
+    def check_unsaved_changes(self):
+        """Check if there are unsaved changes and show warning dialog"""
+        if not self.has_unsaved_changes:
+            return True  # No changes, safe to navigate
+        
+        msg_box = QMessageBox(self)
+        msg_box.setWindowTitle("Ungespeicherte Änderungen")
+        msg_box.setText("Möchten Sie wirklich die Bearbeitung des Tumorboards abbrechen?\n\n"
+                        "Sämtliche erfolgten Änderungen werden nicht gespeichert.\n\n"
+                        "Um Änderungen zu speichern, muss die Session mittels "
+                        "\"Tumorboard abschließen\" bestätigt werden.")
+        msg_box.setStandardButtons(QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No)
+        msg_box.setDefaultButton(QMessageBox.StandardButton.No)
+        msg_box.setStyleSheet("""
+            QMessageBox {
+                background-color: #1a2633;
+                color: white;
+            }
+            QMessageBox QLabel {
+                color: white;
+                font-size: 14px;
+            }
+            QPushButton {
+                background-color: #114473;
+                color: white;
+                border: none;
+                border-radius: 4px;
+                padding: 8px 16px;
+                font-weight: bold;
+                min-width: 80px;
+            }
+            QPushButton:hover {
+                background-color: #1a5a9e;
+            }
+        """)
+        
+        result = msg_box.exec()
+        
+        if result == QMessageBox.StandardButton.Yes:
+            # User confirmed to discard changes
+            # NOTE: We do NOT delete the temp file here anymore!
+            # It will only be deleted when "Tumorboard abschließen" is confirmed
+            self.has_unsaved_changes = False
+            logging.info("User chose to discard changes and navigate away. Temp file preserved for potential session restoration.")
+            return True
+        else:
+            # User wants to keep editing
+            return False
 
     def calculate_age(self, birth_date_str):
         """Calculate age from birth date string"""
@@ -625,7 +904,7 @@ class TumorboardSessionPage(QWidget):
         # Add new patient button
         self.add_patient_button = QPushButton("Neuen Patienten\nanlegen")
         self.add_patient_button.setFixedHeight(50)
-        self.add_patient_button.setFixedWidth(210)
+        self.add_patient_button.setFixedWidth(193)
         self.add_patient_button.setCursor(Qt.CursorShape.PointingHandCursor)
         self.add_patient_button.setStyleSheet("""
             QPushButton {
@@ -649,6 +928,37 @@ class TumorboardSessionPage(QWidget):
         self.add_patient_button.clicked.connect(self.add_new_patient)
         patient_layout.addWidget(self.add_patient_button)
         
+        # Delete current patient button
+        self.delete_patient_button = QPushButton("Aktuellen Patienten\nlöschen")
+        self.delete_patient_button.setFixedHeight(50)
+        self.delete_patient_button.setFixedWidth(193)
+        self.delete_patient_button.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.delete_patient_button.setStyleSheet("""
+            QPushButton {
+                background-color: #DC143C;
+                color: white;
+                border: none;
+                border-radius: 4px;
+                font-weight: bold;
+                font-size: 12px;
+                text-align: center;
+                padding: 5px;
+                margin-bottom: 10px;
+            }
+            QPushButton:hover {
+                background-color: #FF6347;
+            }
+            QPushButton:pressed {
+                background-color: #B22222;
+            }
+            QPushButton:disabled {
+                background-color: #666666;
+                color: #999999;
+            }
+        """)
+        self.delete_patient_button.clicked.connect(self.delete_current_patient)
+        patient_layout.addWidget(self.delete_patient_button)
+        
         # Scrollable patient list
         scroll_area = QScrollArea()
         scroll_area.setWidgetResizable(True)
@@ -657,6 +967,9 @@ class TumorboardSessionPage(QWidget):
             QScrollArea {
                 border: none;
                 background-color: transparent;
+            }
+            QScrollBar:vertical {
+                width: 12px;
             }
         """)
         
@@ -742,11 +1055,11 @@ class TumorboardSessionPage(QWidget):
         data_layout.addWidget(patient_info_container)
         
         # FIXED SPACER to ensure data entry always starts at same position
-        SPACER_TO_DATA_ENTRY = 20  # <-- ÄNDERN: Abstand zwischen Patient Info und Data Entry
+        SPACER_TO_DATA_ENTRY = 10  # <-- ÄNDERN: Abstand zwischen Patient Info und Data Entry
         data_layout.addSpacing(SPACER_TO_DATA_ENTRY)
         
         # Data entry section - now always starts at same position!
-        DATA_ENTRY_HEIGHT = 358    # <-- ÄNDERN: Höhe der Data Entry Section
+        DATA_ENTRY_HEIGHT = 425    # <-- ÄNDERN: Höhe der Data Entry Section (erhöht für größeres Bemerkung-Feld)
         entry_container = QFrame()
         entry_container.setFixedHeight(DATA_ENTRY_HEIGHT)
         self.create_data_entry_section_fixed_height(entry_container)
@@ -825,6 +1138,7 @@ class TumorboardSessionPage(QWidget):
         self.radiotherapy_combo.addItems(["-", "Ja", "Nein"])
         self.radiotherapy_combo.setStyleSheet(self.get_input_style())
         self.radiotherapy_combo.currentTextChanged.connect(self.on_radiotherapy_changed)
+        self.radiotherapy_combo.currentTextChanged.connect(self.mark_unsaved_changes)
         entry_layout.addWidget(self.radiotherapy_combo)
         
         # Art des Aufgebots (conditional)
@@ -834,11 +1148,26 @@ class TumorboardSessionPage(QWidget):
         entry_layout.addWidget(self.aufgebot_label)
         
         self.aufgebot_combo = NoScrollComboBox()
-        self.aufgebot_combo.addItems(["-", "Zeitnah direkt durch uns", "Nach Konsil-Eingang"])
+        self.aufgebot_combo.addItems(["-", "Zeitnah durch uns", "Nach Konsil-Eingang"])
         self.aufgebot_combo.setStyleSheet(self.get_input_style())
         self.aufgebot_combo.currentTextChanged.connect(self.update_label_styles)
+        self.aufgebot_combo.currentTextChanged.connect(self.mark_unsaved_changes)
         self.aufgebot_combo.setVisible(False)
         entry_layout.addWidget(self.aufgebot_combo)
+        
+        # Vormerken für Studie (conditional)
+        self.studie_label = QLabel("Vormerken für Studie:")
+        self.studie_label.setStyleSheet(self.get_label_style(False))
+        self.studie_label.setVisible(False)
+        entry_layout.addWidget(self.studie_label)
+        
+        self.studie_combo = NoScrollComboBox()
+        self.studie_combo.addItems(["-", "nicht qualifiziert", "NO MASK", "CHESS", "OLIGO-Rare", "MAGELLAN", "FLASH", "SPRINT"])
+        self.studie_combo.setStyleSheet(self.get_input_style())
+        self.studie_combo.currentTextChanged.connect(self.update_label_styles)
+        self.studie_combo.currentTextChanged.connect(self.mark_unsaved_changes)
+        self.studie_combo.setVisible(False)
+        entry_layout.addWidget(self.studie_combo)
         
         # Bemerkung/Procedere
         self.bemerkung_label = QLabel("Bemerkung/Procedere:")
@@ -846,9 +1175,10 @@ class TumorboardSessionPage(QWidget):
         entry_layout.addWidget(self.bemerkung_label)
         
         self.bemerkung_text = QTextEdit()
-        self.bemerkung_text.setFixedHeight(80)
+        self.bemerkung_text.setFixedHeight(62)  # HÖHE DES FREITEXTFELDES BEERKUNG
         self.bemerkung_text.setStyleSheet(self.get_textinput_style())
         self.bemerkung_text.textChanged.connect(self.update_label_styles)
+        self.bemerkung_text.textChanged.connect(self.mark_unsaved_changes)
         entry_layout.addWidget(self.bemerkung_text)
         
         # Add stretch to fill remaining space
@@ -905,6 +1235,10 @@ class TumorboardSessionPage(QWidget):
         
         layout.addLayout(button_layout)
 
+    def mark_unsaved_changes(self):
+        """Mark that there are unsaved changes"""
+        self.has_unsaved_changes = True
+
     def update_label_styles(self):
         """Update label styles based on their content"""
         # Radiotherapy label
@@ -916,6 +1250,11 @@ class TumorboardSessionPage(QWidget):
             aufgebot_filled = self.aufgebot_combo.currentText() != "-"
             self.aufgebot_label.setStyleSheet(self.get_label_style(aufgebot_filled))
         
+        # Studie label (only if visible)
+        if self.studie_combo.isVisible():
+            studie_filled = self.studie_combo.currentText() != "-"
+            self.studie_label.setStyleSheet(self.get_label_style(studie_filled))
+        
         # Bemerkung label
         bemerkung_text = self.bemerkung_text.toPlainText().strip()
         bemerkung_filled = bool(bemerkung_text) and bemerkung_text != "-"
@@ -923,20 +1262,24 @@ class TumorboardSessionPage(QWidget):
 
     def on_radiotherapy_changed(self, text):
         """Handle radiotherapy selection change"""
-        show_aufgebot = (text == "Ja")
-        self.aufgebot_label.setVisible(show_aufgebot)
-        self.aufgebot_combo.setVisible(show_aufgebot)
+        show_fields = (text == "Ja")
+        self.aufgebot_label.setVisible(show_fields)
+        self.aufgebot_combo.setVisible(show_fields)
+        self.studie_label.setVisible(show_fields)
+        self.studie_combo.setVisible(show_fields)
         
-        # If showing aufgebot for the first time, reset to default "-"
-        if show_aufgebot:
+        # If showing fields for the first time, reset to default "-"
+        if show_fields:
             self.aufgebot_combo.setCurrentText("-")
+            self.studie_combo.setCurrentText("-")
         
         # Update styles when visibility changes
         self.update_label_styles()
 
     def load_patient_data(self):
         """Load patient data from Excel file"""
-        excel_path = Path.home() / "tumorboards" / self.tumorboard_name / self.date_str / f"{self.date_str}.xlsx"
+        # Use temporary Excel file if available, otherwise use source file
+        excel_path = self.temp_excel_path if self.temp_excel_path and self.temp_excel_path.exists() else self.source_excel_path
         
         try:
             df = pd.read_excel(excel_path, engine='openpyxl')
@@ -944,6 +1287,10 @@ class TumorboardSessionPage(QWidget):
             if df.empty:
                 logging.warning(f"Excel file is empty: {excel_path}")
                 return
+            
+            # Clear existing patient data to avoid duplicates
+            self.patients_data = []
+            self.patient_states = {}
             
             # Extract patient data
             for index, row in df.iterrows():
@@ -976,11 +1323,13 @@ class TumorboardSessionPage(QWidget):
                 radiotherapy_raw = str(row.get('Radiotherapie indiziert', ''))
                 aufgebot_raw = str(row.get('Art des Aufgebots', ''))
                 bemerkung_raw = str(row.get('Bemerkung/Procedere', ''))
+                studie_raw = str(row.get('Vormerken für Studie', ''))
                 
                 # Clean form data (handle NaN)
                 radiotherapy = radiotherapy_raw if radiotherapy_raw != 'nan' and not pd.isna(radiotherapy_raw) else ''
                 aufgebot = aufgebot_raw if aufgebot_raw != 'nan' and not pd.isna(aufgebot_raw) else ''
                 bemerkung = bemerkung_raw if bemerkung_raw != 'nan' and not pd.isna(bemerkung_raw) else ''
+                studie = studie_raw if studie_raw != 'nan' and not pd.isna(studie_raw) else ''
                 
                 patient_data = {
                     'index': index,
@@ -992,6 +1341,7 @@ class TumorboardSessionPage(QWidget):
                     'patient_number': patient_number_clean,
                     'radiotherapy': radiotherapy,
                     'aufgebot': aufgebot,
+                    'studie': studie,
                     'bemerkung': bemerkung
                 }
                 self.patients_data.append(patient_data)
@@ -1014,6 +1364,9 @@ class TumorboardSessionPage(QWidget):
             
             # Set initial finalize button state
             self.update_finalize_button_state()
+            
+            # Set initial delete button state
+            self.update_delete_button_state()
                 
             logging.info(f"Loaded {len(self.patients_data)} patients from Excel file")
             
@@ -1063,7 +1416,7 @@ class TumorboardSessionPage(QWidget):
             
             button = QPushButton(button_text)
             button.setFixedHeight(40)
-            button.setFixedWidth(200)  # Fixed width to ensure proper rounding
+            button.setFixedWidth(180)  # Fixed width to ensure proper rounding
             button.setCursor(Qt.CursorShape.PointingHandCursor)
             
             # Set button style based on state
@@ -1160,6 +1513,7 @@ class TumorboardSessionPage(QWidget):
         # Set form fields based on Excel data
         self.radiotherapy_combo.setCurrentText(excel_data['radiotherapy'] if excel_data['radiotherapy'] not in ['', 'nan', '-'] else "-")
         self.aufgebot_combo.setCurrentText(excel_data['aufgebot'] if excel_data['aufgebot'] not in ['', 'nan', '-'] else "-")
+        self.studie_combo.setCurrentText(excel_data['studie'] if excel_data['studie'] not in ['', 'nan', '-'] else "-")
         self.bemerkung_text.setPlainText(excel_data['bemerkung'] if excel_data['bemerkung'] not in ['', 'nan', '-'] else "")
         
         # Update label styles after loading data
@@ -1175,7 +1529,8 @@ class TumorboardSessionPage(QWidget):
 
     def get_current_excel_data_for_patient(self, patient_index):
         """Get current form data for a patient from Excel file"""
-        excel_path = Path.home() / "tumorboards" / self.tumorboard_name / self.date_str / f"{self.date_str}.xlsx"
+        # Use temporary Excel file during session
+        excel_path = self.temp_excel_path if self.temp_excel_path and self.temp_excel_path.exists() else self.source_excel_path
         
         try:
             df = pd.read_excel(excel_path, engine='openpyxl')
@@ -1185,6 +1540,7 @@ class TumorboardSessionPage(QWidget):
             # Get current Excel values
             radiotherapy = str(df.at[row_index, 'Radiotherapie indiziert']) if 'Radiotherapie indiziert' in df.columns else ''
             aufgebot = str(df.at[row_index, 'Art des Aufgebots']) if 'Art des Aufgebots' in df.columns else ''
+            studie = str(df.at[row_index, 'Vormerken für Studie']) if 'Vormerken für Studie' in df.columns else ''
             bemerkung = str(df.at[row_index, 'Bemerkung/Procedere']) if 'Bemerkung/Procedere' in df.columns else ''
             
             # Clean values (handle NaN)
@@ -1192,12 +1548,15 @@ class TumorboardSessionPage(QWidget):
                 radiotherapy = ''
             if aufgebot == 'nan' or pd.isna(aufgebot):
                 aufgebot = ''
+            if studie == 'nan' or pd.isna(studie):
+                studie = ''
             if bemerkung == 'nan' or pd.isna(bemerkung):
                 bemerkung = ''
             
             return {
                 'radiotherapy': radiotherapy,
                 'aufgebot': aufgebot,
+                'studie': studie,
                 'bemerkung': bemerkung
             }
         except Exception as e:
@@ -1210,10 +1569,12 @@ class TumorboardSessionPage(QWidget):
 
     def load_patient_pdf(self, patient):
         """Load the PDF for the current patient"""
-        # Use the position in the filtered list for PDF numbering
-        patient_position = self.patients_data.index(patient) + 1
-        # PDF naming includes spaces around the dash
-        pdf_filename = f"{patient_position} - {patient['patient_number']}.pdf"
+        # Extract first word (surname) from patient name
+        patient_name = patient['name'].strip()
+        first_word = patient_name.split()[0] if patient_name else "Unknown"
+        
+        # New PDF naming: "Nachname - Patientennummer.pdf"
+        pdf_filename = f"{first_word} - {patient['patient_number']}.pdf"
         pdf_path = Path.home() / "tumorboards" / self.tumorboard_name / self.date_str / pdf_filename
         
         self.pdf_header_label.setText(f"TB-Anmeldung: {patient['name']}")
@@ -1242,11 +1603,14 @@ class TumorboardSessionPage(QWidget):
         else:
             logging.warning(f"PDF not found: {pdf_path}")
             # Also try alternative naming patterns
+            patient_position = self.patients_data.index(patient) + 1  # Fallback for old naming
             alt_patterns = [
-                f"{patient_position}-{patient['patient_number']}.pdf",  # Without spaces
+                f"{first_word}-{patient['patient_number']}.pdf",  # Without spaces
                 f"{patient['patient_number']}.pdf",  # Just the patient number
-                f"{patient_position}_{patient['patient_number']}.pdf",  # Underscore instead of dash
-                f"{patient_position} _ {patient['patient_number']}.pdf",  # Spaces with underscore
+                f"{first_word}_{patient['patient_number']}.pdf",  # Underscore instead of dash
+                f"{first_word} _ {patient['patient_number']}.pdf",  # Spaces with underscore
+                f"{patient_position} - {patient['patient_number']}.pdf",  # Old position-based naming
+                f"{patient_position}-{patient['patient_number']}.pdf",  # Old position-based without spaces
                 f"Patient_{patient_position}.pdf"  # Generic pattern
             ]
             
@@ -1257,8 +1621,8 @@ class TumorboardSessionPage(QWidget):
                     try:
                         absolute_path = alt_path.resolve()
                         pdf_url = QUrl.fromLocalFile(str(absolute_path))
-                        # Load with same settings (no sidebar, 120% zoom)
-                        pdf_url_with_params = f"{pdf_url.toString()}#toolbar=1&navpanes=0&scrollbar=1&page=1&zoom=120"
+                        # Load with same settings (no sidebar, 115% zoom)
+                        pdf_url_with_params = f"{pdf_url.toString()}#toolbar=1&navpanes=0&scrollbar=1&page=1&zoom=115"
                         self.pdf_viewer.setUrl(QUrl(pdf_url_with_params))
                         return
                     except Exception as e:
@@ -1346,7 +1710,11 @@ class TumorboardSessionPage(QWidget):
         # Update current patient data
         current_patient['radiotherapy'] = self.radiotherapy_combo.currentText()
         current_patient['aufgebot'] = self.aufgebot_combo.currentText()
+        current_patient['studie'] = self.studie_combo.currentText()
         current_patient['bemerkung'] = self.bemerkung_text.toPlainText()
+        
+        # Mark as having unsaved changes
+        self.has_unsaved_changes = True
         
         # Check if current patient is complete
         if not self.is_patient_complete(current_patient):
@@ -1361,6 +1729,7 @@ class TumorboardSessionPage(QWidget):
                 self.patient_states[self.current_patient_index] = 'skipped'
                 current_patient['radiotherapy'] = "-"
                 current_patient['aufgebot'] = "-"
+                current_patient['studie'] = "-"
                 current_patient['bemerkung'] = "-"
                 
                 # Save the changes
@@ -1529,14 +1898,78 @@ class TumorboardSessionPage(QWidget):
             # Check which patients were changed before saving
             changed_patients = self.get_changed_patients_for_finalization()
             
-            # Save current patient data first
+            # Save current patient data to temporary file first
             try:
                 self.save_to_excel(skip_edit_logging=True)  # Skip automatic edit logging
             except Exception as e:
-                logging.error(f"Error saving before finalization: {e}")
+                logging.error(f"Error saving to temporary file before finalization: {e}")
                 error_msg = QMessageBox(self)
                 error_msg.setWindowTitle("Fehler")
-                error_msg.setText(f"Fehler beim Speichern: {e}")
+                error_msg.setText(f"Fehler beim Speichern in temporäre Datei: {e}")
+                error_msg.setIcon(QMessageBox.Icon.Critical)
+                error_msg.setStandardButtons(QMessageBox.StandardButton.Ok)
+                error_msg.setStyleSheet("""
+                    QMessageBox {
+                        background-color: #1a2633;
+                        color: white;
+                    }
+                    QMessageBox QLabel {
+                        color: white;
+                        font-size: 14px;
+                    }
+                    QPushButton {
+                        background-color: #114473;
+                        color: white;
+                        border: none;
+                        border-radius: 4px;
+                        padding: 8px 16px;
+                        font-weight: bold;
+                        min-width: 80px;
+                    }
+                    QPushButton:hover {
+                        background-color: #1a5a9e;
+                    }
+                """)
+                error_msg.exec()
+                return
+            
+            # Copy temporary file to source file
+            try:
+                if not self.copy_temp_to_source():
+                    error_msg = QMessageBox(self)
+                    error_msg.setWindowTitle("Fehler")
+                    error_msg.setText("Fehler beim Übertragen der Änderungen zur Haupt-Excel-Datei.")
+                    error_msg.setIcon(QMessageBox.Icon.Critical)
+                    error_msg.setStandardButtons(QMessageBox.StandardButton.Ok)
+                    error_msg.setStyleSheet("""
+                        QMessageBox {
+                            background-color: #1a2633;
+                            color: white;
+                        }
+                        QMessageBox QLabel {
+                            color: white;
+                            font-size: 14px;
+                        }
+                        QPushButton {
+                            background-color: #114473;
+                            color: white;
+                            border: none;
+                            border-radius: 4px;
+                            padding: 8px 16px;
+                            font-weight: bold;
+                            min-width: 80px;
+                        }
+                        QPushButton:hover {
+                            background-color: #1a5a9e;
+                        }
+                    """)
+                    error_msg.exec()
+                    return
+            except Exception as e:
+                logging.error(f"Error copying temporary file to source: {e}")
+                error_msg = QMessageBox(self)
+                error_msg.setWindowTitle("Fehler")
+                error_msg.setText(f"Fehler beim Übertragen der Änderungen: {e}")
                 error_msg.setIcon(QMessageBox.Icon.Critical)
                 error_msg.setStandardButtons(QMessageBox.StandardButton.Ok)
                 error_msg.setStyleSheet("""
@@ -1624,6 +2057,87 @@ class TumorboardSessionPage(QWidget):
                 error_msg.exec()
                 return
             
+            # Export to collection Excel file
+            try:
+                export_success = export_tumorboard_to_collection(self.tumorboard_name, self.date_str)
+                if export_success:
+                    logging.info(f"Successfully exported {self.tumorboard_name} {self.date_str} to collection Excel")
+                else:
+                    logging.warning(f"Export to collection Excel failed for {self.tumorboard_name} {self.date_str}")
+                    # Show error message to user if collection file doesn't exist
+                    collection_file_path = Path.home() / "tumorboards" / self.tumorboard_name / f"alle_tumorboards_{self.tumorboard_name.lower()}.xlsx"
+                    if not collection_file_path.exists():
+                        error_msg = QMessageBox(self)
+                        error_msg.setWindowTitle("Export-Fehler")
+                        error_msg.setText(f"Die Sammel-Excel-Datei für {self.tumorboard_name} wurde nicht gefunden:\n\n"
+                                        f"{collection_file_path.name}\n\n"
+                                        f"Das Tumorboard wurde erfolgreich abgeschlossen, aber der Export in die "
+                                        f"Sammel-Excel-Datei ist fehlgeschlagen.\n\n"
+                                        f"Bitte wenden Sie sich an Ihren Administrator.")
+                        error_msg.setIcon(QMessageBox.Icon.Warning)
+                        error_msg.setStandardButtons(QMessageBox.StandardButton.Ok)
+                        error_msg.setStyleSheet("""
+                            QMessageBox {
+                                background-color: #1a2633;
+                                color: white;
+                            }
+                            QMessageBox QLabel {
+                                color: white;
+                                font-size: 14px;
+                            }
+                            QPushButton {
+                                background-color: #114473;
+                                color: white;
+                                border: none;
+                                border-radius: 4px;
+                                padding: 8px 16px;
+                                font-weight: bold;
+                                min-width: 80px;
+                            }
+                            QPushButton:hover {
+                                background-color: #1a5a9e;
+                            }
+                        """)
+                        error_msg.exec()
+            except Exception as e:
+                logging.error(f"Error during collection Excel export: {e}")
+                # Show generic error message to user
+                error_msg = QMessageBox(self)
+                error_msg.setWindowTitle("Export-Fehler")
+                error_msg.setText(f"Fehler beim Export in die Sammel-Excel-Datei:\n\n{str(e)}\n\n"
+                                f"Das Tumorboard wurde erfolgreich abgeschlossen, aber der Export in die "
+                                f"Sammel-Excel-Datei ist fehlgeschlagen.\n\n"
+                                f"Bitte wenden Sie sich an Ihren Administrator.")
+                error_msg.setIcon(QMessageBox.Icon.Warning)
+                error_msg.setStandardButtons(QMessageBox.StandardButton.Ok)
+                error_msg.setStyleSheet("""
+                    QMessageBox {
+                        background-color: #1a2633;
+                        color: white;
+                    }
+                    QMessageBox QLabel {
+                        color: white;
+                        font-size: 14px;
+                    }
+                    QPushButton {
+                        background-color: #114473;
+                        color: white;
+                        border: none;
+                        border-radius: 4px;
+                        padding: 8px 16px;
+                        font-weight: bold;
+                        min-width: 80px;
+                    }
+                    QPushButton:hover {
+                        background-color: #1a5a9e;
+                    }
+                """)
+                error_msg.exec()
+            
+            # Clean up temporary file after successful finalization
+            self.cleanup_temp_file()
+            self.has_unsaved_changes = False
+            
             # Navigate back to Excel viewer page
             self.main_window.navigate_back_to_excel_viewer(self.tumorboard_name, self.date_str)
             
@@ -1661,7 +2175,8 @@ class TumorboardSessionPage(QWidget):
 
     def save_to_excel(self, skip_edit_logging=False):
         """Save all patient data back to Excel file"""
-        excel_path = Path.home() / "tumorboards" / self.tumorboard_name / self.date_str / f"{self.date_str}.xlsx"
+        # Use temporary Excel file during session, source file only during finalization
+        excel_path = self.temp_excel_path if self.temp_excel_path and self.temp_excel_path.exists() else self.source_excel_path
         
         # Read current Excel file
         df = pd.read_excel(excel_path, engine='openpyxl')
@@ -1676,6 +2191,7 @@ class TumorboardSessionPage(QWidget):
             # Check if data changed from what's in Excel
             current_radio = str(df.at[row_index, 'Radiotherapie indiziert']) if 'Radiotherapie indiziert' in df.columns else ''
             current_aufgebot = str(df.at[row_index, 'Art des Aufgebots']) if 'Art des Aufgebots' in df.columns else ''
+            current_studie = str(df.at[row_index, 'Vormerken für Studie']) if 'Vormerken für Studie' in df.columns else ''
             current_bemerkung = str(df.at[row_index, 'Bemerkung/Procedere']) if 'Bemerkung/Procedere' in df.columns else ''
             
             # Clean current values (handle NaN)
@@ -1683,44 +2199,29 @@ class TumorboardSessionPage(QWidget):
                 current_radio = ''
             if current_aufgebot == 'nan' or pd.isna(current_aufgebot):
                 current_aufgebot = ''
+            if current_studie == 'nan' or pd.isna(current_studie):
+                current_studie = ''
             if current_bemerkung == 'nan' or pd.isna(current_bemerkung):
                 current_bemerkung = ''
             
             # Check if any field changed
             if (patient['radiotherapy'] != current_radio or 
                 patient['aufgebot'] != current_aufgebot or 
+                patient['studie'] != current_studie or
                 patient['bemerkung'] != current_bemerkung):
                 changed_patients.append(patient['patient_number'])
             
             # Update the fields
             df.at[row_index, 'Radiotherapie indiziert'] = patient['radiotherapy']
             df.at[row_index, 'Art des Aufgebots'] = patient['aufgebot']
+            df.at[row_index, 'Vormerken für Studie'] = patient['studie']
             df.at[row_index, 'Bemerkung/Procedere'] = patient['bemerkung']
         
         # Save back to Excel
         df.to_excel(excel_path, index=False, engine='openpyxl')
         
-        # Log edits if tumorboard was already finalized (only if not skipping)
-        timestamp_file = Path.home() / "tumorboards" / self.tumorboard_name / self.date_str / "finalized_timestamp.txt"
-        if not skip_edit_logging and timestamp_file.exists() and changed_patients:
-            # Get user data
-            nachname, vorname = self.get_benutzerdaten()
-            if nachname and vorname:
-                user_name = f"{vorname} {nachname}"
-                now = datetime.now()
-                timestamp_str = now.strftime("%d.%m.%Y %H:%M")
-                
-                # Create edit log entry
-                patient_numbers_str = ", ".join(changed_patients)
-                edit_entry = f"Editiert: {timestamp_str} von {user_name} ({patient_numbers_str})\n"
-                
-                try:
-                    # Append edit log to timestamp file
-                    with open(timestamp_file, 'a', encoding='utf-8') as f:
-                        f.write(edit_entry)
-                    logging.info(f"Logged edit session by {user_name} for patients: {patient_numbers_str}")
-                except Exception as e:
-                    logging.error(f"Error logging edit: {e}")
+        # Note: Edit logging is now only done during finalization to avoid redundant entries
+        # Individual saves during session do not create timestamp entries
         
         logging.info(f"Saved patient data to Excel: {excel_path}")
 
@@ -1802,6 +2303,165 @@ class TumorboardSessionPage(QWidget):
             logging.error(f"Error saving user data to '{benutzerdaten_file}': {e}")
             return False
 
+    def delete_current_patient(self):
+        """Delete the currently selected patient with confirmation dialog"""
+        if not self.patients_data or self.current_patient_index >= len(self.patients_data):
+            return
+        
+        current_patient = self.patients_data[self.current_patient_index]
+        patient_name = current_patient['name']
+        
+        # Confirmation dialog
+        msg_box = QMessageBox(self)
+        msg_box.setWindowTitle("Patient löschen")
+        msg_box.setText(f"Sind Sie sicher, dass der Patient\n\n{patient_name}\n\ngelöscht werden soll?")
+        msg_box.setStandardButtons(QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No)
+        msg_box.setDefaultButton(QMessageBox.StandardButton.No)
+        msg_box.setStyleSheet("""
+            QMessageBox {
+                background-color: #1a2633;
+                color: white;
+            }
+            QMessageBox QLabel {
+                color: white;
+                font-size: 14px;
+            }
+            QPushButton {
+                background-color: #114473;
+                color: white;
+                border: none;
+                border-radius: 4px;
+                padding: 8px 16px;
+                font-weight: bold;
+                min-width: 80px;
+            }
+            QPushButton:hover {
+                background-color: #1a5a9e;
+            }
+        """)
+        
+        result = msg_box.exec()
+        
+        if result == QMessageBox.StandardButton.Yes:
+            # Mark as having unsaved changes
+            self.has_unsaved_changes = True
+            
+            # Get the Excel row index before deleting from memory
+            current_patient = self.patients_data[self.current_patient_index]
+            excel_row_index = current_patient['index']
+            
+            # Delete patient from temporary Excel file first
+            try:
+                self.delete_patient_from_excel(excel_row_index)
+                logging.info(f"Deleted patient {patient_name} from Excel at row {excel_row_index}")
+            except Exception as e:
+                logging.error(f"Error deleting patient from Excel: {e}")
+                # Show error message but continue with memory deletion
+                error_msg = QMessageBox(self)
+                error_msg.setWindowTitle("Fehler")
+                error_msg.setText(f"Fehler beim Löschen aus Excel-Datei: {e}")
+                error_msg.setIcon(QMessageBox.Icon.Warning)
+                error_msg.setStandardButtons(QMessageBox.StandardButton.Ok)
+                error_msg.setStyleSheet("""
+                    QMessageBox {
+                        background-color: #1a2633;
+                        color: white;
+                    }
+                    QMessageBox QLabel {
+                        color: white;
+                        font-size: 14px;
+                    }
+                    QPushButton {
+                        background-color: #114473;
+                        color: white;
+                        border: none;
+                        border-radius: 4px;
+                        padding: 8px 16px;
+                        font-weight: bold;
+                        min-width: 80px;
+                    }
+                    QPushButton:hover {
+                        background-color: #1a5a9e;
+                    }
+                """)
+                error_msg.exec()
+            
+            # Reload all patient data from Excel to ensure consistency
+            # This is necessary because deleting a row shifts all subsequent row indices
+            self.clear_and_reload_patient_data()
+            
+            # Adjust current patient index if necessary
+            if self.current_patient_index >= len(self.patients_data) and len(self.patients_data) > 0:
+                self.current_patient_index = len(self.patients_data) - 1
+            elif len(self.patients_data) == 0:
+                self.current_patient_index = 0
+            
+            # Load current patient or clear display if no patients left
+            if self.patients_data and self.current_patient_index < len(self.patients_data):
+                self.load_patient(self.current_patient_index)
+            else:
+                self.clear_patient_display()
+            
+            # Update button states
+            self.update_delete_button_state()
+            
+            logging.info(f"Deleted patient: {patient_name}")
+
+    def delete_patient_from_excel(self, row_index):
+        """Delete a patient row from the temporary Excel file"""
+        # Use temporary Excel file during session
+        excel_path = self.temp_excel_path if self.temp_excel_path and self.temp_excel_path.exists() else self.source_excel_path
+        
+        try:
+            # Read current Excel file
+            df = pd.read_excel(excel_path, engine='openpyxl')
+            
+            # Check if row index is valid
+            if row_index < 0 or row_index >= len(df):
+                raise ValueError(f"Invalid row index {row_index}. Excel has {len(df)} rows.")
+            
+            # Drop the row at the specified index
+            df = df.drop(index=row_index).reset_index(drop=True)
+            
+            # Save back to Excel
+            df.to_excel(excel_path, index=False, engine='openpyxl')
+            
+            logging.info(f"Successfully deleted row {row_index} from Excel file: {excel_path}")
+            
+        except Exception as e:
+            logging.error(f"Error deleting patient from Excel: {e}")
+            raise e
+
+    def clear_patient_display(self):
+        """Clear patient information display when no patients are available"""
+        self.name_data_label.setText("Name: -")
+        self.birth_date_data_label.setText("Geburtsdatum: -")
+        self.age_data_label.setText("Alter: -")
+        self.diagnosis_data_label.setText("-")
+        
+        # Clear form fields
+        self.radiotherapy_combo.setCurrentText("-")
+        self.aufgebot_combo.setCurrentText("-")
+        self.studie_combo.setCurrentText("-")
+        self.bemerkung_text.setPlainText("")
+        
+        # Update PDF header
+        self.pdf_header_label.setText("TB-Anmeldung: Kein Patient ausgewählt")
+        
+        # Show message in PDF viewer
+        if hasattr(self, 'pdf_viewer'):
+            self.pdf_viewer.setHtml("""
+                <html><body style="background-color: #1a2633; color: white; text-align: center; padding: 50px; font-family: Arial;">
+                    <h2>Kein Patient ausgewählt</h2>
+                    <p>Alle Patienten wurden gelöscht oder es sind keine Patienten vorhanden.</p>
+                </body></html>
+            """)
+
+    def update_delete_button_state(self):
+        """Update the delete button state based on available patients"""
+        has_patients = len(self.patients_data) > 0
+        self.delete_patient_button.setEnabled(has_patients)
+
     def add_new_patient(self):
         """Add a new patient manually through dialog"""
         dialog = AddPatientDialog(self)
@@ -1848,6 +2508,7 @@ class TumorboardSessionPage(QWidget):
                 'patient_number': patient_data['patient_number'],
                 'radiotherapy': '',
                 'aufgebot': '',
+                'studie': '',
                 'bemerkung': ''
             }
             
@@ -1857,6 +2518,9 @@ class TumorboardSessionPage(QWidget):
             # Initialize patient state
             patient_index = len(self.patients_data) - 1
             self.patient_states[patient_index] = 'normal'
+            
+            # Mark as having unsaved changes
+            self.has_unsaved_changes = True
             
             # Add to Excel file
             try:
@@ -1937,7 +2601,8 @@ class TumorboardSessionPage(QWidget):
 
     def add_patient_to_excel(self, patient_data):
         """Add a new patient to the Excel file in the first available empty row"""
-        excel_path = Path.home() / "tumorboards" / self.tumorboard_name / self.date_str / f"{self.date_str}.xlsx"
+        # Use temporary Excel file during session
+        excel_path = self.temp_excel_path if self.temp_excel_path and self.temp_excel_path.exists() else self.source_excel_path
         
         try:
             # Read current Excel file
@@ -1958,7 +2623,7 @@ class TumorboardSessionPage(QWidget):
             
             # Define the columns to check for empty rows (B-K equivalent)
             columns_to_check = ['Name', 'Geburtsdatum', 'Diagnose', icd_column, 'Patientennummer', 
-                               'Radiotherapie indiziert', 'Art des Aufgebots', 'Bemerkung/Procedere']
+                               'Radiotherapie indiziert', 'Art des Aufgebots', 'Vormerken für Studie', 'Bemerkung/Procedere']
             
             # Find the first empty row by checking if all relevant columns are empty/NaN
             insert_row_index = None
@@ -1992,6 +2657,7 @@ class TumorboardSessionPage(QWidget):
                 'Patientennummer': patient_data['patient_number'],
                 'Radiotherapie indiziert': '',
                 'Art des Aufgebots': '',
+                'Vormerken für Studie': '',
                 'Bemerkung/Procedere': ''
             }
             
@@ -2033,6 +2699,7 @@ class TumorboardSessionPage(QWidget):
                 # Get current Excel values
                 current_radio = str(df.at[row_index, 'Radiotherapie indiziert']) if 'Radiotherapie indiziert' in df.columns else ''
                 current_aufgebot = str(df.at[row_index, 'Art des Aufgebots']) if 'Art des Aufgebots' in df.columns else ''
+                current_studie = str(df.at[row_index, 'Vormerken für Studie']) if 'Vormerken für Studie' in df.columns else ''
                 current_bemerkung = str(df.at[row_index, 'Bemerkung/Procedere']) if 'Bemerkung/Procedere' in df.columns else ''
                 
                 # Clean current values (handle NaN)
@@ -2040,12 +2707,15 @@ class TumorboardSessionPage(QWidget):
                     current_radio = ''
                 if current_aufgebot == 'nan' or pd.isna(current_aufgebot):
                     current_aufgebot = ''
+                if current_studie == 'nan' or pd.isna(current_studie):
+                    current_studie = ''
                 if current_bemerkung == 'nan' or pd.isna(current_bemerkung):
                     current_bemerkung = ''
                 
                 # Check if any field changed
                 if (patient['radiotherapy'] != current_radio or 
                     patient['aufgebot'] != current_aufgebot or 
+                    patient['studie'] != current_studie or
                     patient['bemerkung'] != current_bemerkung):
                     changed_patients.append(patient['patient_number'])
             
@@ -2056,7 +2726,8 @@ class TumorboardSessionPage(QWidget):
             return []
 
     def is_patient_skipped(self, patient):
-        """Check if a patient is marked as skipped (all three data fields are "-")"""
+        """Check if a patient is marked as skipped (all four data fields are "-")"""
         return (patient['radiotherapy'] == "-" and 
                 patient['aufgebot'] == "-" and 
+                patient['studie'] == "-" and
                 patient['bemerkung'] == "-")

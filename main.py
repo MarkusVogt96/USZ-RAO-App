@@ -5,7 +5,7 @@ from PyQt6.QtWidgets import (QApplication, QMainWindow, QStackedWidget, QWidget,
                              QHBoxLayout, QLabel, QPushButton, QFrame, QDialog,
                              QLineEdit, QDialogButtonBox, QMessageBox)
 from PyQt6.QtCore import Qt, QSize, pyqtSignal, QCoreApplication, QTimer, QUrl
-from PyQt6.QtGui import QPalette, QColor, QFont, QPixmap, QIcon
+from PyQt6.QtGui import QPalette, QColor, QFont, QPixmap, QIcon, QScreen
 from PyQt6.QtWebEngineWidgets import QWebEngineView
 from PyQt6.QtWebEngineCore import QWebEngineSettings, QWebEngineProfile
 
@@ -37,6 +37,7 @@ from pages.specific_tumorboard_page import SpecificTumorboardPage
 from pages.excel_viewer_page import ExcelViewerPage
 from pages.tumorboard_session_page import TumorboardSessionPage
 
+# Utils imports (removed initialize_all_collection_files as it's no longer needed)
 
 # Standard Library Imports
 import sys
@@ -169,7 +170,58 @@ class TumorGuideApp(QMainWindow):
 
         self.apply_dark_blue_theme()
         self.update_breadcrumb(0)
+        
+        # Setup monitor detection and positioning
+        self.setup_monitor_positioning()
+        
         print(f"{APP_PREFIX}TumorGuideApp initialization complete.")
+
+    def setup_monitor_positioning(self):
+        """Detect monitors and position window on secondary monitor if available, otherwise primary monitor maximized"""
+        try:
+            app = QApplication.instance()
+            screens = app.screens()
+            screen_count = len(screens)
+            
+            print(f"{APP_PREFIX}Detected {screen_count} monitor(s)")
+            
+            if screen_count >= 2:
+                # Multiple monitors detected - use secondary monitor (non-primary)
+                primary_screen = app.primaryScreen()
+                secondary_screen = None
+                
+                # Find the first non-primary screen
+                for screen in screens:
+                    if screen != primary_screen:
+                        secondary_screen = screen
+                        break
+                
+                if secondary_screen:
+                    print(f"{APP_PREFIX}Using secondary monitor: {secondary_screen.name()}")
+                    # Get the geometry of the secondary screen
+                    screen_geometry = secondary_screen.availableGeometry()
+                    
+                    # Move window to secondary screen and show maximized (windowed but maximized)
+                    self.setGeometry(screen_geometry)
+                    self.show()
+                    self.showMaximized()
+                    print(f"{APP_PREFIX}Application positioned on secondary monitor in maximized windowed mode")
+                else:
+                    # Fallback to primary screen if secondary not found
+                    print(f"{APP_PREFIX}Secondary monitor not found, using primary monitor")
+                    self.show()
+                    self.showMaximized()
+            else:
+                # Single monitor - use primary monitor maximized
+                print(f"{APP_PREFIX}Single monitor detected, using primary monitor in maximized windowed mode")
+                self.show()
+                self.showMaximized()
+                
+        except Exception as e:
+            print(f"ERROR: {APP_PREFIX}Error in monitor detection: {e}")
+            # Fallback to normal maximized on primary monitor
+            self.show()
+            self.showMaximized()
 
     def _initialize_sacrificial_webengine_html_only(self):
         if self._sacrificial_web_view_html is None:
@@ -268,7 +320,7 @@ class TumorGuideApp(QMainWindow):
         def add_separator():separator=QLabel("→");separator.setStyleSheet(separator_style);self.breadcrumb_layout.addWidget(separator)
         def add_button(text,target_page_class,**kwargs):
             button=QPushButton(text);button.setCursor(Qt.CursorShape.PointingHandCursor);button.setStyleSheet(page_button_style);page_idx=self.find_page_index(target_page_class,**kwargs)
-            if page_idx is not None:button.clicked.connect(lambda checked=False,idx=page_idx:self.stacked_widget.setCurrentIndex(idx))
+            if page_idx is not None:button.clicked.connect(lambda checked=False,idx=page_idx:self.navigate_with_session_check(idx))
             else:button.setEnabled(False);print(f"WARNUNG: {APP_PREFIX}Could not find index for breadcrumb button: {text} ({target_page_class.__name__}) with args {kwargs}")
             self.breadcrumb_layout.addWidget(button)
         def add_label(text):label=QLabel(text);label.setStyleSheet(page_label_style);self.breadcrumb_layout.addWidget(label)
@@ -323,11 +375,30 @@ class TumorGuideApp(QMainWindow):
                 if match and group_name is not None and getattr(widget,'group_name',None)!=group_name:match=False
                 if match:return i
         return None    
+    def check_tumorboard_session_before_navigation(self):
+        """Check if there's an active tumorboard session with unsaved changes"""
+        current_widget = self.stacked_widget.currentWidget()
+        if hasattr(current_widget, 'check_unsaved_changes'):
+            # This is a TumorboardSessionPage with unsaved changes check
+            return current_widget.check_unsaved_changes()
+        return True  # No active session or no unsaved changes
+    
+    def navigate_with_session_check(self, target_index):
+        """Navigate to target index after checking for unsaved changes"""
+        if self.check_tumorboard_session_before_navigation():
+            self.stacked_widget.setCurrentIndex(target_index)
+    
     def go_home(self):        
+        if not self.check_tumorboard_session_before_navigation():
+            return  # User cancelled navigation
+            
         if self.stacked_widget.count()>0 and isinstance(self.stacked_widget.widget(0),TumorGroupPage):
             self.stacked_widget.setCurrentIndex(0);self._update_active_menu("Tumor navigator");print(f"{APP_PREFIX}Navigated to TumorGroupPage (Home).")        
         else:print(f"WARNUNG: {APP_PREFIX}Could not navigate home, initial page is not TumorGroupPage or doesn't exist.")    
     def open_kisim_page(self):        
+        if not self.check_tumorboard_session_before_navigation():
+            return  # User cancelled navigation
+            
         if self.kisim_page is None:
             print(f"{APP_PREFIX}Creating KisimPage instance.")
             self.kisim_page=KisimPage(self)
@@ -337,6 +408,9 @@ class TumorGuideApp(QMainWindow):
         self._update_active_menu("KISIM Scripts")
         print(f"{APP_PREFIX}Navigated to KISIM Scripts page.")    
     def open_tumorboards_page(self):        
+        if not self.check_tumorboard_session_before_navigation():
+            return  # User cancelled navigation
+            
         if self.tumorboards_page is None:
             print(f"{APP_PREFIX}Creating TumorboardsPage instance.")
             self.tumorboards_page=TumorboardsPage(self)
@@ -439,6 +513,7 @@ if __name__ == '__main__':
         
         def perform_initialization_workaround():
             print(f"{APP_PREFIX}perform_initialization_workaround: Scheduled actions starting.")
+            
             # This workaround runs on EVERY cold start of the app.
             print(f"{APP_PREFIX}perform_initialization_workaround: Attempting PDF load workaround on this run.")
             try:
@@ -451,8 +526,8 @@ if __name__ == '__main__':
                 traceback.print_exc()
             print(f"{APP_PREFIX}perform_initialization_workaround: Scheduled actions finished for this process.")
 
-        window.show()
-        print(f"{APP_PREFIX}Application window shown.")
+        # Window positioning and showing is handled by setup_monitor_positioning()
+        print(f"{APP_PREFIX}Application window positioning completed.")
         
         # Schedule the workaround to run after the window is shown and event loop has started.
         QTimer.singleShot(200, perform_initialization_workaround) # 200ms delay
