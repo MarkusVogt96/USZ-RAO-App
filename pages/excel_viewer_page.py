@@ -1,5 +1,5 @@
 from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QLabel, QTableWidget, QTableWidgetItem, 
-                             QHeaderView, QScrollArea, QFrame, QMessageBox, QPushButton)
+                             QHeaderView, QScrollArea, QFrame, QMessageBox, QPushButton, QHBoxLayout)
 from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QFont
 import os
@@ -26,49 +26,30 @@ class ExcelViewerPage(QWidget):
     def setup_ui(self):
         # Main layout
         main_layout = QVBoxLayout()
-        main_layout.setSpacing(20)
+        main_layout.setSpacing(8)  # Reduced from 15 to 8
         main_layout.setContentsMargins(10, 0, 40, 40)
         self.setLayout(main_layout)
 
-        # Page title
-        title_label = QLabel(f"Tumorboard: {self.tumorboard_name}")
-        title_label.setFont(QFont("Helvetica", 20, QFont.Weight.Bold))
-        title_label.setStyleSheet("color: white;")
-        title_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        main_layout.addWidget(title_label)
-
-        # Date subtitle
-        date_label = QLabel(f"Datum: {self.date_str}")
-        date_label.setFont(QFont("Helvetica", 16))
-        date_label.setStyleSheet("color: #00BFFF; margin-bottom: 20px;")
-        date_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        main_layout.addWidget(date_label)
+        # Top section: Buttons and Title on same height level
+        top_section = QWidget()
+        top_section.setFixedHeight(50)  # Fixed height to control vertical space
+        top_layout = QHBoxLayout(top_section)
+        top_layout.setContentsMargins(0, 0, 0, 0)
+        top_layout.setSpacing(40)
         
-        # Timestamp label (initially hidden)
-        self.timestamp_label = QLabel("")
-        self.timestamp_label.setFont(QFont("Helvetica", 12))
-        self.timestamp_label.setStyleSheet("color: #90EE90; margin-bottom: 10px;")
-        self.timestamp_label.setAlignment(Qt.AlignmentFlag.AlignLeft)
-        self.timestamp_label.setVisible(False)
-        main_layout.addWidget(self.timestamp_label)
-
-        # "Starte Tumor Board" Button (50px spacing from breadcrumb)
-        start_button_container = QWidget()
-        start_button_layout = QVBoxLayout(start_button_container)
-        start_button_layout.setContentsMargins(0, 50, 0, 20)  # 50px top margin for spacing
-
-        self.start_tumorboard_button = QPushButton("Starte Tumor Board")
-        self.start_tumorboard_button.setFont(QFont("Helvetica", 14, QFont.Weight.Bold))
-        self.start_tumorboard_button.setFixedHeight(70)  # Consistent height
-        self.start_tumorboard_button.setMaximumWidth(200)  # Consistent width
+        # Left side: Button (fixed width)
+        self.start_tumorboard_button = QPushButton("Starte Tumorboard")
+        self.start_tumorboard_button.setFont(QFont("Helvetica", 12, QFont.Weight.Bold))
+        self.start_tumorboard_button.setFixedHeight(40)
+        self.start_tumorboard_button.setFixedWidth(220)
         self.start_tumorboard_button.setCursor(Qt.CursorShape.PointingHandCursor)
         self.start_tumorboard_button.setStyleSheet("""
             QPushButton {
                 background-color: #2E8B57;
                 color: white;
                 border: none;
-                border-radius: 8px;
-                padding: 10px 20px;
+                border-radius: 6px;
+                padding: 8px 16px;
                 font-weight: bold;
             }
             QPushButton:hover {
@@ -80,8 +61,72 @@ class ExcelViewerPage(QWidget):
         """)
         self.start_tumorboard_button.clicked.connect(self.start_tumorboard_session)
         
-        start_button_layout.addWidget(self.start_tumorboard_button, alignment=Qt.AlignmentFlag.AlignLeft)
-        main_layout.addWidget(start_button_container)
+        # "Editiere Tumor Board" Button (initially hidden, same position)
+        self.edit_tumorboard_button = QPushButton("Editiere Tumorboard")
+        self.edit_tumorboard_button.setFont(QFont("Helvetica", 12, QFont.Weight.Bold))
+        self.edit_tumorboard_button.setFixedHeight(40)
+        self.edit_tumorboard_button.setFixedWidth(180)
+        self.edit_tumorboard_button.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.edit_tumorboard_button.setStyleSheet("""
+            QPushButton {
+                background-color: #FF8C00;
+                color: white;
+                border: none;
+                border-radius: 6px;
+                padding: 8px 16px;
+                font-weight: bold;
+            }
+            QPushButton:hover {
+                background-color: #FFA500;
+            }
+            QPushButton:pressed {
+                background-color: #FF7F00;
+            }
+        """)
+        self.edit_tumorboard_button.clicked.connect(self.edit_finalized_tumorboard)
+        self.edit_tumorboard_button.setVisible(False)
+        
+        # Add buttons to layout (they will occupy the same space)
+        top_layout.addWidget(self.start_tumorboard_button, 0, Qt.AlignmentFlag.AlignVCenter)
+        top_layout.addWidget(self.edit_tumorboard_button, 0, Qt.AlignmentFlag.AlignVCenter)
+        
+        # Right side: Title and Date container (compact)
+        title_container = QWidget()
+        title_layout = QVBoxLayout(title_container)
+        title_layout.setContentsMargins(0, 0, 300, 0)
+        title_layout.setSpacing(4)  # Very tight spacing between title and date
+        
+        # Page title (smaller font)
+        title_label = QLabel(f"Tumorboard: {self.tumorboard_name}")
+        title_label.setFont(QFont("Helvetica", 18, QFont.Weight.Bold))  # Reduced from 20 to 18
+        title_label.setStyleSheet("color: white;")
+        title_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        title_layout.addWidget(title_label)
+
+        # Date subtitle (smaller font, tighter)
+        date_label = QLabel(f"Datum: {self.date_str}")
+        date_label.setFont(QFont("Helvetica", 14))  # Reduced from 16 to 14
+        date_label.setStyleSheet("color: #00BFFF;")
+        date_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        title_layout.addWidget(date_label)
+        
+        # Add title container to layout with stretch to center it
+        top_layout.addStretch(1)  # Push title to center
+        top_layout.addWidget(title_container, 0, Qt.AlignmentFlag.AlignVCenter)
+        top_layout.addStretch(1)  # Balance on right side
+        
+        main_layout.addWidget(top_section)
+        
+        # Timestamp section (minimal spacing)
+        self.timestamp_label = QLabel("")
+        self.timestamp_label.setFont(QFont("Helvetica", 12))
+        self.timestamp_label.setStyleSheet("color: #90EE90; margin-top: 5px; margin-bottom: 3px;")
+        self.timestamp_label.setAlignment(Qt.AlignmentFlag.AlignLeft)
+        self.timestamp_label.setVisible(False)
+        main_layout.addWidget(self.timestamp_label)
+
+        # Very small fixed spacer between timestamps and table
+        main_layout.addSpacing(5)  # Reduced from 10 to 5
 
         # Create table widget for Excel display
         self.table_widget = QTableWidget()
@@ -173,11 +218,29 @@ class ExcelViewerPage(QWidget):
             # Resize columns to content
             self.table_widget.resizeColumnsToContents()
             
-            # Set minimum column width
+            # Apply custom column sizing and hiding
             for col in range(self.table_widget.columnCount()):
+                column_name = str(df.columns[col])
                 current_width = self.table_widget.columnWidth(col)
+                
+                # Hide specific columns
+                if 'anmeldung' in column_name.lower() and 'nr' in column_name.lower():
+                    self.table_widget.setColumnHidden(col, True)
+                    continue
+                elif 'icd' in column_name.lower() and ('beschreibung' in column_name.lower() or 'description' in column_name.lower()):
+                    self.table_widget.setColumnHidden(col, True)
+                    continue
+                
+                # Set minimum width and custom widths for specific columns
                 if current_width < 100:
                     self.table_widget.setColumnWidth(col, 100)
+                
+                # Custom width adjustments
+                if 'name' in column_name.lower() and 'patient' not in column_name.lower():
+                    self.table_widget.setColumnWidth(col, 200)  # HIER BREITE DER NAME SPALTE ANPASSEN
+
+                elif 'diagnose' in column_name.lower():
+                    self.table_widget.setColumnWidth(col, 500)  # HIER BREITE DER DIAGNOSE SPALTE ANPASSEN
 
             logging.info(f"Successfully loaded Excel file with {len(df)} rows and {len(df.columns)} columns")
 
@@ -273,61 +336,24 @@ class ExcelViewerPage(QWidget):
                 self.timestamp_label.setText(f"{timestamp_content}")
                 self.timestamp_label.setVisible(True)
                 
-                # Update button text and style
-                self.start_tumorboard_button.setText("Editiere\nTumorboard")
-                self.start_tumorboard_button.setFixedHeight(70)  # Increased height for 2 lines
-                self.start_tumorboard_button.setMaximumWidth(200)  # Reduced width
-                self.start_tumorboard_button.setStyleSheet("""
-                    QPushButton {
-                        background-color: #114473;
-                        color: white;
-                        border: none;
-                        border-radius: 8px;
-                        padding: 10px 20px;
-                        font-weight: bold;
-                        font-size: 12px;
-                    }
-                    QPushButton:hover {
-                        background-color: #1a5a9e;
-                    }
-                    QPushButton:pressed {
-                        background-color: #0f3a63;
-                    }
-                """)
-                self.start_tumorboard_button.clicked.disconnect()  # Remove existing connection
-                self.start_tumorboard_button.clicked.connect(self.edit_finalized_tumorboard)
+                # Hide start button, show edit button
+                self.start_tumorboard_button.setVisible(False)
+                self.edit_tumorboard_button.setVisible(True)
                 
                 logging.info(f"Tumorboard marked as finalized: {timestamp_content}")
                 
             except Exception as e:
                 logging.error(f"Error reading timestamp file: {e}")
                 self.timestamp_label.setVisible(False)
+                # Show start button, hide edit button
+                self.start_tumorboard_button.setVisible(True)
+                self.edit_tumorboard_button.setVisible(False)
         else:
-            # Not finalized - use original green button
+            # Not finalized - show start button, hide edit button
             self.timestamp_label.setVisible(False)
-            self.start_tumorboard_button.setText("Starte Tumor Board")
-            self.start_tumorboard_button.setFixedHeight(70)  # Consistent height
-            self.start_tumorboard_button.setMaximumWidth(200)  # Consistent width
-            self.start_tumorboard_button.setStyleSheet("""
-                QPushButton {
-                    background-color: #2E8B57;
-                    color: white;
-                    border: none;
-                    border-radius: 8px;
-                    padding: 10px 20px;
-                    font-weight: bold;
-                    font-size: 14px;
-                }
-                QPushButton:hover {
-                    background-color: #3CB371;
-                }
-                QPushButton:pressed {
-                    background-color: #228B22;
-                }
-            """)
-            self.start_tumorboard_button.clicked.disconnect()  # Remove existing connection
-            self.start_tumorboard_button.clicked.connect(self.start_tumorboard_session)
-    
+            self.start_tumorboard_button.setVisible(True)
+            self.edit_tumorboard_button.setVisible(False)
+
     def edit_finalized_tumorboard(self):
         """Handle editing of a finalized tumorboard with warning dialog"""
         msg_box = QMessageBox(self)
@@ -360,4 +386,10 @@ class ExcelViewerPage(QWidget):
         
         if result == QMessageBox.StandardButton.Yes:
             # Proceed with editing
-            self.start_tumorboard_session() 
+            self.start_tumorboard_session()
+
+    def refresh_excel_data(self):
+        """Refresh the Excel data by reloading the file"""
+        logging.info(f"Refreshing Excel data for {self.tumorboard_name} on {self.date_str}")
+        self.load_excel_file()
+        self.refresh_finalization_state() 

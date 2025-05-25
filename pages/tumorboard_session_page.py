@@ -49,8 +49,13 @@ class PatientNotRecordedDialog(QDialog):
         header_label.setStyleSheet("color: #ff6b6b; margin-bottom: 10px;")
         layout.addWidget(header_label)
         
-        # Message
-        message = f"Daten {missing_data} im aktuellen Fall nicht erfasst, soll der Patient als \"Nicht besprochen\" markiert werden?"
+        # Message with proper grammar
+        if len(missing_data) == 1:
+            message = f"Daten \"{missing_data[0]}\" ist im aktuellen Fall nicht erfasst.\nSoll der Patient als \"Nicht besprochen\" markiert werden?"
+        else:
+            missing_text = "\" und \"".join(missing_data)
+            message = f"Daten \"{missing_text}\" sind im aktuellen Fall nicht erfasst.\nSoll der Patient als \"Nicht besprochen\" markiert werden?"
+        
         message_label = QLabel(message)
         message_label.setWordWrap(True)
         message_label.setStyleSheet("color: white; margin-bottom: 20px;")
@@ -86,6 +91,73 @@ class PatientNotRecordedDialog(QDialog):
             }
             QPushButton:hover {
                 background-color: #1a5a9e;
+            }
+        """)
+
+class LastPatientCompletedDialog(QDialog):
+    """Dialog to show completion message for last patient"""
+    def __init__(self, unprocessed_count, parent=None):
+        super().__init__(parent)
+        self.setWindowTitle("Letzter Patient bearbeitet")
+        self.setModal(True)
+        self.setFixedSize(500, 200)
+        
+        layout = QVBoxLayout()
+        
+        # Header
+        header_label = QLabel("Letzter Patient bearbeitet")
+        header_label.setFont(QFont("Helvetica", 16, QFont.Weight.Bold))
+        header_label.setStyleSheet("color: #4FC3F7; margin-bottom: 15px;")
+        header_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        layout.addWidget(header_label)
+        
+        # Message based on unprocessed count
+        if unprocessed_count == 0:
+            message = "Letzter Patient wurde erfolgreich erfasst und gespeichert.\nSie können das Tumor Board jetzt abschließen."
+        else:
+            message = f"Letzter Patient wurde erfolgreich gespeichert.\nAuf der Liste bestehen noch {unprocessed_count} Patienten, die vor Abschluss des Tumor Boards noch bearbeitet werden müssen."
+        
+        message_label = QLabel(message)
+        message_label.setWordWrap(True)
+        message_label.setStyleSheet("color: white; font-size: 14px; margin-bottom: 20px;")
+        message_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        layout.addWidget(message_label)
+        
+        # OK Button
+        ok_button = QPushButton("OK")
+        ok_button.setFixedHeight(40)
+        ok_button.setStyleSheet("""
+            QPushButton {
+                background-color: #1E90FF;
+                color: white;
+                border: none;
+                border-radius: 6px;
+                font-weight: bold;
+                font-size: 14px;
+                min-width: 100px;
+            }
+            QPushButton:hover {
+                background-color: #4169E1;
+            }
+            QPushButton:pressed {
+                background-color: #0000CD;
+            }
+        """)
+        ok_button.clicked.connect(self.accept)
+        
+        button_layout = QHBoxLayout()
+        button_layout.addStretch()
+        button_layout.addWidget(ok_button)
+        button_layout.addStretch()
+        layout.addLayout(button_layout)
+        
+        self.setLayout(layout)
+        
+        # Apply dark theme
+        self.setStyleSheet("""
+            QDialog {
+                background-color: #1a2633;
+                color: white;
             }
         """)
 
@@ -541,11 +613,11 @@ class TumorboardSessionPage(QWidget):
         
         patient_layout = QVBoxLayout(patient_frame)
         patient_layout.setContentsMargins(10, 15, 10, 15)
-        patient_layout.setSpacing(10)
+        patient_layout.setSpacing(16)
         
         # Header (no border)
         header_label = QLabel("Patienten")
-        header_label.setFont(QFont("Helvetica", 16, QFont.Weight.Bold))
+        header_label.setFont(QFont("Helvetica", 14, QFont.Weight.Bold))
         header_label.setStyleSheet("color: #4FC3F7; margin-bottom: 10px; border: none;")
         header_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         patient_layout.addWidget(header_label)
@@ -615,7 +687,7 @@ class TumorboardSessionPage(QWidget):
         
         # Header - smaller and without border/outline
         self.pdf_header_label = QLabel("Tumor Board - Anmeldung: Patientenname")
-        self.pdf_header_label.setFont(QFont("Helvetica", 12, QFont.Weight.Bold))
+        self.pdf_header_label.setFont(QFont("Helvetica", 14, QFont.Weight.Bold))
         self.pdf_header_label.setStyleSheet("color: #4FC3F7; border: none; outline: none; margin-bottom: 5px;")
         self.pdf_header_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.pdf_header_label.setFixedHeight(43)  # Fixed height to align with other headers
@@ -649,97 +721,100 @@ class TumorboardSessionPage(QWidget):
             }
         """)
         
+        # Use normal layout but with fixed positioning for data entry
         data_layout = QVBoxLayout(data_frame)
         data_layout.setContentsMargins(15, 15, 15, 15)
-        data_layout.setSpacing(15)
+        data_layout.setSpacing(22)  # No automatic spacing
         
-        # Header (no border)
+        # Header
         header_label = QLabel("Patientendaten")
-        header_label.setFont(QFont("Helvetica", 16, QFont.Weight.Bold))
-        header_label.setStyleSheet("color: #4FC3F7; margin-bottom: 10px; border: none;")
+        header_label.setFont(QFont("Helvetica", 14, QFont.Weight.Bold))
+        header_label.setStyleSheet("color: #4FC3F7; border: none;")
         header_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        header_label.setFixedHeight(25)
         data_layout.addWidget(header_label)
         
-        # Patient info section
-        self.create_patient_info_section(data_layout)
+        # Patient info section with FIXED HEIGHT
+        PATIENT_INFO_HEIGHT = 250  # <-- ÄNDERN: FIXE Höhe für Patient Info (beschränkt die Größe!)
+        patient_info_container = QFrame()
+        patient_info_container.setFixedHeight(PATIENT_INFO_HEIGHT)
+        self.create_patient_info_section_fixed_height(patient_info_container)
+        data_layout.addWidget(patient_info_container)
         
-        # Data entry section
-        self.create_data_entry_section(data_layout)
+        # FIXED SPACER to ensure data entry always starts at same position
+        SPACER_TO_DATA_ENTRY = 20  # <-- ÄNDERN: Abstand zwischen Patient Info und Data Entry
+        data_layout.addSpacing(SPACER_TO_DATA_ENTRY)
         
-        # Buttons section
-        self.create_buttons_section(data_layout)
+        # Data entry section - now always starts at same position!
+        DATA_ENTRY_HEIGHT = 358    # <-- ÄNDERN: Höhe der Data Entry Section
+        entry_container = QFrame()
+        entry_container.setFixedHeight(DATA_ENTRY_HEIGHT)
+        self.create_data_entry_section_fixed_height(entry_container)
+        data_layout.addWidget(entry_container)
         
-        # Add stretch to push everything up
+        # Add stretch to push buttons to bottom
         data_layout.addStretch()
+        
+        # Buttons section at the bottom
+        self.create_buttons_section(data_layout)
         
         main_layout.addWidget(data_frame)
 
-    def create_patient_info_section(self, data_layout):
-        """Create patient information display section"""
-        info_frame = QFrame()
-        info_frame.setStyleSheet("""
+    def create_patient_info_section_fixed_height(self, container):
+        """Create patient information display section with fixed height"""
+        container.setStyleSheet("""
             QFrame {
                 background-color: #232F3B;
                 border: none;
                 border-radius: 6px;
-                padding: 10px;
+                padding: 8px;
             }
         """)
         
-        info_layout = QVBoxLayout(info_frame)
-        info_layout.setContentsMargins(10, 10, 10, 10)
-        info_layout.setSpacing(3)  # Reduced from 8 to 3 for tighter spacing
+        info_layout = QVBoxLayout(container)
+        info_layout.setContentsMargins(8, 8, 8, 8)
+        info_layout.setSpacing(1)
         
-        # Patient info labels and data (most in one line, only diagnosis separate)
-        # Name (one line)
+        # Patient info labels and data
         self.name_data_label = QLabel("Name: -")
-        self.name_data_label.setStyleSheet("color: white; font-size: 14px; font-weight: bold; border: none;")
+        self.name_data_label.setStyleSheet("color: white; font-size: 14px; border: none;")
         self.name_data_label.setWordWrap(True)
         info_layout.addWidget(self.name_data_label)
         
-        # Birth date (one line)
         self.birth_date_data_label = QLabel("Geburtsdatum: -")
-        self.birth_date_data_label.setStyleSheet("color: white; font-size: 14px; font-weight: bold; border: none;")
+        self.birth_date_data_label.setStyleSheet("color: white; font-size: 14px; border: none;")
         info_layout.addWidget(self.birth_date_data_label)
         
-        # Age (one line)
         self.age_data_label = QLabel("Alter: -")
-        self.age_data_label.setStyleSheet("color: white; font-size: 14px; font-weight: bold; border: none;")
+        self.age_data_label.setStyleSheet("color: white; font-size: 14px; border: none;")
         info_layout.addWidget(self.age_data_label)
         
-        # Diagnosis (separate lines, no indent, minimal spacing)
         diagnosis_title_label = QLabel("Diagnose:")
-        diagnosis_title_label.setStyleSheet("color: white; font-size: 14px; font-weight: bold; border: none; margin-bottom: 0px;")
+        diagnosis_title_label.setStyleSheet("color: white; font-size: 14px; font-weight: bold; border: none; margin-bottom: 0px; margin-top: 2px;")
         info_layout.addWidget(diagnosis_title_label)
         
         self.diagnosis_data_label = QLabel("-")
-        self.diagnosis_data_label.setStyleSheet("color: white; font-size: 14px; border: none; margin-top: 0px;")
+        self.diagnosis_data_label.setStyleSheet("color: white; font-size: 14px; border: none; margin-top: -2px; margin-bottom: 0px;")
         self.diagnosis_data_label.setWordWrap(True)
         info_layout.addWidget(self.diagnosis_data_label)
         
-        # ICD Code (one line)
-        self.icd_data_label = QLabel("ICD-Code: -")
-        self.icd_data_label.setStyleSheet("color: white; font-size: 14px; font-weight: bold; border: none;")
-        self.icd_data_label.setWordWrap(True)
-        info_layout.addWidget(self.icd_data_label)
-        
-        data_layout.addWidget(info_frame)
+        # Add stretch to fill remaining space if content is smaller than max_height
+        info_layout.addStretch()
 
-    def create_data_entry_section(self, data_layout):
-        """Create data entry controls section"""
-        entry_frame = QFrame()
-        entry_frame.setStyleSheet("""
+    def create_data_entry_section_fixed_height(self, container):
+        """Create data entry controls section with fixed height"""
+        container.setStyleSheet("""
             QFrame {
                 background-color: #232F3B;
                 border: 1px solid #425061;
                 border-radius: 6px;
-                padding: 10px;
+                padding: 12px;
             }
         """)
         
-        entry_layout = QVBoxLayout(entry_frame)
-        entry_layout.setContentsMargins(10, 10, 10, 10)
-        entry_layout.setSpacing(15)
+        entry_layout = QVBoxLayout(container)
+        entry_layout.setContentsMargins(12, 12, 12, 12)
+        entry_layout.setSpacing(12)
         
         # Radiotherapie indiziert
         self.radio_label = QLabel("Radiotherapie indiziert:")
@@ -776,39 +851,18 @@ class TumorboardSessionPage(QWidget):
         self.bemerkung_text.textChanged.connect(self.update_label_styles)
         entry_layout.addWidget(self.bemerkung_text)
         
-        data_layout.addWidget(entry_frame)
+        # Add stretch to fill remaining space
+        entry_layout.addStretch()
 
-    def create_buttons_section(self, data_layout):
+    def create_buttons_section(self, layout):
         """Create buttons section"""
         button_layout = QVBoxLayout()
         button_layout.setSpacing(10)
         
-        # Save button
-        self.save_button = QPushButton("Speichern")
-        self.save_button.setFixedHeight(40)
-        self.save_button.setStyleSheet("""
-            QPushButton {
-                background-color: #2E8B57;
-                color: white;
-                border: none;
-                border-radius: 6px;
-                font-weight: bold;
-                font-size: 14px;
-            }
-            QPushButton:hover {
-                background-color: #3CB371;
-            }
-            QPushButton:pressed {
-                background-color: #228B22;
-            }
-        """)
-        self.save_button.clicked.connect(self.save_patient_data)
-        button_layout.addWidget(self.save_button)
-        
-        # Next patient button
-        self.next_button = QPushButton("Nächster Patient")
-        self.next_button.setFixedHeight(40)
-        self.next_button.setStyleSheet("""
+        # Combined save and next patient button
+        self.save_next_button = QPushButton("Speichern && Nächster Patient")
+        self.save_next_button.setFixedHeight(40)
+        self.save_next_button.setStyleSheet("""
             QPushButton {
                 background-color: #1E90FF;
                 color: white;
@@ -824,8 +878,8 @@ class TumorboardSessionPage(QWidget):
                 background-color: #0000CD;
             }
         """)
-        self.next_button.clicked.connect(self.next_patient)
-        button_layout.addWidget(self.next_button)
+        self.save_next_button.clicked.connect(self.save_and_next_patient)
+        button_layout.addWidget(self.save_next_button)
         
         # Finalize tumorboard button
         self.finalize_button = QPushButton("Tumorboard abschließen")
@@ -849,7 +903,7 @@ class TumorboardSessionPage(QWidget):
         self.finalize_button.clicked.connect(self.finalize_tumorboard)
         button_layout.addWidget(self.finalize_button)
         
-        data_layout.addLayout(button_layout)
+        layout.addLayout(button_layout)
 
     def update_label_styles(self):
         """Update label styles based on their content"""
@@ -872,6 +926,10 @@ class TumorboardSessionPage(QWidget):
         show_aufgebot = (text == "Ja")
         self.aufgebot_label.setVisible(show_aufgebot)
         self.aufgebot_combo.setVisible(show_aufgebot)
+        
+        # If showing aufgebot for the first time, reset to default "-"
+        if show_aufgebot:
+            self.aufgebot_combo.setCurrentText("-")
         
         # Update styles when visibility changes
         self.update_label_styles()
@@ -914,6 +972,16 @@ class TumorboardSessionPage(QWidget):
                 if icd_code.lower() == 'nan' or pd.isna(icd_code_raw) or icd_code == '':
                     icd_code = '-'
                 
+                # Get form data and clean it
+                radiotherapy_raw = str(row.get('Radiotherapie indiziert', ''))
+                aufgebot_raw = str(row.get('Art des Aufgebots', ''))
+                bemerkung_raw = str(row.get('Bemerkung/Procedere', ''))
+                
+                # Clean form data (handle NaN)
+                radiotherapy = radiotherapy_raw if radiotherapy_raw != 'nan' and not pd.isna(radiotherapy_raw) else ''
+                aufgebot = aufgebot_raw if aufgebot_raw != 'nan' and not pd.isna(aufgebot_raw) else ''
+                bemerkung = bemerkung_raw if bemerkung_raw != 'nan' and not pd.isna(bemerkung_raw) else ''
+                
                 patient_data = {
                     'index': index,
                     'name': patient_name,
@@ -922,14 +990,20 @@ class TumorboardSessionPage(QWidget):
                     'diagnosis': str(row.get('Diagnose', '-')),
                     'icd_code': icd_code,
                     'patient_number': patient_number_clean,
-                    'radiotherapy': str(row.get('Radiotherapie indiziert', '')),
-                    'aufgebot': str(row.get('Art des Aufgebots', '')),
-                    'bemerkung': str(row.get('Bemerkung/Procedere', ''))
+                    'radiotherapy': radiotherapy,
+                    'aufgebot': aufgebot,
+                    'bemerkung': bemerkung
                 }
                 self.patients_data.append(patient_data)
                 
-                # Initialize patient state using the position in filtered list
-                self.patient_states[len(self.patients_data) - 1] = 'normal'  # normal, completed, skipped
+                # Initialize patient state - check Excel data to determine correct state
+                patient_index = len(self.patients_data) - 1
+                if self.is_patient_skipped(patient_data):
+                    self.patient_states[patient_index] = 'skipped'  # Mark as gray (overridden/not discussed)
+                elif self.is_patient_complete(patient_data):
+                    self.patient_states[patient_index] = 'completed'  # Mark as green
+                else:
+                    self.patient_states[patient_index] = 'normal'  # Keep as blue
             
             # Create patient buttons
             self.create_patient_buttons()
@@ -945,7 +1019,34 @@ class TumorboardSessionPage(QWidget):
             
         except Exception as e:
             logging.error(f"Error loading patient data: {e}")
-            QMessageBox.critical(self, "Error", f"Could not load patient data: {e}")
+            error_msg = QMessageBox(self)
+            error_msg.setWindowTitle("Error")
+            error_msg.setText(f"Could not load patient data: {e}")
+            error_msg.setIcon(QMessageBox.Icon.Critical)
+            error_msg.setStandardButtons(QMessageBox.StandardButton.Ok)
+            error_msg.setStyleSheet("""
+                QMessageBox {
+                    background-color: #1a2633;
+                    color: white;
+                }
+                QMessageBox QLabel {
+                    color: white;
+                    font-size: 14px;
+                }
+                QPushButton {
+                    background-color: #114473;
+                    color: white;
+                    border: none;
+                    border-radius: 4px;
+                    padding: 8px 16px;
+                    font-weight: bold;
+                    min-width: 80px;
+                }
+                QPushButton:hover {
+                    background-color: #1a5a9e;
+                }
+            """)
+            error_msg.exec()
 
     def create_patient_buttons(self):
         """Create clickable patient buttons in the left column"""
@@ -1034,6 +1135,10 @@ class TumorboardSessionPage(QWidget):
         
         button.setStyleSheet(style)
 
+    def format_label_with_value(self, label, value):
+        """Format a label with bold prefix and normal value"""
+        return f"<b>{label}</b> {value}"
+
     def load_patient(self, patient_index):
         """Load a specific patient's data"""
         if patient_index < 0 or patient_index >= len(self.patients_data):
@@ -1043,16 +1148,19 @@ class TumorboardSessionPage(QWidget):
         patient = self.patients_data[patient_index]
         
         # Update patient info display - most in one line, only diagnosis separate
-        self.name_data_label.setText(f"Name: {patient['name']}")
-        self.birth_date_data_label.setText(f"Geburtsdatum: {patient['birth_date']}")
-        self.age_data_label.setText(f"Alter: {patient['age']}")
+        # Use HTML formatting to have bold labels and normal values
+        self.name_data_label.setText(self.format_label_with_value("Name:", patient['name']))
+        self.birth_date_data_label.setText(self.format_label_with_value("Geburtsdatum:", patient['birth_date']))
+        self.age_data_label.setText(self.format_label_with_value("Alter:", patient['age']))
         self.diagnosis_data_label.setText(patient['diagnosis'])  # Only diagnosis text, no label
-        self.icd_data_label.setText(f"ICD-Code: {patient['icd_code']}")
         
-        # Load existing data into form
-        self.radiotherapy_combo.setCurrentText(patient['radiotherapy'] if patient['radiotherapy'] != 'nan' else "-")
-        self.aufgebot_combo.setCurrentText(patient['aufgebot'] if patient['aufgebot'] != 'nan' else "-")
-        self.bemerkung_text.setPlainText(patient['bemerkung'] if patient['bemerkung'] != 'nan' else "")
+        # Load form data from Excel (not from cached patient data) to ensure proper reset
+        excel_data = self.get_current_excel_data_for_patient(patient_index)
+        
+        # Set form fields based on Excel data
+        self.radiotherapy_combo.setCurrentText(excel_data['radiotherapy'] if excel_data['radiotherapy'] not in ['', 'nan', '-'] else "-")
+        self.aufgebot_combo.setCurrentText(excel_data['aufgebot'] if excel_data['aufgebot'] not in ['', 'nan', '-'] else "-")
+        self.bemerkung_text.setPlainText(excel_data['bemerkung'] if excel_data['bemerkung'] not in ['', 'nan', '-'] else "")
         
         # Update label styles after loading data
         self.update_label_styles()
@@ -1064,6 +1172,41 @@ class TumorboardSessionPage(QWidget):
         self.update_all_patient_button_styles()
         
         logging.info(f"Loaded patient {patient_index + 1}: {patient['name']}")
+
+    def get_current_excel_data_for_patient(self, patient_index):
+        """Get current form data for a patient from Excel file"""
+        excel_path = Path.home() / "tumorboards" / self.tumorboard_name / self.date_str / f"{self.date_str}.xlsx"
+        
+        try:
+            df = pd.read_excel(excel_path, engine='openpyxl')
+            patient = self.patients_data[patient_index]
+            row_index = patient['index']
+            
+            # Get current Excel values
+            radiotherapy = str(df.at[row_index, 'Radiotherapie indiziert']) if 'Radiotherapie indiziert' in df.columns else ''
+            aufgebot = str(df.at[row_index, 'Art des Aufgebots']) if 'Art des Aufgebots' in df.columns else ''
+            bemerkung = str(df.at[row_index, 'Bemerkung/Procedere']) if 'Bemerkung/Procedere' in df.columns else ''
+            
+            # Clean values (handle NaN)
+            if radiotherapy == 'nan' or pd.isna(radiotherapy):
+                radiotherapy = ''
+            if aufgebot == 'nan' or pd.isna(aufgebot):
+                aufgebot = ''
+            if bemerkung == 'nan' or pd.isna(bemerkung):
+                bemerkung = ''
+            
+            return {
+                'radiotherapy': radiotherapy,
+                'aufgebot': aufgebot,
+                'bemerkung': bemerkung
+            }
+        except Exception as e:
+            logging.error(f"Error getting Excel data for patient: {e}")
+            return {
+                'radiotherapy': '',
+                'aufgebot': '',
+                'bemerkung': ''
+            }
 
     def load_patient_pdf(self, patient):
         """Load the PDF for the current patient"""
@@ -1193,32 +1336,68 @@ class TumorboardSessionPage(QWidget):
         # Store unprocessed count for use in finalize dialog
         self.unprocessed_patient_count = unprocessed_count
 
-    def save_patient_data(self):
-        """Save current patient data to Excel (silent save)"""
+    def save_and_next_patient(self):
+        """Save current patient data and move to next patient"""
         if not self.patients_data:
             return
         
         current_patient = self.patients_data[self.current_patient_index]
         
-        # Update patient data
+        # Update current patient data
         current_patient['radiotherapy'] = self.radiotherapy_combo.currentText()
         current_patient['aufgebot'] = self.aufgebot_combo.currentText()
         current_patient['bemerkung'] = self.bemerkung_text.toPlainText()
         
-        # Check if patient is now complete
-        is_complete = self.is_patient_complete(current_patient)
-        if is_complete:
+        # Check if current patient is complete
+        if not self.is_patient_complete(current_patient):
+            missing_fields = self.get_missing_fields(current_patient)
+            
+            # Show dialog for incomplete patient
+            dialog = PatientNotRecordedDialog(missing_fields, self)
+            result = dialog.exec()
+            
+            if result == QDialog.DialogCode.Accepted:
+                # Mark as skipped and set default values
+                self.patient_states[self.current_patient_index] = 'skipped'
+                current_patient['radiotherapy'] = "-"
+                current_patient['aufgebot'] = "-"
+                current_patient['bemerkung'] = "-"
+                
+                # Save the changes
+                try:
+                    self.save_to_excel()
+                except Exception as e:
+                    logging.error(f"Error saving skipped patient data: {e}")
+            else:
+                # Stay with current patient
+                return
+        else:
+            # Mark as completed
             self.patient_states[self.current_patient_index] = 'completed'
+            # Save the changes
+            try:
+                self.save_to_excel()
+            except Exception as e:
+                logging.error(f"Error saving completed patient data: {e}")
         
-        # Save to Excel file (silently - no dialog)
-        try:
-            self.save_to_excel()
-            self.update_all_patient_button_styles()
-            # No dialog box - silent save
-            logging.info(f"Saved data for patient {self.current_patient_index + 1}")
-        except Exception as e:
-            logging.error(f"Error saving patient data: {e}")
-            QMessageBox.critical(self, "Fehler", f"Fehler beim Speichern: {e}")
+        # Update button styles
+        self.update_all_patient_button_styles()
+        
+        # Check if this was the last patient
+        next_index = self.current_patient_index + 1
+        if next_index >= len(self.patients_data):
+            # This was the last patient - show completion dialog
+            unprocessed_count = 0
+            for patient_index in range(len(self.patients_data)):
+                state = self.patient_states.get(patient_index, 'normal')
+                if state == 'normal':  # Not completed or skipped
+                    unprocessed_count += 1
+            
+            dialog = LastPatientCompletedDialog(unprocessed_count, self)
+            dialog.exec()
+        else:
+            # Move to next patient
+            self.load_patient(next_index)
 
     def is_patient_complete(self, patient):
         """Check if patient data is complete"""
@@ -1259,54 +1438,6 @@ class TumorboardSessionPage(QWidget):
         
         return missing
 
-    def next_patient(self):
-        """Move to next patient with validation"""
-        # Update current patient data
-        current_patient = self.patients_data[self.current_patient_index]
-        current_patient['radiotherapy'] = self.radiotherapy_combo.currentText()
-        current_patient['aufgebot'] = self.aufgebot_combo.currentText()
-        current_patient['bemerkung'] = self.bemerkung_text.toPlainText()
-        
-        # Check if current patient is complete
-        if not self.is_patient_complete(current_patient):
-            missing_fields = self.get_missing_fields(current_patient)
-            missing_data = ", ".join(missing_fields)
-            
-            # Show dialog only for "Nächster Patient"
-            dialog = PatientNotRecordedDialog(missing_data, self)
-            result = dialog.exec()
-            
-            if result == QDialog.DialogCode.Accepted:
-                # Mark as skipped and set default values
-                self.patient_states[self.current_patient_index] = 'skipped'
-                current_patient['radiotherapy'] = "-"
-                current_patient['aufgebot'] = "-"
-                current_patient['bemerkung'] = "-"
-                
-                # Save the changes
-                try:
-                    self.save_to_excel()
-                except Exception as e:
-                    logging.error(f"Error saving skipped patient data: {e}")
-            else:
-                # Stay with current patient
-                return
-        else:
-            # Mark as completed
-            self.patient_states[self.current_patient_index] = 'completed'
-            # Save the changes
-            try:
-                self.save_to_excel()
-            except Exception as e:
-                logging.error(f"Error saving completed patient data: {e}")
-        
-        # Move to next patient
-        next_index = self.current_patient_index + 1
-        if next_index < len(self.patients_data):
-            self.load_patient(next_index)
-        else:
-            QMessageBox.information(self, "Fertig", "Alle Patienten wurden bearbeitet!")
-
     def finalize_tumorboard(self):
         """Handle the finalize tumorboard button"""
         # Check for user data first
@@ -1324,7 +1455,34 @@ class TumorboardSessionPage(QWidget):
             # Re-check user data after input
             nachname, vorname = self.get_benutzerdaten()
             if nachname is None or vorname is None:
-                QMessageBox.critical(self, "Fehler", "Benutzerdaten konnten nicht gespeichert werden. Finalisierung abgebrochen.")
+                error_msg = QMessageBox(self)
+                error_msg.setWindowTitle("Fehler")
+                error_msg.setText("Benutzerdaten konnten nicht gespeichert werden. Finalisierung abgebrochen.")
+                error_msg.setIcon(QMessageBox.Icon.Critical)
+                error_msg.setStandardButtons(QMessageBox.StandardButton.Ok)
+                error_msg.setStyleSheet("""
+                    QMessageBox {
+                        background-color: #1a2633;
+                        color: white;
+                    }
+                    QMessageBox QLabel {
+                        color: white;
+                        font-size: 14px;
+                    }
+                    QPushButton {
+                        background-color: #114473;
+                        color: white;
+                        border: none;
+                        border-radius: 4px;
+                        padding: 8px 16px;
+                        font-weight: bold;
+                        min-width: 80px;
+                    }
+                    QPushButton:hover {
+                        background-color: #1a5a9e;
+                    }
+                """)
+                error_msg.exec()
                 return
         
         # Show confirmation dialog
@@ -1337,7 +1495,7 @@ class TumorboardSessionPage(QWidget):
                        f"Aktuell wurden {self.unprocessed_patient_count} Patient(en) weder als bearbeitet "
                        f"noch als übersprungen definiert.")
         else:
-            msg_text = "Sind Sie sicher dass Sie das Tumorboard finalisieren und exportieren möchten?"
+            msg_text = "Sind Sie sicher, dass Sie das Tumorboard finalisieren und exportieren möchten?"
         
         msg_box.setText(msg_text)
         msg_box.setStandardButtons(QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No)
@@ -1346,6 +1504,10 @@ class TumorboardSessionPage(QWidget):
             QMessageBox {
                 background-color: #1a2633;
                 color: white;
+            }
+            QMessageBox QLabel {
+                color: white;
+                font-size: 14px;
             }
             QPushButton {
                 background-color: #114473;
@@ -1364,12 +1526,42 @@ class TumorboardSessionPage(QWidget):
         result = msg_box.exec()
         
         if result == QMessageBox.StandardButton.Yes:
+            # Check which patients were changed before saving
+            changed_patients = self.get_changed_patients_for_finalization()
+            
             # Save current patient data first
             try:
-                self.save_to_excel()
+                self.save_to_excel(skip_edit_logging=True)  # Skip automatic edit logging
             except Exception as e:
                 logging.error(f"Error saving before finalization: {e}")
-                QMessageBox.critical(self, "Fehler", f"Fehler beim Speichern: {e}")
+                error_msg = QMessageBox(self)
+                error_msg.setWindowTitle("Fehler")
+                error_msg.setText(f"Fehler beim Speichern: {e}")
+                error_msg.setIcon(QMessageBox.Icon.Critical)
+                error_msg.setStandardButtons(QMessageBox.StandardButton.Ok)
+                error_msg.setStyleSheet("""
+                    QMessageBox {
+                        background-color: #1a2633;
+                        color: white;
+                    }
+                    QMessageBox QLabel {
+                        color: white;
+                        font-size: 14px;
+                    }
+                    QPushButton {
+                        background-color: #114473;
+                        color: white;
+                        border: none;
+                        border-radius: 4px;
+                        padding: 8px 16px;
+                        font-weight: bold;
+                        min-width: 80px;
+                    }
+                    QPushButton:hover {
+                        background-color: #1a5a9e;
+                    }
+                """)
+                error_msg.exec()
                 return
             
             # Create timestamp
@@ -1380,37 +1572,156 @@ class TumorboardSessionPage(QWidget):
             # Save timestamp to file
             timestamp_file = Path.home() / "tumorboards" / self.tumorboard_name / self.date_str / "finalized_timestamp.txt"
             try:
-                with open(timestamp_file, 'w', encoding='utf-8') as f:
-                    f.write(f"Finalized: {timestamp_str} by {user_name}\n")
-                logging.info(f"Tumorboard finalized at {timestamp_str} by {user_name}")
+                if timestamp_file.exists():
+                    # Already finalized before - this is an edit session
+                    if changed_patients:
+                        # Only add edit entry if patients were actually changed
+                        patient_numbers_str = ", ".join(changed_patients)
+                        edit_entry = f"Editiert: {timestamp_str} von {user_name} ({patient_numbers_str})\n"
+                        
+                        with open(timestamp_file, 'a', encoding='utf-8') as f:
+                            f.write(edit_entry)
+                        
+                        logging.info(f"Logged edit session by {user_name} for patients: {patient_numbers_str}")
+                    else:
+                        logging.info(f"No changes detected - no edit timestamp added")
+                else:
+                    # First time finalization
+                    with open(timestamp_file, 'w', encoding='utf-8') as f:
+                        f.write(f"Abgeschlossen: {timestamp_str} von {user_name}\n")
+                    
+                    logging.info(f"Tumorboard first finalized at {timestamp_str} by {user_name}")
+                
             except Exception as e:
                 logging.error(f"Error saving timestamp: {e}")
-                QMessageBox.critical(self, "Fehler", f"Fehler beim Speichern des Timestamps: {e}")
+                error_msg = QMessageBox(self)
+                error_msg.setWindowTitle("Fehler")
+                error_msg.setText(f"Fehler beim Speichern des Timestamps: {e}")
+                error_msg.setIcon(QMessageBox.Icon.Critical)
+                error_msg.setStandardButtons(QMessageBox.StandardButton.Ok)
+                error_msg.setStyleSheet("""
+                    QMessageBox {
+                        background-color: #1a2633;
+                        color: white;
+                    }
+                    QMessageBox QLabel {
+                        color: white;
+                        font-size: 14px;
+                    }
+                    QPushButton {
+                        background-color: #114473;
+                        color: white;
+                        border: none;
+                        border-radius: 4px;
+                        padding: 8px 16px;
+                        font-weight: bold;
+                        min-width: 80px;
+                    }
+                    QPushButton:hover {
+                        background-color: #1a5a9e;
+                    }
+                """)
+                error_msg.exec()
                 return
             
             # Navigate back to Excel viewer page
             self.main_window.navigate_back_to_excel_viewer(self.tumorboard_name, self.date_str)
             
-            QMessageBox.information(self, "Erfolg", "Das Tumorboard wurde erfolgreich abgeschlossen!")
+            # Show success message with proper styling
+            success_msg = QMessageBox(self)
+            success_msg.setWindowTitle("Erfolg")
+            success_msg.setText("Das Tumorboard wurde erfolgreich abgeschlossen!")
+            success_msg.setIcon(QMessageBox.Icon.Information)
+            success_msg.setStandardButtons(QMessageBox.StandardButton.Ok)
+            success_msg.setStyleSheet("""
+                QMessageBox {
+                    background-color: #1a2633;
+                    color: white;
+                }
+                QMessageBox QLabel {
+                    color: white;
+                    font-size: 14px;
+                }
+                QPushButton {
+                    background-color: #114473;
+                    color: white;
+                    border: none;
+                    border-radius: 4px;
+                    padding: 8px 16px;
+                    font-weight: bold;
+                    min-width: 80px;
+                }
+                QPushButton:hover {
+                    background-color: #1a5a9e;
+                }
+            """)
+            success_msg.exec()
         
         logging.info("Tumorboard finalization completed")
 
-    def save_to_excel(self):
+    def save_to_excel(self, skip_edit_logging=False):
         """Save all patient data back to Excel file"""
         excel_path = Path.home() / "tumorboards" / self.tumorboard_name / self.date_str / f"{self.date_str}.xlsx"
         
         # Read current Excel file
         df = pd.read_excel(excel_path, engine='openpyxl')
         
+        # Track which patients were changed (for edit logging)
+        changed_patients = []
+        
         # Update the relevant columns using the original Excel index
         for patient in self.patients_data:
             row_index = patient['index']
+            
+            # Check if data changed from what's in Excel
+            current_radio = str(df.at[row_index, 'Radiotherapie indiziert']) if 'Radiotherapie indiziert' in df.columns else ''
+            current_aufgebot = str(df.at[row_index, 'Art des Aufgebots']) if 'Art des Aufgebots' in df.columns else ''
+            current_bemerkung = str(df.at[row_index, 'Bemerkung/Procedere']) if 'Bemerkung/Procedere' in df.columns else ''
+            
+            # Clean current values (handle NaN)
+            if current_radio == 'nan' or pd.isna(current_radio):
+                current_radio = ''
+            if current_aufgebot == 'nan' or pd.isna(current_aufgebot):
+                current_aufgebot = ''
+            if current_bemerkung == 'nan' or pd.isna(current_bemerkung):
+                current_bemerkung = ''
+            
+            # Check if any field changed
+            if (patient['radiotherapy'] != current_radio or 
+                patient['aufgebot'] != current_aufgebot or 
+                patient['bemerkung'] != current_bemerkung):
+                changed_patients.append(patient['patient_number'])
+            
+            # Update the fields
             df.at[row_index, 'Radiotherapie indiziert'] = patient['radiotherapy']
             df.at[row_index, 'Art des Aufgebots'] = patient['aufgebot']
             df.at[row_index, 'Bemerkung/Procedere'] = patient['bemerkung']
         
         # Save back to Excel
         df.to_excel(excel_path, index=False, engine='openpyxl')
+        
+        # Log edits if tumorboard was already finalized (only if not skipping)
+        timestamp_file = Path.home() / "tumorboards" / self.tumorboard_name / self.date_str / "finalized_timestamp.txt"
+        if not skip_edit_logging and timestamp_file.exists() and changed_patients:
+            # Get user data
+            nachname, vorname = self.get_benutzerdaten()
+            if nachname and vorname:
+                user_name = f"{vorname} {nachname}"
+                now = datetime.now()
+                timestamp_str = now.strftime("%d.%m.%Y %H:%M")
+                
+                # Create edit log entry
+                patient_numbers_str = ", ".join(changed_patients)
+                edit_entry = f"Editiert: {timestamp_str} von {user_name} ({patient_numbers_str})\n"
+                
+                try:
+                    # Append edit log to timestamp file
+                    with open(timestamp_file, 'a', encoding='utf-8') as f:
+                        f.write(edit_entry)
+                    logging.info(f"Logged edit session by {user_name} for patients: {patient_numbers_str}")
+                except Exception as e:
+                    logging.error(f"Error logging edit: {e}")
+        
         logging.info(f"Saved patient data to Excel: {excel_path}")
 
     @staticmethod
@@ -1551,51 +1862,201 @@ class TumorboardSessionPage(QWidget):
             try:
                 self.add_patient_to_excel(new_patient)
                 
-                # Refresh patient buttons
-                self.create_patient_buttons()
+                # Reload all patient data from Excel to ensure consistency
+                self.patients_data = []  # Clear current data
+                self.patient_states = {}  # Clear current states
+                self.load_patient_data()  # Reload from Excel
                 
-                # Load the new patient
-                self.load_patient(patient_index)
+                # Find and load the newly added patient
+                for i, patient in enumerate(self.patients_data):
+                    if patient['patient_number'] == patient_data['patient_number']:
+                        self.load_patient(i)
+                        break
                 
-                QMessageBox.information(self, "Erfolg", 
-                                      f"Patient {patient_data['name']} wurde erfolgreich hinzugefügt.")
+                success_msg = QMessageBox(self)
+                success_msg.setWindowTitle("Erfolg")
+                success_msg.setText(f"Patient {patient_data['name']} wurde erfolgreich hinzugefügt.")
+                success_msg.setIcon(QMessageBox.Icon.Information)
+                success_msg.setStandardButtons(QMessageBox.StandardButton.Ok)
+                success_msg.setStyleSheet("""
+                    QMessageBox {
+                        background-color: #1a2633;
+                        color: white;
+                    }
+                    QMessageBox QLabel {
+                        color: white;
+                        font-size: 14px;
+                    }
+                    QPushButton {
+                        background-color: #114473;
+                        color: white;
+                        border: none;
+                        border-radius: 4px;
+                        padding: 8px 16px;
+                        font-weight: bold;
+                        min-width: 80px;
+                    }
+                    QPushButton:hover {
+                        background-color: #1a5a9e;
+                    }
+                """)
+                success_msg.exec()
                 
                 logging.info(f"Successfully added new patient: {patient_data['name']}")
                 
             except Exception as e:
                 logging.error(f"Error adding patient to Excel: {e}")
-                QMessageBox.critical(self, "Fehler", 
-                                   f"Fehler beim Hinzufügen des Patienten zur Excel-Datei: {e}")
-                # Remove from patients_data if Excel save failed
-                self.patients_data.pop()
-                del self.patient_states[patient_index]
-    
+                error_msg = QMessageBox(self)
+                error_msg.setWindowTitle("Fehler")
+                error_msg.setText(f"Fehler beim Hinzufügen des Patienten zur Excel-Datei: {e}")
+                error_msg.setIcon(QMessageBox.Icon.Critical)
+                error_msg.setStandardButtons(QMessageBox.StandardButton.Ok)
+                error_msg.setStyleSheet("""
+                    QMessageBox {
+                        background-color: #1a2633;
+                        color: white;
+                    }
+                    QMessageBox QLabel {
+                        color: white;
+                        font-size: 14px;
+                    }
+                    QPushButton {
+                        background-color: #114473;
+                        color: white;
+                        border: none;
+                        border-radius: 4px;
+                        padding: 8px 16px;
+                        font-weight: bold;
+                        min-width: 80px;
+                    }
+                    QPushButton:hover {
+                        background-color: #1a5a9e;
+                    }
+                """)
+                error_msg.exec()
+
     def add_patient_to_excel(self, patient_data):
-        """Add new patient to Excel file"""
+        """Add a new patient to the Excel file in the first available empty row"""
         excel_path = Path.home() / "tumorboards" / self.tumorboard_name / self.date_str / f"{self.date_str}.xlsx"
         
-        # Read current Excel file
-        df = pd.read_excel(excel_path, engine='openpyxl')
+        try:
+            # Read current Excel file
+            df = pd.read_excel(excel_path, engine='openpyxl')
+            
+            # Find the correct ICD column name (check multiple possibilities)
+            icd_column = None
+            possible_icd_columns = ['ICD-10', 'ICD-Code', 'ICD Code', 'ICD10']
+            for col in possible_icd_columns:
+                if col in df.columns:
+                    icd_column = col
+                    break
+            
+            # If no ICD column found, use the first one as default
+            if icd_column is None:
+                icd_column = 'ICD-10'
+                logging.warning(f"No ICD column found, using default: {icd_column}")
+            
+            # Define the columns to check for empty rows (B-K equivalent)
+            columns_to_check = ['Name', 'Geburtsdatum', 'Diagnose', icd_column, 'Patientennummer', 
+                               'Radiotherapie indiziert', 'Art des Aufgebots', 'Bemerkung/Procedere']
+            
+            # Find the first empty row by checking if all relevant columns are empty/NaN
+            insert_row_index = None
+            for index, row in df.iterrows():
+                is_empty_row = True
+                for col in columns_to_check:
+                    if col in df.columns:
+                        cell_value = row[col]
+                        # Check if cell is not empty (not NaN, not empty string, not just whitespace)
+                        if pd.notna(cell_value) and str(cell_value).strip() != '':
+                            is_empty_row = False
+                            break
+                
+                if is_empty_row:
+                    insert_row_index = index
+                    break
+            
+            # If no empty row found, append at the end
+            if insert_row_index is None:
+                insert_row_index = len(df)
+                logging.info(f"No empty row found, appending new patient at row {insert_row_index}")
+            else:
+                logging.info(f"Found empty row at index {insert_row_index}, inserting new patient there")
+            
+            # Prepare new patient data using correct column names
+            new_patient_data = {
+                'Name': patient_data['name'],
+                'Geburtsdatum': patient_data['birth_date'],
+                'Diagnose': patient_data['diagnosis'],
+                icd_column: patient_data['icd_code'],
+                'Patientennummer': patient_data['patient_number'],
+                'Radiotherapie indiziert': '',
+                'Art des Aufgebots': '',
+                'Bemerkung/Procedere': ''
+            }
+            
+            # If inserting at the end, add a new row
+            if insert_row_index >= len(df):
+                # Create a new row and append
+                new_row_df = pd.DataFrame([new_patient_data])
+                df = pd.concat([df, new_row_df], ignore_index=True)
+            else:
+                # Insert into existing empty row
+                for col_name, value in new_patient_data.items():
+                    if col_name in df.columns:
+                        df.at[insert_row_index, col_name] = value
+            
+            # Update the patient's index to the correct row
+            patient_data['index'] = insert_row_index
+            
+            # Save back to Excel
+            df.to_excel(excel_path, index=False, engine='openpyxl')
+            
+            logging.info(f"Successfully added patient {patient_data['name']} to Excel file at row {insert_row_index}")
+            
+        except Exception as e:
+            logging.error(f"Error adding patient to Excel: {e}")
+            raise e
+
+    def get_changed_patients_for_finalization(self):
+        """Get a list of patient numbers that have changed since the last finalization"""
+        excel_path = Path.home() / "tumorboards" / self.tumorboard_name / self.date_str / f"{self.date_str}.xlsx"
         
-        # Create new row - use empty string for optional fields if not provided
-        new_row = {
-            'Name': patient_data['name'],
-            'Geburtsdatum': patient_data['birth_date'] if patient_data['birth_date'] else '',
-            'Diagnose': patient_data['diagnosis'],
-            'ICD-Code': patient_data['icd_code'] if patient_data['icd_code'] else '',
-            'Patientennummer': patient_data['patient_number'],
-            'Radiotherapie indiziert': '',
-            'Art des Aufgebots': '',
-            'Bemerkung/Procedere': ''
-        }
-        
-        # Use pd.concat to append new row (this ensures it goes to the end)
-        new_row_df = pd.DataFrame([new_row])
-        df = pd.concat([df, new_row_df], ignore_index=True)
-        
-        # Update the index in patient_data to match Excel row (should be the last row)
-        patient_data['index'] = len(df) - 1
-        
-        # Save back to Excel
-        df.to_excel(excel_path, index=False, engine='openpyxl')
-        logging.info(f"Added new patient to Excel at row {patient_data['index']}: {patient_data['name']}") 
+        try:
+            df = pd.read_excel(excel_path, engine='openpyxl')
+            changed_patients = []
+            
+            # Compare current patient data with what's in Excel
+            for patient in self.patients_data:
+                row_index = patient['index']
+                
+                # Get current Excel values
+                current_radio = str(df.at[row_index, 'Radiotherapie indiziert']) if 'Radiotherapie indiziert' in df.columns else ''
+                current_aufgebot = str(df.at[row_index, 'Art des Aufgebots']) if 'Art des Aufgebots' in df.columns else ''
+                current_bemerkung = str(df.at[row_index, 'Bemerkung/Procedere']) if 'Bemerkung/Procedere' in df.columns else ''
+                
+                # Clean current values (handle NaN)
+                if current_radio == 'nan' or pd.isna(current_radio):
+                    current_radio = ''
+                if current_aufgebot == 'nan' or pd.isna(current_aufgebot):
+                    current_aufgebot = ''
+                if current_bemerkung == 'nan' or pd.isna(current_bemerkung):
+                    current_bemerkung = ''
+                
+                # Check if any field changed
+                if (patient['radiotherapy'] != current_radio or 
+                    patient['aufgebot'] != current_aufgebot or 
+                    patient['bemerkung'] != current_bemerkung):
+                    changed_patients.append(patient['patient_number'])
+            
+            return changed_patients
+            
+        except Exception as e:
+            logging.error(f"Error getting changed patients for finalization: {e}")
+            return []
+
+    def is_patient_skipped(self, patient):
+        """Check if a patient is marked as skipped (all three data fields are "-")"""
+        return (patient['radiotherapy'] == "-" and 
+                patient['aufgebot'] == "-" and 
+                patient['bemerkung'] == "-")

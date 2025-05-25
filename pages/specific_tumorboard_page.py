@@ -48,7 +48,7 @@ class SpecificTumorboardPage(QWidget):
         # Content widget
         content_widget = QWidget()
         content_layout = QVBoxLayout(content_widget)
-        content_layout.setSpacing(30)
+        content_layout.setSpacing(15)
         content_layout.setContentsMargins(20, 20, 20, 20)
 
         # Get tumorboard dates
@@ -114,21 +114,21 @@ class SpecificTumorboardPage(QWidget):
         section_frame = QFrame()
         section_frame.setStyleSheet("""
             QFrame {
-                background-color: #1a2633;
-                border: 1px solid #2a3642;
-                border-radius: 8px;
-                padding: 15px;
+                background-color: transparent;
+                border: none;
+                border-radius: 0px;
+                padding: 0px;
             }
         """)
 
         section_layout = QVBoxLayout(section_frame)
-        section_layout.setSpacing(15)
-        section_layout.setContentsMargins(20, 20, 20, 20)
+        section_layout.setSpacing(10)
+        section_layout.setContentsMargins(15, 5, 20, 10)
 
         # Section title
         title_label = QLabel(section_title)
-        title_label.setFont(QFont("Helvetica", 18, QFont.Weight.Bold))
-        title_label.setStyleSheet("color: #00BFFF; margin-bottom: 10px;")
+        title_label.setFont(QFont("Helvetica", 16, QFont.Weight.Bold))
+        title_label.setStyleSheet("color: #00BFFF; margin-bottom: 5px;")
         section_layout.addWidget(title_label)
 
         # Date buttons

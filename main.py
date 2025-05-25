@@ -244,7 +244,7 @@ class TumorGuideApp(QMainWindow):
         else:logo_label.setText("USZ")
         dept_label=QLabel("Department of Radiation Oncology");dept_label.setFont(QFont("Helvetica",11,QFont.Weight.Bold));dept_label.setStyleSheet("color: #00BFFF; padding: 0; margin: 0; background: transparent;");dept_label.setWordWrap(True);logo_layout.addWidget(logo_label,0,Qt.AlignmentFlag.AlignLeft);logo_layout.addWidget(dept_label,0,Qt.AlignmentFlag.AlignLeft);menu_layout.addWidget(logo_container);separator=QFrame();separator.setFrameShape(QFrame.Shape.HLine);separator.setStyleSheet("background-color: #2a3642; min-height: 1px; max-height: 1px;");menu_layout.addWidget(separator);menu_layout.addSpacing(20)
         self.active_menu_style="QPushButton { background-color: #3292ea; color: white; font-weight: bold; font-size: 16px; text-align: left; padding-left: 15px; border: none; } QPushButton:hover { background-color: #4da2fa; }";self.inactive_menu_style="QPushButton { background-color: transparent; color: white; font-size: 15px; text-align: left; padding-left: 15px; border: none; border-bottom: 1px solid #2a3642; } QPushButton:hover { background-color: #2a3642; }"
-        menu_items=["Tumor navigator","KISIM Scripts","Tumorboards","Placeholder","Placeholder"]
+        menu_items=["Tumor navigator","Tumorboards", "KISIM Scripts","Placeholder","Placeholder"]
         for i,item_text in enumerate(menu_items):
             menu_button=QPushButton(item_text);menu_button.setCursor(Qt.CursorShape.PointingHandCursor);menu_button.setFixedHeight(60)
             if i==0:menu_button.setStyleSheet(self.active_menu_style);menu_button.clicked.connect(self.go_home)
@@ -362,9 +362,11 @@ class TumorGuideApp(QMainWindow):
             print(f"{APP_PREFIX}Found existing Excel viewer page, switching to it.")
             self.stacked_widget.setCurrentIndex(existing_page_index)
             
-            # Refresh the page to update button state if needed
+            # Refresh the page to update Excel data and button state
             excel_page = self.stacked_widget.widget(existing_page_index)
-            if hasattr(excel_page, 'refresh_finalization_state'):
+            if hasattr(excel_page, 'refresh_excel_data'):
+                excel_page.refresh_excel_data()
+            elif hasattr(excel_page, 'refresh_finalization_state'):
                 excel_page.refresh_finalization_state()
         else:
             print(f"{APP_PREFIX}Creating new Excel viewer page.")
