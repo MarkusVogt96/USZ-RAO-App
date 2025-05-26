@@ -2088,6 +2088,18 @@ def rt_konzept_oeffnen():
             return False # Return False if confirm button not found
 
         time.sleep(0.3)
+
+
+
+        if not find_and_click_button_offset("button_zeitraum_pfeil.png", base_path=berichte_path, max_attempts=20, interval=0.05, confidence=0.90, x_offset=-45):
+            print("button_zeitraum_pfeil.png nicht gefunden")
+            return False
+        if not find_and_click_button("button_unbestimmt.png", base_path=berichte_path, max_attempts=20, interval=0.05, confidence=0.90):
+            print("button_unbestimmt.png nicht gefunden")
+            return False
+
+
+
         # --- button_rtkonzept_doppelt anklicken mit Timeout ---
         logging.info(f"[{function_name}] Searching for double-click button ({os.path.basename(button_rtkonzept_doppelt_path)})...")
         button_doppelt_clicked = False
@@ -3870,7 +3882,10 @@ def prozent_zoom_100():
     print("Starte prozent_zoom_100() aus UNIVERSAL")
     local_screenshots_dir = os.path.join(screenshots_dir, 'UNIVERSAL', 'bereich_berichte')
     print("probiere find_button() mit button_prozent_confirm.png")
-    if not find_button('button_prozent_confirm.png', base_path=local_screenshots_dir, max_attempts=150, interval=0.1):
+    if not find_button('button_offene_berichtszeile.png', base_path=local_screenshots_dir, max_attempts=200, interval=0.1):
+        print("button_offene_berichtszeile nicht gefunden.")
+        return False
+    if not find_button('button_prozent_confirm.png', base_path=local_screenshots_dir, max_attempts=20, interval=0.1):
         print("button_prozent_confirm nicht gefunden.")
         return False
     print("button_prozent_confirm gefunden, versuche button_prozent_100.png")
