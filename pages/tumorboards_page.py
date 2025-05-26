@@ -71,32 +71,29 @@ class TumorboardsPage(QWidget):
         # This shows the chronological ordering and proportional spacing
         specific_assignments = {
             "Montag": [
-                {'name': 'GI', 'time': '8:00'},
-                {'name': 'Hypophyse', 'time': '10:00'},
-                {'name': 'Melanom', 'time': '13:00'},
-                {'name': 'Thorax', 'time': '15:00'}
+                {'name': 'Neuro', 'time': '8:30'},
+                {'name': 'Thorax', 'time': '13:30'},
+                {'name': 'GI', 'time': '16:00'},
+                {'name': 'NET', 'time': '17:30'}
             ],
             "Dienstag": [
-                {'name': 'Uro', 'time': '8:00'},
-                {'name': 'GynBecken', 'time': '9:00'},
-                {'name': 'Lymphom', 'time': '11:00'},
-                {'name': 'Neuro', 'time': '14:00'}
+                {'name': 'Melanom', 'time': '8:00'},
+                {'name': 'Schädelbasis', 'time': '8:00'},
+                {'name': 'Gyn (Becken + Mamma)', 'time': '15:00'},
+                {'name': 'Uro', 'time': '16:30'},
+                {'name': 'Hypophyse', 'time': '17:15'},
+                {'name': 'Pädiatrie', 'time': '17:30'},
             ],
             "Mittwoch": [
-                {'name': 'Mamma', 'time': '10:00'},
-                {'name': 'Sarkom', 'time': '12:00'},
-                {'name': 'NET', 'time': '15:00'},
-                {'name': 'Vascular', 'time': '9:00'}
+                {'name': 'KHT', 'time': '8:00'},
+                {'name': 'Vascular', 'time': '8:00'},
             ],
             "Donnerstag": [
-                {'name': 'HCC', 'time': '11:00'},
-                {'name': 'Schädelbasis', 'time': '13:00'},
-                {'name': 'KHT', 'time': '8:00'}
+                {'name': 'HPB', 'time': '07:30'},
+                {'name': 'Sarkom', 'time': '15:30'},
             ],
             "Freitag": [
-                {'name': 'HPB', 'time': '12:00'},
-                {'name': 'Schilddrüse', 'time': '14:00'},
-                {'name': 'Pädiatrie', 'time': '9:00'}
+                {'name': 'Schilddrüse', 'time': '12:15'}
             ]
         }
         
