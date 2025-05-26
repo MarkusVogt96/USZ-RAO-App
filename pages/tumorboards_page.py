@@ -33,25 +33,24 @@ class TumorboardsPage(QWidget):
             "Vascular"
         ]
         
-        # Location mappings (placeholders for now)
         self.tumorboard_location_mapping = {
-            "GI": "{placeholder}",
-            "GynBecken": "{placeholder}",
-            "Mamma": "{placeholder}",
+            "GI": "OPS B24",
+            "GynBecken": "NORD1 C307",
+            "Mamma": "NORD1 C307",
             "HCC": "{placeholder}",
-            "HPB": "{placeholder}",
-            "Melanom": "{placeholder}",
-            "Neuro": "{placeholder}",
-            "NET": "{placeholder}",
-            "KHT": "{placeholder}",
+            "HPB": "Kleiner Hörsaal Pathologie",
+            "Melanom": "OPS B26",
+            "Neuro": "NORD1 C225",
+            "NET": "B OPS Demonstrationssaal 3",
+            "KHT": "NORD2 B811",
             "Pädiatrie": "{placeholder}",
             "Hypophyse": "{placeholder}",
-            "Lymphom": "{placeholder}",
-            "Sarkom": "{placeholder}",
+            "Lymphom": "PATH B82",
+            "Sarkom": "HOER B 15",
             "Schädelbasis": "{placeholder}",
-            "Schilddrüse": "{placeholder}",
-            "Thorax": "{placeholder}",
-            "Uro": "{placeholder}",
+            "Schilddrüse": "NUK A 33",
+            "Thorax": "OPS B 26",
+            "Uro": "NORD1 B203",
             "Vascular": "{placeholder}"
         }
         
@@ -87,6 +86,7 @@ class TumorboardsPage(QWidget):
             "Mittwoch": [
                 {'name': 'KHT', 'time': '8:00'},
                 {'name': 'Vascular', 'time': '8:00'},
+                {'name': 'Lymphom', 'time': '16:30'},
             ],
             "Donnerstag": [
                 {'name': 'HPB', 'time': '07:30'},
