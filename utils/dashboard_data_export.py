@@ -14,7 +14,7 @@ class DashboardDataExporter:
     def export_dashboard_data(self, output_path=None):
         """Export all data needed for dashboard as JSON"""
         if output_path is None:
-            output_path = Path.home() / "tumorboards" / "dashboard_data.json"
+            output_path = Path.home() / "tumorboards" / "__SQLite_database" / "dashboard_data.json"
         
         try:
             with sqlite3.connect(self.db.db_path) as conn:

@@ -376,20 +376,37 @@ class CmdScriptsPage(QWidget):
         
         self.output_area.clear()
         self.output_buffer = "" # Clear buffer on new run
-        self.title_label.setText(f"Running: {script_key}") # Indicate running
+        # Set a more user-friendly title
+        if script_key == "database_manager":
+            self.title_label.setText("Database Manager")
+        else:
+            self.title_label.setText(f"Running: {script_key}") # Indicate running
 
         # Find script_name by iterating through definitions and matching the key
         script_name = None
         found_mapping = False
-        for tile_name, fname in script_definitions:
-            current_key = generate_script_key(tile_name)
-            if current_key == script_key:
-                script_name = fname
-                found_mapping = True
-                break # Found the script, exit loop
+        script_path = None
+        
+        # Special handling for database_manager (from Developer Area)
+        if script_key == "database_manager":
+            script_name = "database_manager.py"
+            found_mapping = True
+            # Database manager is in utils folder, not scripts folder
+            utils_dir = os.path.normpath(os.path.join(os.path.dirname(__file__), os.pardir, "utils"))
+            script_path = os.path.join(utils_dir, script_name)
+        else:
+            # Regular KISIM scripts
+            for tile_name, fname in script_definitions:
+                current_key = generate_script_key(tile_name)
+                if current_key == script_key:
+                    script_name = fname
+                    found_mapping = True
+                    break # Found the script, exit loop
 
         if found_mapping and script_name:
-            script_path = os.path.join(scripts_dir, script_name)
+            # Set script_path if not already set (for regular scripts)
+            if script_path is None:
+                script_path = os.path.join(scripts_dir, script_name)
             # script_dir_actual = os.path.dirname(script_path) # No longer needed, use scripts_dir directly
 
             # Check if the script file exists

@@ -12,7 +12,7 @@ class DashboardHTMLGenerator:
     def generate_complete_html(self, output_path=None, interactive=True):
         """Generate complete HTML file with embedded JSON data"""
         if output_path is None:
-            output_path = Path.home() / "tumorboards" / "dashboard" / "dashboard.html"
+            output_path = Path.home() / "tumorboards" / "__SQLite_database" / "dashboard" / "dashboard.html"
         
         try:
             # Get dashboard data
@@ -78,7 +78,7 @@ class DashboardHTMLGenerator:
         """Get dashboard data as dictionary"""
         try:
             # Export to temporary location and read back
-            temp_path = Path.home() / "tumorboards" / "temp_dashboard_data.json"
+            temp_path = Path.home() / "tumorboards" / "__SQLite_database" / "temp_dashboard_data.json"
             export_path = self.exporter.export_dashboard_data(temp_path)
             
             if not export_path or not Path(export_path).exists():

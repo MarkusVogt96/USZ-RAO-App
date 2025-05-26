@@ -278,7 +278,7 @@ class TumorboardAnalyzer:
     def create_visualization_report(self, output_dir=None):
         """Create visualization charts and save as images"""
         if output_dir is None:
-            output_dir = Path.home() / "tumorboards" / "analysis_charts"
+            output_dir = Path.home() / "tumorboards" / "__SQLite_database" / "analysis_charts"
         
         output_dir = Path(output_dir)
         output_dir.mkdir(exist_ok=True)

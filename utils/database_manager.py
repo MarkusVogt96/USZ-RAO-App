@@ -20,7 +20,7 @@ logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(levelname)s - %(message)s',
     handlers=[
-        logging.FileHandler(Path.home() / "tumorboards" / "database_manager.log"),
+        logging.FileHandler(Path.home() / "tumorboards" / "__SQLite_database" / "database_manager.log"),
         logging.StreamHandler()
     ]
 )
@@ -174,11 +174,31 @@ def reset_database():
         
         if confirmation == "RESET":
             db = TumorboardDatabase()
+            db_path = db.db_path
+            
+            # Close all database connections
+            db.close_all_connections()
+            print("✓ Datenbankverbindungen geschlossen")
+            
+            # Force garbage collection to ensure connection is released
+            import gc
+            del db
+            gc.collect()
+            
+            # Small delay to ensure file handle is released
+            import time
+            time.sleep(1.0)
             
             # Delete database file
-            if db.db_path.exists():
-                db.db_path.unlink()
-                print("✓ Datenbank-Datei gelöscht")
+            if db_path.exists():
+                try:
+                    db_path.unlink()
+                    print("✓ Datenbank-Datei gelöscht")
+                except PermissionError:
+                    print("✗ Datei wird noch von einem anderen Prozess verwendet")
+                    print("  Bitte schließen Sie alle anderen Programme, die auf die Datenbank zugreifen")
+                    print("  und versuchen Sie es erneut.")
+                    return
             
             # Reinitialize
             new_db = TumorboardDatabase()
@@ -201,7 +221,7 @@ def main():
             choice = input("\nWählen Sie eine Option (0-7): ").strip()
             
             if choice == "0":
-                print("Auf Wiedersehen!")
+                print("Database Manager beendet.")
                 break
             elif choice == "1":
                 init_database()

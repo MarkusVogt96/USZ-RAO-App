@@ -15,7 +15,7 @@ class DashboardManager(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.exporter = DashboardDataExporter()
-        self.dashboard_dir = Path.home() / "tumorboards" / "dashboard"
+        self.dashboard_dir = Path.home() / "tumorboards" / "__SQLite_database" / "dashboard"
         self.data_file = self.dashboard_dir / "dashboard_data.json"
         self.html_file = self.dashboard_dir / "dashboard.html"
         

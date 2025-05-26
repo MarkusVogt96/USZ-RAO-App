@@ -326,7 +326,7 @@ def create_excel_file():
             patient_data.append(["", "", "", "", ""])
 
     # Excel-Template kopieren
-    template_path = os.path.join(user_home, "tumorboards", "template.xlsx")
+    template_path = os.path.join(user_home, "tumorboards", "__SQLite_database", "template.xlsx")
     if not os.path.exists(template_path):
         print(f"Excel-Template nicht gefunden: {template_path}")
         return

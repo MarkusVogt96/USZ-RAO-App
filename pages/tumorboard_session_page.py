@@ -2065,12 +2065,22 @@ class TumorboardSessionPage(QWidget):
                 else:
                     logging.warning(f"Export to collection Excel failed for {self.tumorboard_name} {self.date_str}")
                     # Show error message to user if collection file doesn't exist
-                    collection_file_path = Path.home() / "tumorboards" / self.tumorboard_name / f"alle_tumorboards_{self.tumorboard_name.lower()}.xlsx"
-                    if not collection_file_path.exists():
+                    tumorboard_dir = Path.home() / "tumorboards" / self.tumorboard_name
+                    collection_file_found = False
+                    collection_file_name = "alle_tumorboards_*.xlsx"
+                    
+                    # Check if any collection file exists
+                    for file in tumorboard_dir.glob("alle_tumorboards_*.xlsx"):
+                        collection_file_found = True
+                        collection_file_name = file.name
+                        break
+                    
+                    if not collection_file_found:
                         error_msg = QMessageBox(self)
                         error_msg.setWindowTitle("Export-Fehler")
-                        error_msg.setText(f"Die Sammel-Excel-Datei für {self.tumorboard_name} wurde nicht gefunden:\n\n"
-                                        f"{collection_file_path.name}\n\n"
+                        error_msg.setText(f"Die Sammel-Excel-Datei für {self.tumorboard_name} wurde nicht gefunden.\n\n"
+                                        f"Erwartet wird eine Datei mit dem Namen 'alle_tumorboards_*.xlsx' im Ordner:\n"
+                                        f"{tumorboard_dir}\n\n"
                                         f"Das Tumorboard wurde erfolgreich abgeschlossen, aber der Export in die "
                                         f"Sammel-Excel-Datei ist fehlgeschlagen.\n\n"
                                         f"Bitte wenden Sie sich an Ihren Administrator.")

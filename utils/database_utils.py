@@ -10,7 +10,7 @@ class TumorboardDatabase:
     
     def __init__(self, db_path=None):
         if db_path is None:
-            self.db_path = Path.home() / "tumorboards" / "master_tumorboard.db"
+            self.db_path = Path.home() / "tumorboards" / "__SQLite_database" / "master_tumorboard.db"
         else:
             self.db_path = Path(db_path)
         
@@ -18,6 +18,16 @@ class TumorboardDatabase:
         self.db_path.parent.mkdir(exist_ok=True)
         
         self.init_database()
+    
+    def close_all_connections(self):
+        """Force close all database connections"""
+        try:
+            # Force close any remaining connections by connecting and immediately closing
+            conn = sqlite3.connect(self.db_path)
+            conn.close()
+            logging.info("Database connections closed")
+        except Exception as e:
+            logging.warning(f"Error closing database connections: {e}")
     
     def init_database(self):
         """Initialize database with required tables"""
@@ -262,7 +272,7 @@ class TumorboardDatabase:
     def export_to_excel(self, output_path=None):
         """Export entire database to Excel for analysis"""
         if output_path is None:
-            output_path = Path.home() / "tumorboards" / f"master_database_export_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx"
+            output_path = Path.home() / "tumorboards" / "__SQLite_database" / f"master_database_export_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx"
         
         try:
             with sqlite3.connect(self.db_path) as conn:
@@ -370,18 +380,22 @@ def sync_all_collection_files():
         
         # Find all collection Excel files
         for entity_dir in tumorboards_dir.iterdir():
-            if entity_dir.is_dir():
-                # Look for collection Excel file
-                collection_pattern = f"alle_tumorboards_{entity_dir.name.lower()}.xlsx"
-                collection_file = entity_dir / collection_pattern
+            if entity_dir.is_dir() and entity_dir.name != "__SQLite_database":
+                # Look for collection Excel file flexibly - any file starting with "alle_tumorboards_"
+                collection_file = None
+                for file in entity_dir.glob("alle_tumorboards_*.xlsx"):
+                    collection_file = file
+                    break
                 
-                if collection_file.exists():
+                if collection_file and collection_file.exists():
                     logging.info(f"Syncing collection file: {collection_file}")
                     success = db.import_collection_excel(entity_dir.name, collection_file)
                     if success:
                         synced_count += 1
                     else:
                         logging.warning(f"Failed to sync: {collection_file}")
+                else:
+                    logging.info(f"No collection file found in {entity_dir.name} (looking for files starting with 'alle_tumorboards_')")
         
         logging.info(f"Successfully synced {synced_count} collection files to database")
         return synced_count > 0

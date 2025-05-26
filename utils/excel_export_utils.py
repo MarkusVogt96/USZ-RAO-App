@@ -15,7 +15,12 @@ def export_tumorboard_to_collection(tumorboard_name, date_str):
         # Paths
         tumorboard_dir = Path.home() / "tumorboards" / tumorboard_name
         daily_excel_path = tumorboard_dir / date_str / f"{date_str}.xlsx"
-        collection_file_path = tumorboard_dir / f"alle_tumorboards_{tumorboard_name.lower()}.xlsx"
+        
+        # Find collection file flexibly - look for any file starting with "alle_tumorboards_"
+        collection_file_path = None
+        for file in tumorboard_dir.glob("alle_tumorboards_*.xlsx"):
+            collection_file_path = file
+            break
         
         # Check if daily Excel file exists
         if not daily_excel_path.exists():
@@ -23,8 +28,8 @@ def export_tumorboard_to_collection(tumorboard_name, date_str):
             return False
         
         # Check if collection file exists
-        if not collection_file_path.exists():
-            logging.error(f"Collection Excel file not found: {collection_file_path}")
+        if not collection_file_path or not collection_file_path.exists():
+            logging.error(f"Collection Excel file not found in {tumorboard_dir}. Looking for files starting with 'alle_tumorboards_'")
             return False
         
         # Read the daily Excel data

@@ -14,8 +14,8 @@ class TumorboardsPage(QWidget):
         # Define all tumorboards (from existing script)
         self.alle_tumorboards = [
             "GI",
-            "GynBecken",
-            "Mamma",
+            "Gyn Becken",
+            "Gyn Mamma",
             "HCC",
             "HPB",
             "Melanom",
@@ -35,8 +35,8 @@ class TumorboardsPage(QWidget):
         
         self.tumorboard_location_mapping = {
             "GI": "OPS B24",
-            "GynBecken": "NORD1 C307",
-            "Mamma": "NORD1 C307",
+            "Gyn Becken": "NORD1 C307",
+            "Gyn Mamma": "NORD1 C307",
             "HCC": "{placeholder}",
             "HPB": "Kleiner Hörsaal Pathologie",
             "Melanom": "OPS B26",
@@ -78,7 +78,8 @@ class TumorboardsPage(QWidget):
             "Dienstag": [
                 {'name': 'Melanom', 'time': '8:00'},
                 {'name': 'Schädelbasis', 'time': '8:00'},
-                {'name': 'Gyn (Becken + Mamma)', 'time': '15:00'},
+                {'name': 'Gyn Becken', 'time': '15:00'},
+                {'name': 'Gyn Mamma', 'time': '15:00'},
                 {'name': 'Uro', 'time': '16:30'},
                 {'name': 'Hypophyse', 'time': '17:15'},
                 {'name': 'Pädiatrie', 'time': '17:30'},
@@ -109,16 +110,9 @@ class TumorboardsPage(QWidget):
     def setup_ui(self):
         # Main layout
         main_layout = QVBoxLayout()
-        main_layout.setSpacing(20)
-        main_layout.setContentsMargins(10, 0, 40, 40)
+        main_layout.setSpacing(10)
+        main_layout.setContentsMargins(10, 0, 40, 20)
         self.setLayout(main_layout)
-
-        # Page title
-        title_label = QLabel("Tumorboards")
-        title_label.setFont(QFont("Helvetica", 24, QFont.Weight.Bold))
-        title_label.setStyleSheet("color: white; margin-bottom: 20px;")
-        title_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        main_layout.addWidget(title_label)
 
         # Create scrollable area for the week view
         scroll_area = QScrollArea()
@@ -153,7 +147,7 @@ class TumorboardsPage(QWidget):
         main_layout.addWidget(scroll_area)
 
     def _create_time_axis(self):
-        """Create a time axis showing hours from 8:00 to 17:00"""
+        """Create a time axis showing hours from 07:00 to 19:00"""
         time_frame = QFrame()
         time_frame.setFixedWidth(80)
         time_frame.setStyleSheet("""
@@ -164,18 +158,19 @@ class TumorboardsPage(QWidget):
         """)
         
         # Use a widget with absolute positioning for precise time placement
+        # Reduced height to end around 18:30 (about 11.5 hours * 70px = 805px)
         time_container = QWidget(time_frame)
-        time_container.setGeometry(0, 0, 80, 720)  # 720px height for 9 hours (8-17) = 80px per hour
+        time_container.setGeometry(0, 0, 80, 805)
         
-        # Time labels from 8:00 to 17:00
-        for hour in range(8, 18):
+        # Time labels from 07:00 to 19:00
+        for hour in range(7, 20):
             time_label = QLabel(f"{hour:02d}:00", time_container)
             time_label.setFont(QFont("Helvetica", 10))
             time_label.setStyleSheet("color: #cccccc; background: transparent; border: none; outline: none;")
             time_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
             
-            # Position based on hour (80px per hour, starting at y=70 to match content container)
-            y_position = 70 + (hour - 8) * 80
+            # Position based on hour (70px per hour, starting at y=20 to move closer to top)
+            y_position = 20 + (hour - 7) * 70
             time_label.setGeometry(0, y_position - 10, 80, 20)
             
             # Add horizontal line
@@ -190,7 +185,7 @@ class TumorboardsPage(QWidget):
         """Create a column for a specific weekday with time-based positioning"""
         column_frame = QFrame()
         column_frame.setFixedWidth(280)
-        column_frame.setMinimumHeight(720)  # Match time axis height
+        column_frame.setMinimumHeight(805)  # Match time axis height
         column_frame.setStyleSheet("""
             QFrame {
                 background-color: #114473;
@@ -205,90 +200,182 @@ class TumorboardsPage(QWidget):
         day_header.setFont(QFont("Helvetica", 16, QFont.Weight.Bold))
         day_header.setStyleSheet("color: white; background: transparent; border: none; outline: none;")
         day_header.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        day_header.setGeometry(0, 10, 280, 30)
+        day_header.setGeometry(0, 15, 280, 25)
         
         # Container for tumorboard buttons with absolute positioning
         content_container = QWidget(column_frame)
-        content_container.setGeometry(22, 70, 250, 650)  # Leave space for header
+        content_container.setGeometry(18, 35, 260, 850)  # Proper margins within column
         
         # Add tumorboard buttons for this day with time-based positioning
         tumorboards_for_day = self.weekday_assignments.get(day_name, [])
         
-        # Sort tumorboards by time
-        tumorboards_for_day.sort(key=lambda x: int(x['time'].split(':')[0]))
+        # Sort tumorboards by time, then by name for consistent ordering
+        tumorboards_for_day.sort(key=lambda x: (x['time'], x['name']))
         
-        for tb_info in tumorboards_for_day:
-            tb_button = self._create_tumorboard_button(tb_info['name'], tb_info['time'], content_container)
+        # Handle overlapping tumorboards (special cases)
+        overlap_groups = self._group_overlapping_tumorboards(tumorboards_for_day)
+        
+        # Create buttons for each group
+        for group in overlap_groups:
+            parallel_count = len(group)
             
-            # Calculate position based on time
-            hour = int(tb_info['time'].split(':')[0])
-            minute = int(tb_info['time'].split(':')[1]) if ':' in tb_info['time'] else 0
-            
-            # Position: 80px per hour, starting from hour 8
-            y_position = (hour - 8) * 80 + (minute / 60) * 80
-            
-            # Center the button horizontally (content_container is 250px wide, button is 220px wide)
-            x_position = (250 - 220) // 2  # Center the 220px button in 250px container
-            
-            tb_button.setGeometry(x_position, int(y_position), 220, 70)
+            for i, tb_info in enumerate(group):
+                tb_button = self._create_tumorboard_button(tb_info['name'], tb_info['time'], content_container, parallel_count)
+                
+                # Calculate position based on time
+                hour = int(tb_info['time'].split(':')[0])
+                minute = int(tb_info['time'].split(':')[1]) if ':' in tb_info['time'] else 0
+                
+                # Position: 70px per hour, starting from hour 7
+                y_position = (hour - 7) * 70 + (minute / 60) * 70
+                
+                # Determine button height based on tumorboard type
+                button_height = self._get_button_height(tb_info['name'])
+                
+                # Handle parallel tumorboards by splitting the width
+                if parallel_count == 1:
+                    button_width = 240  # Full width for single buttons within container
+                    x_position = (260 - button_width) // 2  # Center the button in container
+                else:
+                    # Distribute parallel buttons across the width
+                    total_width = 240
+                    spacing = 2
+                    available_width = total_width - (spacing * (parallel_count - 1))
+                    button_width = available_width // parallel_count
+                    # Center the group of parallel buttons
+                    group_start = (260 - total_width) // 2
+                    x_position = group_start + i * (button_width + spacing)
+                
+                tb_button.setGeometry(x_position, int(y_position), button_width, button_height)
         
         return column_frame
+    
+    def _group_overlapping_tumorboards(self, tumorboards):
+        """Group tumorboards that overlap in time"""
+        if not tumorboards:
+            return []
+        
+        groups = []
+        current_group = [tumorboards[0]]
+        
+        for i in range(1, len(tumorboards)):
+            current_tb = tumorboards[i]
+            last_tb = current_group[-1]
+            
+            # Check if current tumorboard overlaps with any in current group
+            if self._tumorboards_overlap(last_tb, current_tb):
+                current_group.append(current_tb)
+            else:
+                groups.append(current_group)
+                current_group = [current_tb]
+        
+        groups.append(current_group)
+        return groups
+    
+    def _tumorboards_overlap(self, tb1, tb2):
+        """Check if two tumorboards overlap in time"""
+        # Parse times
+        hour1 = int(tb1['time'].split(':')[0])
+        minute1 = int(tb1['time'].split(':')[1]) if ':' in tb1['time'] else 0
+        start1 = hour1 * 60 + minute1
+        
+        hour2 = int(tb2['time'].split(':')[0])
+        minute2 = int(tb2['time'].split(':')[1]) if ':' in tb2['time'] else 0
+        start2 = hour2 * 60 + minute2
+        
+        # Get durations
+        duration1 = self._get_button_duration(tb1['name'])
+        duration2 = self._get_button_duration(tb2['name'])
+        
+        end1 = start1 + duration1
+        end2 = start2 + duration2
+        
+        # Check for overlap
+        return not (end1 <= start2 or end2 <= start1)
+    
+    def _get_button_duration(self, tumorboard_name):
+        """Get button duration in minutes for specific tumorboards"""
+        if tumorboard_name == "Uro":
+            return 42  # 45 minutes
+        else:
+            return 60  # Default 60 minutes
+    
+    def _get_button_height(self, tumorboard_name):
+        """Get button height in pixels for specific tumorboards"""
+        duration = self._get_button_duration(tumorboard_name)
+        # 70px per hour, so scale proportionally
+        return int((duration / 60) * 70)
 
-    def _create_tumorboard_button(self, tumorboard_name, time, parent_container):
+    def _create_tumorboard_button(self, tumorboard_name, time, parent_container, parallel_count=1):
         """Create a tumorboard button"""
         button = QPushButton(parent_container)
-        button.setFixedHeight(70)
         button.setCursor(Qt.CursorShape.PointingHandCursor)
         
+        # Adjust padding based on parallel count
+        padding = "3px" if parallel_count > 1 else "6px"
+        
         # Button styling
-        button.setStyleSheet("""
-            QPushButton {
+        button.setStyleSheet(f"""
+            QPushButton {{
                 background-color: #367E9E;
                 color: white;
                 border: none;
                 border-radius: 6px;
                 text-align: left;
-                padding: 8px;
-            }
-            QPushButton:hover {
+                padding: {padding};
+            }}
+            QPushButton:hover {{
                 background-color: #4499BC;
-            }
-            QPushButton:pressed {
+            }}
+            QPushButton:pressed {{
                 background-color: #2A6780;
-            }
+            }}
         """)
         
         # Create button layout with tumorboard name and location
         button_layout = QVBoxLayout(button)
-        button_layout.setContentsMargins(5, 5, 5, 5)
-        button_layout.setSpacing(2)
         
-        # Time and name
-        time_name_layout = QHBoxLayout()
-        time_name_layout.setSpacing(8)
+        # Adjust margins and spacing based on parallel count and tumorboard type
+        if parallel_count > 1:
+            button_layout.setContentsMargins(0, 6, 6, 3)
+            button_layout.setSpacing(1)
+        else:
+            # Special margins for Uro button
+            if tumorboard_name == "Uro":
+                button_layout.setContentsMargins(10, 3, 3, 3)
+            else:
+                button_layout.setContentsMargins(10, 8, 6, 6)
+            button_layout.setSpacing(3)
         
-        time_label = QLabel(time)
-        time_label.setFont(QFont("Helvetica", 10, QFont.Weight.Bold))
-        time_label.setStyleSheet("color: white; background: transparent; border: none; outline: none;")
+        # Adjust font sizes based on parallel count and button size
+        time_name_font_size = 9 if parallel_count > 1 else 11
+        location_font_size = 8 if parallel_count > 1 else 10
         
-        name_label = QLabel(tumorboard_name)
-        name_label.setFont(QFont("Helvetica", 11, QFont.Weight.Bold))
-        name_label.setStyleSheet("color: white; background: transparent; border: none; outline: none;")
-        name_label.setWordWrap(True)
+        # Create combined time and name as single field
+        time_name_text = f"{time}  {tumorboard_name}"
         
-        time_name_layout.addWidget(time_label)
-        time_name_layout.addWidget(name_label)
-        time_name_layout.addStretch()
+        # Time and name as single label
+        time_name_label = QLabel(time_name_text)
+        time_name_label.setFont(QFont("Helvetica", time_name_font_size, QFont.Weight.Bold))
+        time_name_label.setStyleSheet("color: white; background: transparent; border: none; outline: none;")
+        time_name_label.setWordWrap(True)
+        time_name_label.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignTop)
         
-        # Location
+        # Add the combined time/name label
+        button_layout.addWidget(time_name_label)
+        
+        # Location label
         location = self.tumorboard_location_mapping.get(tumorboard_name, "{placeholder}")
         location_label = QLabel(f"Ort: {location}")
-        location_label.setFont(QFont("Helvetica", 9))
+        location_label.setFont(QFont("Helvetica", location_font_size))
         location_label.setStyleSheet("color: white; background: transparent; border: none; outline: none;")
         location_label.setWordWrap(True)
-        
-        button_layout.addLayout(time_name_layout)
+        location_label.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignTop)
         button_layout.addWidget(location_label)
+        
+        # Add stretch to push content to top and bottom (only for single buttons)
+        if parallel_count == 1:
+            button_layout.addStretch()
         
         # Connect button click
         button.clicked.connect(lambda checked, name=tumorboard_name: self.open_specific_tumorboard_page(name))
