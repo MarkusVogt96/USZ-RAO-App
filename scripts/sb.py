@@ -100,6 +100,7 @@ def main():
     if patient_data is None:
         print("Patientendaten konnten nicht geladen werden. Skript wird beendet.")
         sys.exit(1)
+    UNIVERSAL.KISIM_im_vordergrund()
 
     # --- 2. Extract Variables and Gender Terms ---
     try:
@@ -240,12 +241,16 @@ def main():
         time.sleep(0.5) # Wait for list/search to open
 
         # Click middle Diagnose button (assuming this selects the primary diagnosis)
-        if not find_and_click_sd('button_diagnosemitte.png', clicks=2, delay_after=0.2):
-            print("WARNUNG: button_diagnosemitte.png nicht gefunden/geklickt.")
-            # Decide how to proceed. Exit or continue? Continuing for now.
-            # sys.exit("Abbruch: Konnte Diagnose nicht auswählen.")
+        if not UNIVERSAL.find_and_click_button_offset(image_name='button_herkunft.png', base_path=sd_screenshots_dir, y_offset=40):
+            print("WARNUNG: button_herkunft.png nicht gefunden/geklickt.")
         else:
             print("Diagnose ausgewählt.")
+            time.sleep(0.3)
+            pyautogui.press('enter') # Confirm selection
+            time.sleep(0.5)
+        
+        if UNIVERSAL.find_button("button_inhalt_uebernehmen_aus.png", base_path=sd_screenshots_dir, max_attempts=3):
+            pyautogui.hotkey('alt', 'f4') #Diagnosenfenster schliessen, falls nicht erfolgreich
 
 
         # Navigate to Austrittsdatum vorauss. and Datum

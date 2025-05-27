@@ -1,5 +1,5 @@
 import importlib
-from UNIVERSAL import find_button, find_and_click_button, navigiere_bereich_berichte, navigiere_bereich_kurve, diagnose_uebernehmen, ctrl_tabs
+from UNIVERSAL import find_button, find_and_click_button, navigiere_bereich_berichte, navigiere_bereich_kurve, diagnose_uebernehmen, ctrl_tabs, KISIM_im_vordergrund
 import pyautogui
 import os
 import sys
@@ -246,9 +246,9 @@ def main():
     success = True
 
     userinput_am_anfang()
-    ctypes.WinDLL('user32').ShowWindow(ctypes.WinDLL('kernel32').GetConsoleWindow(), 6) #minimiere CMD
-    time.sleep(0.2)
 
+    #Starte Automatisierung
+    KISIM_im_vordergrund()
     print(">>> Navigiere zum Bereich 'Kurve' in der Anwendung...")
     navigiere_bereich_kurve()
     print(">>> Bereich 'Kurve' erreicht.")

@@ -257,7 +257,7 @@ def define_austritt_texte(austritt_typ, patdata, glossary):
             f"Zeitraum: {datum_erste_rt} - {datum_letzte_rt}\n\n"
             f"Dosiskonzept: {therapieintention_gross} Radiotherapie bei {tumor}\n\n"
             f"{konzept_alle_serien}\n\n"
-            f"Fraktionen pro Woche: {fraktionen_woche}x\n\n"
+            f"Fraktionen pro Woche: {fraktionen_woche}\n\n"
             f"Technik: Nach CT / MR-gestützter Planung erfolgte die Radiotherapie im Bereich oben genannter Lokalisationen am Linearbeschleuniger mit 6MV Photonen in VMAT Technik.\n\n"
             f"Im Rahmen der Hospitalisation verabreichte Fraktionen: __/__\n\n"
             f"Die Radiotherapie wird somit bis voraussichtlich {datum_letzte_rt} fortgeführt.    ODER     Die Radiotherapie ist somit nach Applikation aller Fraktionen abgeschlossen."
@@ -279,9 +279,9 @@ def define_austritt_texte(austritt_typ, patdata, glossary):
             f"FALLS ORL-Abschluss: Tumor- und therapiespezifische Nachsorge via interdisziplinärer HNO-Tumorsprechstunde in 6-8 Wochen nach Abschluss der Therapie. Wir bitten die betreuuenden Kollegen der ORL um ein entsprechendes Aufgebot. Die erste bildgebende Verlaufskontrolle ist 3 Monate nach Abschluss empfohlen. Die entsprechende Anmeldung, Aufgebot und Befundbesprechung erfolgt durch die hausinternen Kollegen der ORL (Otorhinolaryngologie).",
             f"Die nächste ambulante Verlaufskontrolle ist in ca 6-8 Wochen geplant; das direkte Aufgebot erfolgt zeitnah. Die weitere Betreuung {g('artikel_genitiv_klein')} {g('patient_genitiv')} erfolgt durch das entsprechende Behandlungsteam ({prof_dr} {oberarzt}).   [CAVE: wenn in 6-8 Wochen: Bei Abschicken des AT-Berichts noch Senden intern an Sekretariat zur Termin-Orga!]",
             f"Fortführung der systematischen lokalen Hautpflege mit Excipial zur Prophylaxe einer Radiodermatitis / bis zur Regredienz der aktuell mild ausgeprägten Radiodermatitis. Fortführung der enoralen Schleimhautpflege mit Bepanthen Mundspülung sowie analgetisch Lidoral vor den Mahlzeiten bis zur Regredienz der radiogenen Mucositis und damit assoziierten Schmerzen.",
-            f"{g('artikel_nominativ_gross')} {g('patient_nominativ')} ist über eine mögliche Aggravierung allfälliger Akuttoxizität in den ersten 2 Wochen nach Abschluss der Therapie informiert.",
             f"Reduktion der peroralen Analgesie mit Dafalgan / Minalgin nach Massgabe der Beschwerden im Verlauf.",
-            f"Die selbstständige Wiedervorstellung in unserer Abteilung ist bei Aggravation etwaiger Akuttoxizitäten, Auftreten von Fieber oder sonstigen unerwarteten, therapieassoziierten Komplikationen bei Bedarf jederzeit möglich."]
+            f"{g('artikel_nominativ_gross')} {g('patient_nominativ')} ist über eine mögliche Aggravierung allfälliger Akuttoxizität in den ersten 2 Wochen nach Abschluss der Therapie informiert. Die selbstständige Wiedervorstellung in unserer Abteilung ist bei Aggravation etwaiger Akuttoxizitäten, Auftreten von Fieber oder sonstigen unerwarteten, therapieassoziierten Komplikationen bei Bedarf jederzeit möglich."
+        ]
 
     elif austritt_typ == 2: # --- Brachy (atbrachy.py Logik) ---
         print("Definiere Texte für Austrittsbericht Brachy (Typ 2)...")
@@ -296,7 +296,7 @@ def define_austritt_texte(austritt_typ, patdata, glossary):
         
         #Text Epikrise
         text_epi = (
-            f"Der Eintritt {g('artikel_genitiv_klein')} {alter}-{g('jährig_genitiv')} {g('patient_genitiv')} erfolgte am {eintrittsdatum} zur Durchführung der {therapieintention_klein} Brachytherapie bei {tumor}; "
+            f"Der Eintritt {g('artikel_genitiv_klein')} {alter}-{g('jährig_genitiv')} {g('patient_genitiv')} erfolgte am {eintrittsdatum} zur Durchführung der {therapieintention_klein}n Brachytherapie bei {tumor}; "
             f"die stationäre Hospitalisation war aufgrund der invasiven und pflegeintensiven Brachytherapie indiziert.\n\n"
             f"{g('artikel_nominativ_gross')} {g('patient_nominativ')} präsentierte sich kardiopulmonal stabil sowie in {beschreibung_ecog.get(ecog, "____")}  Allgemeinzustand (ECOG {ecog}). Im Rahmen der initial durchgeführten Laboranalyse sowie der körperlichen Eintrittsuntersuchung liessen sich keine interventionsbedürftigen Befunde eruieren.\n\n"
             f"Nach initial erfolgter, enteraler Abführung und anschliessender Einlage des Applikators erfolgte die 1. und 2. Fraktion am __.__. respektive __.__.2025. "
@@ -334,9 +334,9 @@ def define_austritt_texte(austritt_typ, patdata, glossary):
             print("geschlecht konnte weder als m noch w erkannt werden. Breche Programm ab. Bitte checke patdata-JSON.")
 
         text_epi = (
-            f"Der elektive Eintritt {g('artikel_genitiv_klein')} {alter}-{g('jährig_genitiv')} {g('patient_genitiv')} erfolgte am {eintrittsdatum} anlässlich des ___. Zyklus der simultan zur Radiotherapie bei {tumor} durchgeführten Chemotherapie mittels {chemotherapeutikum}.\n\n"
+            f"Der elektive Eintritt {g('artikel_genitiv_klein')} {alter}-{g('jährig_genitiv')} {g('patient_genitiv')} erfolgte am {eintrittsdatum} anlässlich des ___. Zyklus der simultan zur Radiotherapie bei {tumor} durchgeführten Systemtherapie mittels {chemotherapeutikum}.\n\n"
             f"{g('artikel_nominativ_gross')} {g('patient_nominativ')} präsentierte sich kardiopulmonal stabil sowie in {beschreibung_ecog.get(ecog, "____")} Allgemeinzustand (ECOG {ecog}). Im Rahmen der initial durchgeführten Laboranalyse sowie der körperlichen Eintrittsuntersuchung liessen sich keine interventionsbedürftigen Befunde eruieren.\n\n"
-            f"Nach Ausschluss klinischer sowie laboranalytischer Kontraindikationen konnte die Chemotherapie mit {chemotherapeutikum} wie geplant verabreicht werden. Eine medikamentös forcierte Steigerung der Diurese war bei {asymppat} und mangels bestehender Beinödeme oder sonstiger Zeichen der Hypervolämie trotz vor der Chemotherapie erfolgter Hydrierung nicht notwendig.\n"
+            f"Nach Ausschluss klinischer sowie laboranalytischer Kontraindikationen konnte die Systemtherapie mit {chemotherapeutikum} wie geplant verabreicht werden. Eine medikamentös forcierte Steigerung der Diurese war bei {asymppat} und mangels bestehender Beinödeme oder sonstiger Zeichen der Hypervolämie trotz vor der Systemtherapie erfolgter Hydrierung nicht notwendig.\n"
             f"Es präsentierten sich die antizipierten, mild ausgeprägten Akuttoxizitäten der {rct} mit leichter Nausea, jedoch ohne Emesis.\n\n"
             f"Wir konnten {g('artikel_akkusativ_klein')} {g('patient_akkusativ')} somit am __.__.2025 in gutem Allgemeinzustand in die ambulante Weiterbehandlung entlassen.")
         
@@ -346,9 +346,8 @@ def define_austritt_texte(austritt_typ, patdata, glossary):
             f"FALLS ORL-Abschluss: Tumor- und therapiespezifische Nachsorge via interdisziplinärer HNO-Tumorsprechstunde in 6-8 Wochen nach Abschluss der Therapie. Wir bitten die betreuuenden Kollegen der ORL um ein entsprechendes Aufgebot. Die erste bildgebende Verlaufskontrolle ist 3 Monate nach Abschluss empfohlen. Die entsprechende Anmeldung, Aufgebot und Befundbesprechung erfolgt durch die hausinternen Kollegen der ORL (Otorhinolaryngologie).",
             f"Die nächste ambulante Verlaufskontrolle ist in ca 6-8 Wochen geplant; das direkte Aufgebot erfolgt zeitnah. Die weitere Betreuung {g('artikel_genitiv_klein')} {g('patient_genitiv')} erfolgt durch das entsprechende Behandlungsteam ({prof_dr} {oberarzt}).   [CAVE: wenn in 6-8 Wochen: Bei Abschicken des AT-Berichts noch Senden intern an Sekretariat zur Termin-Orga!]",
             f"Fortführung der systematischen lokalen Hautpflege mit Excipial zur Prophylaxe einer Radiodermatitis / bis zur Regredienz der aktuell mild ausgeprägten Radiodermatitis. Fortführung der enoralen Schleimhautpflege mit Bepanthen Mundspülung sowie analgetisch Lidoral vor den Mahlzeiten bis zur Regredienz der radiogenen Mucositis und damit assoziierten Schmerzen.",
-            f"{g('artikel_nominativ_gross')} {g('patient_nominativ')} ist über eine mögliche Aggravierung allfälliger Akuttoxizität in den ersten 2 Wochen nach Abschluss der Therapie informiert.",
             f"Reduktion der peroralen Analgesie mit Dafalgan / Minalgin nach Massgabe der Beschwerden im Verlauf.",
-            f"Die selbstständige Wiedervorstellung in unserer Abteilung ist bei Aggravation etwaiger Akuttoxizitäten, Auftreten von Fieber oder sonstigen unerwarteten, therapieassoziierten Komplikationen bei Bedarf jederzeit möglich.",
+            f"{g('artikel_nominativ_gross')} {g('patient_nominativ')} ist über eine mögliche Aggravierung allfälliger Akuttoxizität in den ersten 2 Wochen nach Abschluss der Therapie informiert. Die selbstständige Wiedervorstellung in unserer Abteilung ist bei Aggravation etwaiger Akuttoxizitäten, Auftreten von Fieber oder sonstigen unerwarteten, therapieassoziierten Komplikationen bei Bedarf jederzeit möglich.",
             f"Fortführung der antiemetischen Therapie mit Dexamethason bis inkl. __.__.2025, dann STOPP."]
     else:
         print(f"FEHLER: Unbekannter Austrittstyp '{austritt_typ}' in fliesstexte.py.")

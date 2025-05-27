@@ -123,6 +123,9 @@ def oeffne_verlaufsbericht_radioonkologie():
     clipboard.copy(verlaufsbericht)
     pyautogui.hotkey('ctrl', 'v')
     if not UNIVERSAL.find_and_click_button("button_verlaufsbericht_radioonkologie.png", base_path=local_screenshots_dir): print("FEHLER: Konnte 'Verlaufsbericht Radioonkologie' nicht auswählen.")
+    print("Warte auf Bericht..."); time.sleep(0.1)
+    if not UNIVERSAL.prozent_zoom_100(): print("Fehler: UNIVERSAL.prozent_zoom_100() == False. Breche ab. Bitte bei Admin melden."); sys.exit()
+
     if UNIVERSAL.find_button("button_verlaufsbericht_radioonkologie_confirm.png", base_path=local_screenshots_dir): print("button_verlaufsbericht_radioonkologie_confirm.png gefunden, warte 0.3s un Klick")
     time.sleep(0.25)
     if not UNIVERSAL.find_and_click_button("button_verlaufsbericht_radioonkologie_confirm.png", base_path=local_screenshots_dir): print("button_verlaufsbericht_radioonkologie_confirm.png nicht gefunden. Breche Funktion ab.")
@@ -146,6 +149,7 @@ def main():
         sys.exit()
 
     while True:
+        UNIVERSAL.KISIM_im_vordergrund()
         global nachname, vorname, geburtsdatum, alter, geschlecht, patientennummer, eintrittsdatum, patdata
         placeholder1, placeholder2, geburtsdatum, alter, geschlecht, patientennummer, eintrittsdatum = UNIVERSAL.auslesen_patdata_KISIMzeile()
         patdata = UNIVERSAL.load_json(patientennummer)
@@ -189,8 +193,8 @@ def main():
             print("klicke auf x=340, y=34 für nächste Akte..")
             pyautogui.click(340, 34)
             pyautogui.click(340, 5)
-            if not UNIVERSAL.find_button('button_neue_kg_offen.png', base_path=local_screenshots_dir): print('button_neue_kg_offen.png konnte nicht gefunden werden.')
-            time.sleep(0.5)
+            if not UNIVERSAL.find_button('button_neue_kg_offen.png', base_path=local_screenshots_dir, max_attempts=120, confidence=0.95): print('button_neue_kg_offen.png konnte nicht gefunden werden.'); sys.exit()
+            time.sleep(1)
             continue
         else:
             print(f"final KGs_geschlossen = {KGs_geschlossen}, break Loop")

@@ -516,6 +516,7 @@ def main():
 
     try:
         # --- 4. Get Basic Patient Data ---
+        UNIVERSAL.KISIM_im_vordergrund()
         print("\nLese KISIM-Zeile nach Patientendaten aus...")
         nachname, vorname, geburtsdatum, alter, geschlecht, patientennummer, eintrittsdatum = UNIVERSAL.auslesen_patdata_KISIMzeile()
         print("\nLese SPI, REA/IPS...")

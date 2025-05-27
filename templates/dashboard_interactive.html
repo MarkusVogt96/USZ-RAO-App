@@ -1,0 +1,1609 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tumorboard Analytics Dashboard</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1a2633 0%, #2a3642 100%);
+            color: #ffffff;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        .dashboard-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            background: linear-gradient(45deg, #4FC3F7, #29B6F6);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .header .subtitle {
+            font-size: 1.1rem;
+            opacity: 0.8;
+            margin-bottom: 10px;
+        }
+
+        .last-updated {
+            font-size: 0.9rem;
+            opacity: 0.6;
+        }
+
+        /* Interactive Controls */
+        .controls-panel {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 30px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .controls-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .control-label {
+            font-size: 0.9rem;
+            font-weight: bold;
+            color: #4FC3F7;
+        }
+
+        select, button {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            border-radius: 8px;
+            padding: 10px 15px;
+            color: white;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        select:hover, button:hover {
+            background: rgba(255, 255, 255, 0.2);
+            border-color: #4FC3F7;
+        }
+
+        button {
+            background: linear-gradient(45deg, #4FC3F7, #29B6F6);
+            border: none;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        button:hover {
+            background: linear-gradient(45deg, #29B6F6, #1976D2);
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(79, 195, 247, 0.3);
+        }
+
+        button.active {
+            background: linear-gradient(45deg, #FF9800, #F57C00);
+        }
+
+        select option {
+            background: #1a2633;
+            color: white;
+        }
+
+        /* Tabs */
+        .tabs-container {
+            margin-bottom: 30px;
+        }
+
+        .tabs {
+            display: flex;
+            gap: 5px;
+            margin-bottom: 20px;
+            overflow-x: auto;
+        }
+
+        .tab {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 10px 10px 0 0;
+            padding: 12px 20px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            white-space: nowrap;
+            font-weight: bold;
+        }
+
+        .tab:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        .tab.active {
+            background: linear-gradient(45deg, #4FC3F7, #29B6F6);
+            border-color: #4FC3F7;
+        }
+
+        .tab-content {
+            display: none;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 0 15px 15px 15px;
+            padding: 25px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        /* Metrics */
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .metric-card {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            padding: 25px;
+            text-align: center;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+
+        .metric-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            background: rgba(255, 255, 255, 0.15);
+        }
+
+        .metric-card.clickable:hover {
+            border-color: #4FC3F7;
+        }
+
+        .metric-value {
+            font-size: 3rem;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+
+        .metric-label {
+            font-size: 1.1rem;
+            opacity: 0.8;
+        }
+
+        .metric-card:nth-child(1) .metric-value { color: #4FC3F7; }
+        .metric-card:nth-child(2) .metric-value { color: #66BB6A; }
+        .metric-card:nth-child(3) .metric-value { color: #FFA726; }
+        .metric-card:nth-child(4) .metric-value { color: #EF5350; }
+
+        /* Charts and Data */
+        .charts-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .chart-container {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            padding: 25px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            min-height: 400px;
+            transition: all 0.3s ease;
+        }
+
+        .chart-container:hover {
+            background: rgba(255, 255, 255, 0.15);
+        }
+
+        .chart-title {
+            font-size: 1.3rem;
+            margin-bottom: 20px;
+            text-align: center;
+            color: #4FC3F7;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .chart-controls {
+            display: flex;
+            gap: 10px;
+        }
+
+        .chart-btn {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            border-radius: 5px;
+            padding: 5px 10px;
+            color: white;
+            font-size: 0.8rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .chart-btn:hover, .chart-btn.active {
+            background: #4FC3F7;
+            border-color: #4FC3F7;
+        }
+
+        .full-width {
+            grid-column: 1 / -1;
+        }
+
+        /* Data Tables */
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+        }
+
+        .data-table th,
+        .data-table td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+            transition: background-color 0.3s ease;
+        }
+
+        .data-table th {
+            background: rgba(255, 255, 255, 0.1);
+            font-weight: bold;
+            color: #4FC3F7;
+            cursor: pointer;
+        }
+
+        .data-table th:hover {
+            background: rgba(79, 195, 247, 0.2);
+        }
+
+        .data-table tr:hover {
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .data-table tr.clickable {
+            cursor: pointer;
+        }
+
+        .data-table tr.clickable:hover {
+            background: rgba(79, 195, 247, 0.1);
+        }
+
+        /* Progress Bars */
+        .progress-bar {
+            width: 100%;
+            height: 20px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            overflow: hidden;
+            margin: 5px 0;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .progress-bar:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #4FC3F7, #66BB6A);
+            border-radius: 10px;
+            transition: width 0.3s ease;
+            position: relative;
+        }
+
+        .progress-fill:hover {
+            background: linear-gradient(90deg, #29B6F6, #4CAF50);
+        }
+
+        /* Statistics Items */
+        .stat-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .stat-item:hover {
+            background: rgba(255, 255, 255, 0.05);
+            padding-left: 10px;
+            border-radius: 5px;
+        }
+
+        .stat-label {
+            font-weight: bold;
+        }
+
+        .stat-value {
+            color: #4FC3F7;
+            font-weight: bold;
+        }
+
+        /* Messages */
+        .message {
+            padding: 15px;
+            border-radius: 10px;
+            margin: 10px 0;
+            text-align: center;
+            font-weight: bold;
+        }
+
+        .success-message {
+            background: rgba(76, 175, 80, 0.2);
+            border: 1px solid rgba(76, 175, 80, 0.5);
+            color: #4CAF50;
+        }
+
+        .error-message {
+            background: rgba(244, 67, 54, 0.2);
+            border: 1px solid rgba(244, 67, 54, 0.5);
+            color: #F44336;
+        }
+
+        .info-message {
+            background: rgba(33, 150, 243, 0.2);
+            border: 1px solid rgba(33, 150, 243, 0.5);
+            color: #2196F3;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .charts-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .controls-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .tabs {
+                flex-direction: column;
+            }
+            
+            .header h1 {
+                font-size: 2rem;
+            }
+            
+            .metric-value {
+                font-size: 2rem;
+            }
+        }
+
+        /* Loading Animation */
+        .loading {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 200px;
+            font-size: 1.2rem;
+            opacity: 0.7;
+        }
+
+        .spinner {
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top: 3px solid #4FC3F7;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin-right: 15px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Tooltip */
+        .tooltip {
+            position: relative;
+            cursor: help;
+        }
+
+        .tooltip:hover::after {
+            content: attr(data-tooltip);
+            position: absolute;
+            bottom: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.9);
+            color: white;
+            padding: 8px 12px;
+            border-radius: 5px;
+            font-size: 0.8rem;
+            white-space: nowrap;
+            z-index: 1000;
+        }
+    </style>
+</head>
+<body>
+    <div class="dashboard-container">
+        <!-- Header -->
+        <div class="header">
+            <h1>🏥 Tumorboard Analytics Dashboard</h1>
+            <div class="subtitle">Interaktive Datenvisualisierung für Tumorboard-Analysen</div>
+            <div class="last-updated" id="lastUpdated">Lade Daten...</div>
+        </div>
+
+        <!-- Interactive Controls -->
+        <div class="controls-panel">
+            <div class="controls-grid">
+                <div class="control-group">
+                    <label class="control-label">🏥 Tumorboard auswählen:</label>
+                    <select id="tumorboardFilter">
+                        <option value="all">Alle Tumorboards</option>
+                    </select>
+                </div>
+                <div class="control-group">
+                    <label class="control-label">📅 Zeitraum:</label>
+                    <select id="timeRangeFilter">
+                        <option value="all">Alle Daten</option>
+                        <option value="12months">Letzte 12 Monate</option>
+                        <option value="6months">Letzte 6 Monate</option>
+                        <option value="3months">Letzte 3 Monate</option>
+                    </select>
+                </div>
+                <div class="control-group">
+                    <label class="control-label">👥 Ansicht:</label>
+                    <select id="viewModeFilter">
+                        <option value="cases">Patientenfälle</option>
+                        <option value="patients">Eindeutige Patienten</option>
+                        <option value="both">Beide anzeigen</option>
+                    </select>
+                </div>
+                <div class="control-group">
+                    <label class="control-label">🔄 Aktionen:</label>
+                    <button id="refreshBtn">Daten aktualisieren</button>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- Key Metrics -->
+        <div class="metrics-grid" id="metricsGrid">
+            <div class="metric-card clickable" data-tooltip="Klicken für Details" onclick="showTumorboardDetails()">
+                <div class="metric-value" id="tumorboardTypes">-</div>
+                <div class="metric-label">Tumorboard-Typen</div>
+            </div>
+            <div class="metric-card clickable" data-tooltip="Klicken für Session-Details" onclick="showSessionDetails()">
+                <div class="metric-value" id="totalSessions">-</div>
+                <div class="metric-label">Gesamte Sessions</div>
+            </div>
+            <div class="metric-card clickable" data-tooltip="Klicken für Patienten-Details" onclick="showPatientDetails()">
+                <div class="metric-value" id="uniquePatients">-</div>
+                <div class="metric-label">Unique Patients</div>
+            </div>
+            <div class="metric-card clickable" data-tooltip="Klicken für Fall-Details" onclick="showCaseDetails()">
+                <div class="metric-value" id="totalCases">-</div>
+                <div class="metric-label">Besprochene Patientenfälle</div>
+            </div>
+        </div>
+
+        <!-- Tabs -->
+        <div class="tabs-container">
+            <div class="tabs">
+                <div class="tab active" onclick="showTab('overview')">📊 Übersicht</div>
+                <div class="tab" onclick="showTab('tumorboards')">🏥 Tumorboards</div>
+                <div class="tab" onclick="showTab('radiotherapy')">🥧 Radiotherapie</div>
+                <div class="tab" onclick="showTab('icd')">🔍 ICD-Codes</div>
+                <div class="tab" onclick="showTab('temporal')">📈 Zeitverlauf</div>
+                <div class="tab" onclick="showTab('charts')">📈 Grafische Darstellung</div>
+            </div>
+
+            <!-- Overview Tab -->
+            <div class="tab-content active" id="overview-tab">
+                <div class="charts-grid">
+                    <div class="chart-container">
+                        <div class="chart-title">
+                            📊 Tumorboard-Statistiken
+                            <div class="chart-controls">
+                                <button class="chart-btn active" onclick="toggleChartView('tumorboard', 'bars')">Balken</button>
+                                <button class="chart-btn" onclick="toggleChartView('tumorboard', 'table')">Tabelle</button>
+                            </div>
+                        </div>
+                        <div id="tumorboardStats"></div>
+                    </div>
+                    <div class="chart-container">
+                        <div class="chart-title">
+                            🥧 Radiotherapie-Verteilung
+                            <div class="chart-controls">
+                                <button class="chart-btn active" onclick="toggleRadioView('all')">Alle</button>
+                                <button class="chart-btn" onclick="toggleRadioView('discussed')">Besprochen</button>
+                            </div>
+                        </div>
+                        <div id="radiotherapyStats"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tumorboards Tab -->
+            <div class="tab-content" id="tumorboards-tab">
+                <div class="chart-container full-width">
+                    <div class="chart-title">🏥 Detaillierte Tumorboard-Analyse</div>
+                    <div id="tumorboardDetails"></div>
+                </div>
+            </div>
+
+            <!-- Radiotherapy Tab -->
+            <div class="tab-content" id="radiotherapy-tab">
+                <div class="chart-container full-width">
+                    <div class="chart-title">🥧 Radiotherapie-Analyse</div>
+                    <div id="radiotherapyDetails"></div>
+                </div>
+            </div>
+
+            <!-- ICD Tab -->
+            <div class="tab-content" id="icd-tab">
+                <div class="charts-grid">
+                    <div class="chart-container">
+                        <div class="chart-title">🔍 Top ICD-Codes</div>
+                        <div id="icdStats"></div>
+                    </div>
+                    <div class="chart-container">
+                        <div class="chart-title">📋 ICD nach Tumorboard</div>
+                        <div id="icdByTumorboard"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Temporal Tab -->
+            <div class="tab-content" id="temporal-tab">
+                <div class="chart-container full-width">
+                    <div class="chart-title">📈 Zeitliche Entwicklung</div>
+                    <div id="temporalStats"></div>
+                </div>
+            </div>
+
+            <!-- Charts Tab -->
+            <div class="tab-content" id="charts-tab">
+                <div class="chart-container full-width">
+                    <div class="chart-title">📊 Grafische Datenanalyse</div>
+                    <div id="chartAnalysis"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Global variables
+        let dashboardData = null;
+        let currentFilters = {
+            tumorboard: 'all',
+            timeRange: 'all',
+            viewMode: 'cases'
+        };
+        let currentView = 'all';
+
+        // Load dashboard data (embedded)
+        async function loadDashboardData() {
+            try {
+                // Use embedded data instead of fetch
+                dashboardData = {
+  "generated_at": "2025-05-25T19:32:00.173000",
+  "key_metrics": {
+    "tumorboard_types": 24,
+    "total_sessions": 2,
+    "unique_patients": 18,
+    "total_cases": 36
+  },
+  "tumorboard_stats": [
+    {
+      "name": "Sarkom",
+      "sessions": 2,
+      "unique_patients": 18,
+      "total_cases": 36
+    }
+  ],
+  "temporal_data": {
+    "monthly": [
+      {
+        "month": "2025-05",
+        "sessions": 2,
+        "unique_patients": 18,
+        "total_cases": 36
+      }
+    ],
+    "weekly": []
+  },
+  "radiotherapy_data": {
+    "all_patients": [
+      {
+        "status": "Ja",
+        "count": 14
+      },
+      {
+        "status": "Nein",
+        "count": 12
+      },
+      {
+        "status": "Nicht besprochen",
+        "count": 10
+      }
+    ],
+    "discussed_only": [
+      {
+        "status": "Ja",
+        "count": 14
+      },
+      {
+        "status": "Nein",
+        "count": 12
+      }
+    ]
+  },
+  "icd_data": {
+    "top_codes": [
+      {
+        "icd_code": "C49.2",
+        "total_cases": 6,
+        "unique_patients": 3
+      },
+      {
+        "icd_code": "C41.9",
+        "total_cases": 6,
+        "unique_patients": 3
+      },
+      {
+        "icd_code": "C49.9",
+        "total_cases": 4,
+        "unique_patients": 2
+      },
+      {
+        "icd_code": "C40.0",
+        "total_cases": 4,
+        "unique_patients": 2
+      },
+      {
+        "icd_code": "D48.0",
+        "total_cases": 2,
+        "unique_patients": 1
+      },
+      {
+        "icd_code": "D38.3",
+        "total_cases": 2,
+        "unique_patients": 1
+      },
+      {
+        "icd_code": "D37.2",
+        "total_cases": 2,
+        "unique_patients": 1
+      },
+      {
+        "icd_code": "D37.1",
+        "total_cases": 2,
+        "unique_patients": 1
+      }
+    ],
+    "by_tumorboard": [
+      {
+        "tumorboard_type": "Sarkom",
+        "icd_code": "C49.2",
+        "total_cases": 6
+      },
+      {
+        "tumorboard_type": "Sarkom",
+        "icd_code": "C41.9",
+        "total_cases": 6
+      },
+      {
+        "tumorboard_type": "Sarkom",
+        "icd_code": "C49.9",
+        "total_cases": 4
+      },
+      {
+        "tumorboard_type": "Sarkom",
+        "icd_code": "C40.0",
+        "total_cases": 4
+      },
+      {
+        "tumorboard_type": "Sarkom",
+        "icd_code": "D48.0",
+        "total_cases": 2
+      },
+      {
+        "tumorboard_type": "Sarkom",
+        "icd_code": "D38.3",
+        "total_cases": 2
+      },
+      {
+        "tumorboard_type": "Sarkom",
+        "icd_code": "D37.2",
+        "total_cases": 2
+      },
+      {
+        "tumorboard_type": "Sarkom",
+        "icd_code": "D37.1",
+        "total_cases": 2
+      }
+    ]
+  },
+  "patient_flow": [
+    {
+      "source": "Sarkom",
+      "target": "Ja",
+      "value": 14
+    },
+    {
+      "source": "Sarkom",
+      "target": "Nein",
+      "value": 12
+    },
+    {
+      "source": "Sarkom",
+      "target": "Nicht besprochen",
+      "value": 10
+    }
+  ]
+};
+                
+                // Update last updated time
+                const lastUpdated = new Date(dashboardData.generated_at);
+                document.getElementById('lastUpdated').textContent = 
+                    `Letzte Aktualisierung: ${lastUpdated.toLocaleString('de-DE')}`;
+                
+                // Initialize dashboard
+                initializeDashboard();
+                
+                // Dashboard loaded successfully (message disabled for cleaner UI)
+                console.log('Dashboard erfolgreich geladen!');
+                
+            } catch (error) {
+                console.error('Error loading dashboard data:', error);
+                showError('Fehler beim Laden der Daten: ' + error.message);
+            }
+        }
+
+        // Show message (disabled for cleaner UI)
+        function showMessage(message, type = 'success') {
+            // Messages disabled to prevent layout shifting
+            // console.log(`${type.toUpperCase()}: ${message}`);
+        }
+
+        // Show error message
+        function showError(message) {
+            showMessage('⚠️ ' + message, 'error');
+        }
+
+        // Initialize dashboard
+        function initializeDashboard() {
+            updateKeyMetrics();
+            populateFilters();
+            setupEventListeners();
+            updateAllViews();
+        }
+
+        // Update key metrics
+        function updateKeyMetrics() {
+            const metrics = getFilteredMetrics();
+            document.getElementById('tumorboardTypes').textContent = metrics.tumorboard_types;
+            document.getElementById('totalSessions').textContent = metrics.total_sessions;
+            document.getElementById('uniquePatients').textContent = metrics.unique_patients;
+            document.getElementById('totalCases').textContent = metrics.total_cases;
+        }
+
+        // Get filtered metrics based on current filters
+        function getFilteredMetrics() {
+            let data = dashboardData;
+            
+            if (currentFilters.tumorboard !== 'all') {
+                // Filter by tumorboard
+                const filteredStats = data.tumorboard_stats.filter(tb => tb.name === currentFilters.tumorboard);
+                if (filteredStats.length > 0) {
+                    return {
+                        tumorboard_types: 1,
+                        total_sessions: filteredStats[0].sessions,
+                        unique_patients: filteredStats[0].unique_patients,
+                        total_cases: filteredStats[0].total_cases
+                    };
+                }
+            }
+            
+            return data.key_metrics;
+        }
+
+        // Populate filter dropdowns
+        function populateFilters() {
+            const tumorboardFilter = document.getElementById('tumorboardFilter');
+            
+            // Clear existing options except "all"
+            tumorboardFilter.innerHTML = '<option value="all">Alle Tumorboards</option>';
+            
+            // Add tumorboard options
+            dashboardData.tumorboard_stats.forEach(tb => {
+                if (tb.total_cases > 0) {
+                    const option = document.createElement('option');
+                    option.value = tb.name;
+                    option.textContent = `${tb.name} (${tb.total_cases} Fälle)`;
+                    tumorboardFilter.appendChild(option);
+                }
+            });
+        }
+
+        // Setup event listeners
+        function setupEventListeners() {
+            // Filter change handlers
+            document.getElementById('tumorboardFilter').addEventListener('change', applyFilters);
+            document.getElementById('timeRangeFilter').addEventListener('change', applyFilters);
+            document.getElementById('viewModeFilter').addEventListener('change', applyFilters);
+            
+            // Button handlers
+            document.getElementById('refreshBtn').addEventListener('click', refreshData);
+        }
+
+        // Apply filters
+        function applyFilters() {
+            currentFilters.tumorboard = document.getElementById('tumorboardFilter').value;
+            currentFilters.timeRange = document.getElementById('timeRangeFilter').value;
+            currentFilters.viewMode = document.getElementById('viewModeFilter').value;
+            
+            updateKeyMetrics();
+            updateAllViews();
+            
+            // Filter applied silently for better UX
+            console.log(`Filter angewendet: ${currentFilters.tumorboard === 'all' ? 'Alle Tumorboards' : currentFilters.tumorboard}`);
+        }
+
+
+
+        function getViewName(view) {
+            const names = {
+                'all': 'Alle Daten',
+                'radio': 'Radiotherapie',
+                'icd': 'ICD-Codes',
+                'temporal': 'Zeitverlauf'
+            };
+            return names[view] || view;
+        }
+
+        // Refresh data
+        function refreshData() {
+            console.log('Daten werden aktualisiert...');
+            // In a real implementation, this would reload data
+            setTimeout(() => {
+                updateAllViews();
+                console.log('Daten erfolgreich aktualisiert!');
+            }, 1000);
+        }
+
+        // Update all views
+        function updateAllViews() {
+            createTumorboardStats();
+            createRadiotherapyStats();
+            createIcdStats();
+            createTemporalStats();
+            createDetailedViews();
+        }
+
+        // Show tab
+        function showTab(tabName) {
+            // Update tab states
+            document.querySelectorAll('.tab').forEach(tab => tab.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+            
+            // Find and activate the correct tab
+            const targetTab = Array.from(document.querySelectorAll('.tab')).find(tab => 
+                tab.textContent.toLowerCase().includes(getTabName(tabName).toLowerCase())
+            );
+            if (targetTab) {
+                targetTab.classList.add('active');
+            }
+            
+            document.getElementById(`${tabName}-tab`).classList.add('active');
+            
+            console.log(`Tab gewechselt: ${getTabName(tabName)}`);
+        }
+
+        function getTabName(tabName) {
+            const names = {
+                'overview': 'Übersicht',
+                'tumorboards': 'Tumorboards',
+                'radiotherapy': 'Radiotherapie',
+                'icd': 'ICD-Codes',
+                'temporal': 'Zeitverlauf',
+                'flow': 'Patientenfluss'
+            };
+            return names[tabName] || tabName;
+        }
+
+        // Metric card click handlers
+        function showTumorboardDetails() {
+            showTab('tumorboards');
+        }
+
+        function showSessionDetails() {
+            showTab('temporal');
+        }
+
+        function showPatientDetails() {
+            showTab('charts');
+        }
+
+        function showCaseDetails() {
+            showTab('overview');
+        }
+
+        // Chart view toggles
+        function toggleChartView(chart, view) {
+            const container = document.querySelector(`#${chart}Stats`).parentElement;
+            const buttons = container.querySelectorAll('.chart-btn');
+            buttons.forEach(btn => btn.classList.remove('active'));
+            event.target.classList.add('active');
+            
+            if (chart === 'tumorboard') {
+                createTumorboardStats(view);
+            }
+        }
+
+        function toggleRadioView(view) {
+            const container = document.querySelector('#radiotherapyStats').parentElement;
+            const buttons = container.querySelectorAll('.chart-btn');
+            buttons.forEach(btn => btn.classList.remove('active'));
+            event.target.classList.add('active');
+            
+            createRadiotherapyStats(view);
+        }
+
+        // Create tumorboard statistics
+        function createTumorboardStats(viewType = 'bars') {
+            const container = document.getElementById('tumorboardStats');
+            const stats = getFilteredTumorboardStats();
+            
+            if (viewType === 'table') {
+                let html = '<table class="data-table"><thead><tr><th onclick="sortTable(0)">Tumorboard 📊</th><th onclick="sortTable(1)">Sessions 📅</th><th onclick="sortTable(2)">Patienten 👥</th><th onclick="sortTable(3)">Fälle 📋</th></tr></thead><tbody>';
+                
+                stats.forEach(stat => {
+                    html += `
+                        <tr class="clickable" onclick="selectTumorboard('${stat.name}')">
+                            <td><strong>${stat.name}</strong></td>
+                            <td>${stat.sessions}</td>
+                            <td>${stat.unique_patients}</td>
+                            <td>${stat.total_cases}</td>
+                        </tr>
+                    `;
+                });
+                
+                html += '</tbody></table>';
+                container.innerHTML = html;
+            } else {
+                let html = '';
+                const totalCases = stats.reduce((sum, stat) => sum + stat.total_cases, 0);
+                
+                stats.forEach(stat => {
+                    const percentage = totalCases > 0 ? (stat.total_cases / totalCases * 100).toFixed(1) : 0;
+                    html += `
+                        <div class="stat-item" onclick="selectTumorboard('${stat.name}')">
+                            <div class="stat-label">${stat.name}</div>
+                            <div class="stat-value">${stat.total_cases} Fälle (${percentage}%)</div>
+                        </div>
+                        <div class="progress-bar" onclick="selectTumorboard('${stat.name}')">
+                            <div class="progress-fill" style="width: ${percentage}%"></div>
+                        </div>
+                    `;
+                });
+                
+                container.innerHTML = html;
+            }
+        }
+
+        function selectTumorboard(name) {
+            document.getElementById('tumorboardFilter').value = name;
+            applyFilters();
+        }
+
+        function getFilteredTumorboardStats() {
+            if (currentFilters.tumorboard === 'all') {
+                return dashboardData.tumorboard_stats;
+            } else {
+                return dashboardData.tumorboard_stats.filter(tb => tb.name === currentFilters.tumorboard);
+            }
+        }
+
+        // Create radiotherapy statistics
+        function createRadiotherapyStats(viewType = 'all') {
+            const container = document.getElementById('radiotherapyStats');
+            const stats = viewType === 'all' ? 
+                dashboardData.radiotherapy_data.all_patients : 
+                dashboardData.radiotherapy_data.discussed_only;
+            
+            let html = '';
+            const total = stats.reduce((sum, stat) => sum + stat.count, 0);
+            
+            stats.forEach(stat => {
+                const percentage = total > 0 ? (stat.count / total * 100).toFixed(1) : 0;
+                const color = stat.status === 'Ja' ? '#4CAF50' : 
+                             stat.status === 'Nein' ? '#F44336' : '#FF9800';
+                
+                html += `
+                    <div class="stat-item" onclick="filterByRadiotherapy('${stat.status}')">
+                        <div class="stat-label">${stat.status}</div>
+                        <div class="stat-value">${stat.count} (${percentage}%)</div>
+                    </div>
+                    <div class="progress-bar" onclick="filterByRadiotherapy('${stat.status}')">
+                        <div class="progress-fill" style="width: ${percentage}%; background: ${color};"></div>
+                    </div>
+                `;
+            });
+            
+            container.innerHTML = html;
+        }
+
+        function filterByRadiotherapy(status) {
+            // In a real implementation, this would filter the data
+            console.log(`Radiotherapie-Filter: ${status}`);
+        }
+
+        // Create ICD statistics
+        function createIcdStats() {
+            const container = document.getElementById('icdStats');
+            const stats = dashboardData.icd_data.top_codes.slice(0, 8);
+            
+            let html = '<table class="data-table"><thead><tr><th onclick="sortTable(0)">ICD-Code 🔍</th><th onclick="sortTable(1)">Fälle 📋</th><th onclick="sortTable(2)">Patienten 👥</th></tr></thead><tbody>';
+            
+            stats.forEach(stat => {
+                html += `
+                    <tr class="clickable" onclick="selectIcdCode('${stat.icd_code}')">
+                        <td><strong>${stat.icd_code}</strong></td>
+                        <td>${stat.total_cases}</td>
+                        <td>${stat.unique_patients}</td>
+                    </tr>
+                `;
+            });
+            
+            html += '</tbody></table>';
+            container.innerHTML = html;
+        }
+
+        function selectIcdCode(code) {
+            // In a real implementation, this would show details for this ICD code
+            console.log(`ICD-Code ausgewählt: ${code}`);
+        }
+
+        // Create temporal statistics
+        function createTemporalStats() {
+            const container = document.getElementById('temporalStats');
+            const stats = dashboardData.temporal_data.monthly;
+            
+            let html = '<table class="data-table"><thead><tr><th onclick="sortTable(0)">Monat 📅</th><th onclick="sortTable(1)">Sessions 🏥</th><th onclick="sortTable(2)">Patienten 👥</th><th onclick="sortTable(3)">Fälle 📋</th></tr></thead><tbody>';
+            
+            stats.forEach(stat => {
+                html += `
+                    <tr class="clickable" onclick="selectMonth('${stat.month}')">
+                        <td><strong>${stat.month}</strong></td>
+                        <td>${stat.sessions}</td>
+                        <td>${stat.unique_patients}</td>
+                        <td>${stat.total_cases}</td>
+                    </tr>
+                `;
+            });
+            
+            html += '</tbody></table>';
+            container.innerHTML = html;
+        }
+
+        function selectMonth(month) {
+            console.log(`Monat ausgewählt: ${month}`);
+        }
+
+        // Create detailed views for tabs
+        function createDetailedViews() {
+            createTumorboardDetailsView();
+            createRadiotherapyDetailsView();
+            createIcdDetailsView();
+            createChartAnalysisView();
+        }
+        
+        // Create detailed tumorboard analysis
+        function createTumorboardDetailsView() {
+            const container = document.getElementById('tumorboardDetails');
+            const stats = getFilteredTumorboardStats();
+            const totalCases = stats.reduce((sum, stat) => sum + stat.total_cases, 0);
+            
+            let html = `
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Tumorboard</th>
+                            <th>Sessions</th>
+                            <th>Unique Patients</th>
+                            <th>Patientenfälle</th>
+                            <th>Anteil (%)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+            `;
+            
+            stats.forEach(stat => {
+                const percentage = totalCases > 0 ? (stat.total_cases / totalCases * 100).toFixed(1) : 0;
+                html += `
+                    <tr class="clickable" onclick="selectTumorboard('${stat.name}')">
+                        <td><strong>${stat.name}</strong></td>
+                        <td>${stat.sessions}</td>
+                        <td>${stat.unique_patients}</td>
+                        <td>${stat.total_cases}</td>
+                        <td>${percentage}%</td>
+                    </tr>
+                `;
+            });
+            
+            html += '</tbody></table>';
+            container.innerHTML = html;
+        }
+        
+        // Create detailed radiotherapy analysis
+        function createRadiotherapyDetailsView() {
+            const container = document.getElementById('radiotherapyDetails');
+            const allStats = dashboardData.radiotherapy_data.all_patients;
+            const discussedStats = dashboardData.radiotherapy_data.discussed_only;
+            
+            const totalAll = allStats.reduce((sum, stat) => sum + stat.count, 0);
+            const totalDiscussed = discussedStats.reduce((sum, stat) => sum + stat.count, 0);
+            
+            let html = `
+                <div style="display: flex; gap: 20px; margin-bottom: 20px;">
+                    <button id="showAllRadio" class="chart-btn active" onclick="toggleRadioDetailView('all')">Alle Patienten</button>
+                    <button id="showDiscussedRadio" class="chart-btn" onclick="toggleRadioDetailView('discussed')">Nicht besprochene ausblenden</button>
+                </div>
+                
+                <div id="radioStatsContainer">
+                    <h4>Alle Patienten (${totalAll} Fälle)</h4>
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Radiotherapie-Status</th>
+                                <th>Anzahl</th>
+                                <th>Prozent</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+            `;
+            
+            allStats.forEach(stat => {
+                const percentage = totalAll > 0 ? (stat.count / totalAll * 100).toFixed(1) : 0;
+                html += `
+                    <tr>
+                        <td><strong>${stat.status}</strong></td>
+                        <td>${stat.count}</td>
+                        <td>${percentage}%</td>
+                    </tr>
+                `;
+            });
+            
+            html += '</tbody></table></div>';
+            container.innerHTML = html;
+        }
+        
+        // Toggle radiotherapy detail view
+        function toggleRadioDetailView(view) {
+            const allBtn = document.getElementById('showAllRadio');
+            const discussedBtn = document.getElementById('showDiscussedRadio');
+            const container = document.getElementById('radioStatsContainer');
+            
+            allBtn.classList.toggle('active', view === 'all');
+            discussedBtn.classList.toggle('active', view === 'discussed');
+            
+            const stats = view === 'all' ? 
+                dashboardData.radiotherapy_data.all_patients : 
+                dashboardData.radiotherapy_data.discussed_only;
+            
+            const total = stats.reduce((sum, stat) => sum + stat.count, 0);
+            const title = view === 'all' ? 'Alle Patienten' : 'Nur besprochene Patienten';
+            
+            let html = `
+                <h4>${title} (${total} Fälle)</h4>
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Radiotherapie-Status</th>
+                            <th>Anzahl</th>
+                            <th>Prozent</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+            `;
+            
+            stats.forEach(stat => {
+                const percentage = total > 0 ? (stat.count / total * 100).toFixed(1) : 0;
+                html += `
+                    <tr>
+                        <td><strong>${stat.status}</strong></td>
+                        <td>${stat.count}</td>
+                        <td>${percentage}%</td>
+                    </tr>
+                `;
+            });
+            
+            html += '</tbody></table>';
+            container.innerHTML = html;
+        }
+        
+        // Create ICD details view
+        function createIcdDetailsView() {
+            const icdByTb = document.getElementById('icdByTumorboard');
+            let icdHtml = '<table class="data-table"><thead><tr><th>Tumorboard</th><th>ICD-Code</th><th>Fälle</th></tr></thead><tbody>';
+            dashboardData.icd_data.by_tumorboard.slice(0, 10).forEach(item => {
+                icdHtml += `
+                    <tr class="clickable" onclick="selectIcdInTumorboard('${item.tumorboard_type}', '${item.icd_code}')">
+                        <td>${item.tumorboard_type}</td>
+                        <td><strong>${item.icd_code}</strong></td>
+                        <td>${item.total_cases}</td>
+                    </tr>
+                `;
+            });
+            icdHtml += '</tbody></table>';
+            icdByTb.innerHTML = icdHtml;
+        }
+        
+        // Create chart analysis view
+        function createChartAnalysisView() {
+            const container = document.getElementById('chartAnalysis');
+            
+            let html = `
+                <div style="display: flex; height: 600px;">
+                    <!-- Chart Area -->
+                    <div style="flex: 1; background: rgba(255,255,255,0.05); border-radius: 10px; margin-right: 20px; padding: 20px;">
+                        <div id="chartDisplay" style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; opacity: 0.7;">
+                            📊 Wählen Sie Parameter aus dem Menü →
+                        </div>
+                    </div>
+                    
+                    <!-- Control Panel -->
+                    <div style="width: 300px; background: rgba(255,255,255,0.05); border-radius: 10px; padding: 20px;">
+                        <h4 style="color: #4FC3F7; margin-bottom: 20px;">📊 Chart-Parameter</h4>
+                        
+                        <div style="margin-bottom: 20px;">
+                            <label style="display: block; margin-bottom: 8px; font-weight: bold;">Chart-Typ:</label>
+                            <select id="chartType" style="width: 100%; margin-bottom: 10px;" onchange="updateChart()">
+                                <option value="bar">Balkendiagramm</option>
+                                <option value="pie">Kreisdiagramm</option>
+                                <option value="line">Liniendiagramm</option>
+                                <option value="scatter">Streudiagramm</option>
+                            </select>
+                        </div>
+                        
+                        <div style="margin-bottom: 20px;">
+                            <label style="display: block; margin-bottom: 8px; font-weight: bold;">X-Achse:</label>
+                            <select id="xAxis" style="width: 100%; margin-bottom: 10px;" onchange="updateChart()">
+                                <option value="tumorboard">Tumorboard-Typ</option>
+                                <option value="time">Zeit (Monat)</option>
+                                <option value="icd">ICD-Code</option>
+                                <option value="radiotherapy">Radiotherapie-Status</option>
+                            </select>
+                        </div>
+                        
+                        <div style="margin-bottom: 20px;">
+                            <label style="display: block; margin-bottom: 8px; font-weight: bold;">Y-Achse:</label>
+                            <select id="yAxis" style="width: 100%; margin-bottom: 10px;" onchange="updateChart()">
+                                <option value="cases">Patientenfälle</option>
+                                <option value="patients">Unique Patients</option>
+                                <option value="sessions">Sessions</option>
+                                <option value="percentage">Prozent (%)</option>
+                            </select>
+                        </div>
+                        
+                        <div style="margin-bottom: 20px;">
+                            <label style="display: block; margin-bottom: 8px; font-weight: bold;">Filter:</label>
+                            <select id="chartFilter" style="width: 100%; margin-bottom: 10px;" onchange="updateChart()">
+                                <option value="all">Alle Tumorboards</option>
+                                <option value="sarkom">Nur Sarkom</option>
+                            </select>
+                        </div>
+                        
+                        <button onclick="updateChart()" style="width: 100%; padding: 12px; background: linear-gradient(45deg, #4FC3F7, #29B6F6); border: none; border-radius: 8px; color: white; font-weight: bold; cursor: pointer;">
+                            📊 Chart erstellen
+                        </button>
+                        
+                        <div style="margin-top: 20px; padding: 15px; background: rgba(255,255,255,0.05); border-radius: 8px; font-size: 0.9rem;">
+                            <strong>💡 Tipp:</strong><br>
+                            Experimentieren Sie mit verschiedenen Kombinationen von Chart-Typ und Achsen für unterschiedliche Einblicke in Ihre Daten.
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            container.innerHTML = html;
+        }
+        
+        // Update chart display
+        function updateChart() {
+            const chartType = document.getElementById('chartType').value;
+            const xAxis = document.getElementById('xAxis').value;
+            const yAxis = document.getElementById('yAxis').value;
+            const filter = document.getElementById('chartFilter').value;
+            const display = document.getElementById('chartDisplay');
+            
+            // Get data based on selections
+            const chartData = getChartData(xAxis, yAxis, filter);
+            
+            let chartHtml = `
+                <div style="text-align: center;">
+                    <h3 style="color: #4FC3F7; margin-bottom: 20px;">
+                        ${getChartTypeLabel(chartType)}: ${getAxisLabel(xAxis)} vs ${getAxisLabel(yAxis)}
+                    </h3>
+                    <div style="background: rgba(255,255,255,0.1); padding: 20px; border-radius: 10px; height: 400px;">
+                        ${generateChartVisualization(chartType, chartData, xAxis, yAxis)}
+                    </div>
+                    <div style="margin-top: 15px; font-size: 0.9rem; opacity: 0.7;">
+                        Filter: ${filter === 'all' ? 'Alle Tumorboards' : filter} | 
+                        Datenquelle: ${getDatasourceInfo(xAxis, yAxis)}
+                    </div>
+                </div>
+            `;
+            
+            display.innerHTML = chartHtml;
+        }
+        
+        // Get chart data based on axis selections
+        function getChartData(xAxis, yAxis, filter) {
+            let data = [];
+            
+            if (xAxis === 'tumorboard') {
+                const stats = filter === 'all' ? dashboardData.tumorboard_stats : 
+                             dashboardData.tumorboard_stats.filter(tb => tb.name.toLowerCase() === filter);
+                
+                stats.forEach(stat => {
+                    let value = 0;
+                    switch(yAxis) {
+                        case 'cases': value = stat.total_cases; break;
+                        case 'patients': value = stat.unique_patients; break;
+                        case 'sessions': value = stat.sessions; break;
+                        case 'percentage': value = (stat.total_cases / dashboardData.key_metrics.total_cases * 100).toFixed(1); break;
+                    }
+                    data.push({ label: stat.name, value: value });
+                });
+            } else if (xAxis === 'radiotherapy') {
+                const stats = dashboardData.radiotherapy_data.all_patients;
+                const total = stats.reduce((sum, stat) => sum + stat.count, 0);
+                
+                stats.forEach(stat => {
+                    let value = 0;
+                    switch(yAxis) {
+                        case 'cases': value = stat.count; break;
+                        case 'patients': value = stat.count; break;
+                        case 'percentage': value = (stat.count / total * 100).toFixed(1); break;
+                    }
+                    data.push({ label: stat.status, value: value });
+                });
+            } else if (xAxis === 'icd') {
+                const stats = dashboardData.icd_data.top_codes.slice(0, 5);
+                
+                stats.forEach(stat => {
+                    let value = 0;
+                    switch(yAxis) {
+                        case 'cases': value = stat.total_cases; break;
+                        case 'patients': value = stat.unique_patients; break;
+                        case 'percentage': value = (stat.total_cases / dashboardData.key_metrics.total_cases * 100).toFixed(1); break;
+                    }
+                    data.push({ label: stat.icd_code, value: value });
+                });
+            } else if (xAxis === 'time') {
+                const stats = dashboardData.temporal_data.monthly;
+                
+                stats.forEach(stat => {
+                    let value = 0;
+                    switch(yAxis) {
+                        case 'cases': value = stat.total_cases; break;
+                        case 'patients': value = stat.unique_patients; break;
+                        case 'sessions': value = stat.sessions; break;
+                    }
+                    data.push({ label: stat.month, value: value });
+                });
+            }
+            
+            return data;
+        }
+        
+        // Generate chart visualization
+        function generateChartVisualization(chartType, data, xAxis, yAxis) {
+            if (!data || data.length === 0) {
+                return '<div style="display: flex; align-items: center; justify-content: center; height: 100%; font-size: 1.2rem; opacity: 0.7;">Keine Daten verfügbar</div>';
+            }
+            
+            const maxValue = Math.max(...data.map(d => parseFloat(d.value)));
+            
+            if (chartType === 'bar') {
+                return generateBarChart(data, maxValue, yAxis);
+            } else if (chartType === 'pie') {
+                return generatePieChart(data);
+            } else if (chartType === 'line') {
+                return generateLineChart(data, maxValue, yAxis);
+            } else {
+                return generateScatterChart(data, maxValue, yAxis);
+            }
+        }
+        
+        // Generate bar chart
+        function generateBarChart(data, maxValue, yAxis) {
+            let html = '<div style="display: flex; align-items: end; justify-content: space-around; height: 300px; padding: 20px;">';
+            
+            data.forEach(item => {
+                const height = (parseFloat(item.value) / maxValue) * 250;
+                const color = getRandomColor();
+                
+                html += `
+                    <div style="display: flex; flex-direction: column; align-items: center; margin: 0 10px;">
+                        <div style="font-size: 0.8rem; margin-bottom: 5px; color: #4FC3F7; font-weight: bold;">
+                            ${item.value}${yAxis === 'percentage' ? '%' : ''}
+                        </div>
+                        <div style="
+                            width: 40px; 
+                            height: ${height}px; 
+                            background: ${color}; 
+                            border-radius: 4px 4px 0 0;
+                            transition: all 0.3s ease;
+                        "></div>
+                        <div style="font-size: 0.7rem; margin-top: 8px; text-align: center; max-width: 60px; word-wrap: break-word;">
+                            ${item.label}
+                        </div>
+                    </div>
+                `;
+            });
+            
+            html += '</div>';
+            return html;
+        }
+        
+        // Generate pie chart
+        function generatePieChart(data) {
+            const total = data.reduce((sum, item) => sum + parseFloat(item.value), 0);
+            let html = '<div style="display: flex; align-items: center; justify-content: center; height: 300px;">';
+            
+            // Simple pie representation with colored blocks
+            html += '<div style="display: flex; flex-direction: column; gap: 15px;">';
+            
+            data.forEach(item => {
+                const percentage = ((parseFloat(item.value) / total) * 100).toFixed(1);
+                const color = getRandomColor();
+                
+                html += `
+                    <div style="display: flex; align-items: center; gap: 10px;">
+                        <div style="width: 20px; height: 20px; background: ${color}; border-radius: 3px;"></div>
+                        <div style="font-size: 0.9rem;">
+                            <strong>${item.label}</strong>: ${item.value} (${percentage}%)
+                        </div>
+                    </div>
+                `;
+            });
+            
+            html += '</div></div>';
+            return html;
+        }
+        
+        // Generate line chart
+        function generateLineChart(data, maxValue, yAxis) {
+            let html = '<div style="position: relative; height: 300px; padding: 20px;">';
+            
+            // Draw line points
+            html += '<div style="display: flex; align-items: end; justify-content: space-between; height: 250px; border-bottom: 2px solid rgba(255,255,255,0.3);">';
+            
+            data.forEach((item, index) => {
+                const height = (parseFloat(item.value) / maxValue) * 200;
+                
+                html += `
+                    <div style="display: flex; flex-direction: column; align-items: center;">
+                        <div style="font-size: 0.8rem; margin-bottom: 5px; color: #4FC3F7; font-weight: bold;">
+                            ${item.value}${yAxis === 'percentage' ? '%' : ''}
+                        </div>
+                        <div style="
+                            width: 8px; 
+                            height: 8px; 
+                            background: #4FC3F7; 
+                            border-radius: 50%;
+                            margin-bottom: ${200 - height}px;
+                        "></div>
+                        <div style="font-size: 0.7rem; margin-top: 8px; text-align: center;">
+                            ${item.label}
+                        </div>
+                    </div>
+                `;
+            });
+            
+            html += '</div></div>';
+            return html;
+        }
+        
+        // Generate scatter chart
+        function generateScatterChart(data, maxValue, yAxis) {
+            return generateBarChart(data, maxValue, yAxis); // Fallback to bar chart for simplicity
+        }
+        
+        // Get random color for charts
+        function getRandomColor() {
+            const colors = [
+                'linear-gradient(45deg, #4FC3F7, #29B6F6)',
+                'linear-gradient(45deg, #66BB6A, #4CAF50)',
+                'linear-gradient(45deg, #FFA726, #FF9800)',
+                'linear-gradient(45deg, #EF5350, #F44336)',
+                'linear-gradient(45deg, #AB47BC, #9C27B0)',
+                'linear-gradient(45deg, #26C6DA, #00BCD4)'
+            ];
+            return colors[Math.floor(Math.random() * colors.length)];
+        }
+        
+        function getChartTypeLabel(type) {
+            const labels = {
+                'bar': 'Balkendiagramm',
+                'pie': 'Kreisdiagramm', 
+                'line': 'Liniendiagramm',
+                'scatter': 'Streudiagramm'
+            };
+            return labels[type] || type;
+        }
+        
+        function getAxisLabel(axis) {
+            const labels = {
+                'tumorboard': 'Tumorboard-Typ',
+                'time': 'Zeit',
+                'icd': 'ICD-Code',
+                'radiotherapy': 'Radiotherapie',
+                'cases': 'Patientenfälle',
+                'patients': 'Unique Patients',
+                'sessions': 'Sessions',
+                'percentage': 'Prozent'
+            };
+            return labels[axis] || axis;
+        }
+        
+        function getDatasourceInfo(x, y) {
+            return `${dashboardData.key_metrics.total_cases} Fälle, ${dashboardData.key_metrics.unique_patients} Patienten`;
+        }
+
+        function selectIcdInTumorboard(tumorboard, icd) {
+            console.log(`ICD ${icd} in ${tumorboard} ausgewählt`);
+        }
+
+        // Table sorting
+        function sortTable(columnIndex) {
+            console.log(`Tabelle nach Spalte ${columnIndex + 1} sortiert`);
+            // In a real implementation, this would sort the table
+        }
+
+        // Initialize dashboard when page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            loadDashboardData();
+        });
+    </script>
+</body>
+</html> 

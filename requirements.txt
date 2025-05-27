@@ -18,6 +18,7 @@ lazy_loader
 locket
 markdown
 MarkupSafe
+matplotlib
 mouseinfo
 mpmath
 networkx
@@ -48,6 +49,7 @@ python-bidi
 python-dateutil
 pytweening
 PyYAML
+seaborn
 scikit-image
 scipy
 setuptools # Nur einmal auflisten!

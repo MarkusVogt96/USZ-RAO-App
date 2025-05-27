@@ -132,6 +132,9 @@ def paste_bullet_point(text):
     if text: pyautogui.hotkey('ctrl', 'shift', '.'); clipboard.copy(str(text)); pyautogui.hotkey('ctrl', 'v'); pyautogui.press('enter'); pyautogui.press('enter')
 
 
+
+
+
 # --- Main execution block ---
 def main():
     global austritt_typ, patdata, glossary, oberarzt # patdata und glossary hinzufügen
@@ -148,8 +151,12 @@ def main():
         # --- Ende Neu ---
 
         print("Starte KISIM Automatisierung für Austrittsbericht...")
+        UNIVERSAL.KISIM_im_vordergrund()
         UNIVERSAL.navigiere_bereich_berichte()
         if not find_and_click_austritt("button_neu.png"): sys.exit("Abbruch: Neu")
+
+        UNIVERSAL.find_and_click_button_offset(image_name='button_bericht_for_offset.png', base_path=austritt_screenshots_dir, y_offset=55, confidence=0.9)
+
         if not find_and_click_austritt("button_suche.png"): sys.exit("Abbruch: Suche")
         pyautogui.hotkey('ctrl', 'a')
         pyautogui.press('backspace')
@@ -160,6 +167,9 @@ def main():
         time.sleep(0.1)
 
         if not find_and_click_austritt("button_austrittsbericht.png"): sys.exit("Abbruch: Berichtwahl")
+
+        print("Warte auf Bericht..."); time.sleep(0.1)
+        if not UNIVERSAL.prozent_zoom_100(): print("Fehler: UNIVERSAL.prozent_zoom_100() == False. Breche ab. Bitte bei Admin melden."); sys.exit()
 
         print("Check for button_dt als confirm")
         if not find_and_click_austritt("button_dt.png", retries=10): sys.exit("Abbruch: Bericht nicht bestätigt (DT)")
