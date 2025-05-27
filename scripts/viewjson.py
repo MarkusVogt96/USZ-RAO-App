@@ -29,7 +29,8 @@ user_home = os.path.expanduser("~")
 patdata_dir = os.path.join(user_home, "patdata")
 
 def main(patientennummer=None):
-    UNIVERSAL.KISIM_im_vordergrund()
+    if not patientennummer:
+        UNIVERSAL.KISIM_im_vordergrund()
 
     if patientennummer:
         patient_id = patientennummer

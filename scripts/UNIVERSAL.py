@@ -2031,7 +2031,7 @@ def rt_konzept_oeffnen():
         # Define paths using os.path.join and screenshots_dir
         berichte_path = os.path.join(screenshots_dir, 'UNIVERSAL', 'bereich_berichte')
         button_rtkonzept_confirm_path = os.path.join(berichte_path, 'button_rtkonzept_confirm.png')
-        button_rtkonzept_doppelt_path = os.path.join(berichte_path, 'button_rtkonzept_doppelt.png')
+        button_rtkonzept_doppelt_path = os.path.join(berichte_path, 'button_rtkonzept_doppelt_ohne_blau.png')
         logging.debug(f"[{function_name}] Path for confirm button: {button_rtkonzept_confirm_path}")
         logging.debug(f"[{function_name}] Path for double-click button: {button_rtkonzept_doppelt_path}")
 
@@ -2090,13 +2090,13 @@ def rt_konzept_oeffnen():
         time.sleep(0.3)
 
 
-
-        if not find_and_click_button_offset("button_zeitraum_pfeil.png", base_path=berichte_path, max_attempts=20, interval=0.05, confidence=0.90, x_offset=-45):
-            print("button_zeitraum_pfeil.png nicht gefunden")
-            return False
-        if not find_and_click_button("button_unbestimmt.png", base_path=berichte_path, max_attempts=20, interval=0.05, confidence=0.90):
-            print("button_unbestimmt.png nicht gefunden")
-            return False
+        if not find_button("button_rtkonzept_doppelt_ohne_blau.png", base_path=berichte_path, max_attempts=5, interval=0.05, confidence=0.95):
+            if not find_and_click_button_offset("button_zeitraum_pfeil.png", base_path=berichte_path, max_attempts=20, interval=0.05, confidence=0.90, x_offset=-45):
+                print("button_zeitraum_pfeil.png nicht gefunden")
+                return False
+            if not find_and_click_button("button_unbestimmt.png", base_path=berichte_path, max_attempts=20, interval=0.05, confidence=0.90):
+                print("button_unbestimmt.png nicht gefunden")
+                return False
 
 
 
@@ -3885,6 +3885,7 @@ def prozent_zoom_100():
     if not find_button('button_offene_berichtszeile.png', base_path=local_screenshots_dir, max_attempts=200, interval=0.1):
         print("button_offene_berichtszeile nicht gefunden.")
         return False
+    time.sleep(0.5)
     if not find_button('button_prozent_confirm.png', base_path=local_screenshots_dir, max_attempts=20, interval=0.1):
         print("button_prozent_confirm nicht gefunden.")
         return False
