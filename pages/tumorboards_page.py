@@ -29,8 +29,7 @@ class TumorboardsPage(QWidget):
             "Schädelbasis",
             "Schilddrüse",
             "Thorax",
-            "Uro",
-            "Vascular"
+            "Uro"
         ]
         
         self.tumorboard_location_mapping = {
@@ -43,15 +42,14 @@ class TumorboardsPage(QWidget):
             "Neuro": "NORD1 C225",
             "NET": "B OPS Demonstrationssaal 3",
             "KHT": "NORD2 B811",
-            "Pädiatrie": "{placeholder}",
-            "Hypophyse": "{placeholder}",
+            "Pädiatrie": "Kispi/Online",
+            "Hypophyse": "Online",
             "Lymphom": "PATH B82",
             "Sarkom": "HOER B 15",
-            "Schädelbasis": "{placeholder}",
+            "Schädelbasis": "NORD2",
             "Schilddrüse": "NUK A 33",
             "Thorax": "OPS B 26",
-            "Uro": "NORD1 B203",
-            "Vascular": "{placeholder}"
+            "Uro": "NORD1 B203"
         }
         
         # Temporary weekday assignments (distribute tumorboards across Mon-Fri)
@@ -86,7 +84,6 @@ class TumorboardsPage(QWidget):
             ],
             "Mittwoch": [
                 {'name': 'KHT', 'time': '8:00'},
-                {'name': 'Vascular', 'time': '8:00'},
                 {'name': 'Lymphom', 'time': '16:30'},
             ],
             "Donnerstag": [

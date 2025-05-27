@@ -2,7 +2,7 @@
 setlocal
 
 REM Pfad zum Hauptanwendungsordner im AppData\Roaming Verzeichnis
-set "FULL_APP_FOLDER=%APPDATA%\USZ-RAO-App_old"
+set "FULL_APP_FOLDER=%APPDATA%\USZ-RAO-App"
 
 REM Name des Python-Skripts
 set "PYTHON_SCRIPT=main.py"
