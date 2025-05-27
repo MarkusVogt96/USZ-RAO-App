@@ -1162,7 +1162,26 @@ class TumorboardSessionPage(QWidget):
         entry_layout.addWidget(self.studie_label)
         
         self.studie_combo = NoScrollComboBox()
-        self.studie_combo.addItems(["-", "nicht qualifiziert", "NO MASK", "CHESS", "OLIGO-Rare", "MAGELLAN", "FLASH", "SPRINT"])
+        self.studie_combo.addItems([
+            "CHESS",
+            "DeEscO",
+            "FLASH",
+            "HypoFocal",
+            "MAGELLAN",
+            "NoMask",
+            "OligoCare",
+            "OligoRARE",
+            "PACCELIO",
+            "PROTECT",
+            "ReCare",
+            "SHARP",
+            "SINGLE ISOCENTER",
+            "SPRINT",
+            "SPRINT",
+            "TASTE",
+            "X-SMILE",
+            "nicht qualifiziert"
+        ])        
         self.studie_combo.setStyleSheet(self.get_input_style())
         self.studie_combo.currentTextChanged.connect(self.update_label_styles)
         self.studie_combo.currentTextChanged.connect(self.mark_unsaved_changes)
