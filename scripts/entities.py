@@ -100,7 +100,7 @@ secondary_neoplasms_icd = {
     'Knochenmetastasen': 'C79.5', # Sekundäre bösartige Neubildung des Knochens und des Knochenmarkes
     'Lungenmetastasen': 'C78.0', # Sekundäre bösartige Neubildung der Lunge
     'Lebermetastasen': 'C78.7', # Sekundäre bösartige Neubildung der Leber und der intrahepatischen Gallengänge
-    'Weichteilmetastasen': 'C79.8', # Sekundäre bösartige Neubildung an sonstigen näher bezeichneten Lokalisationen
+    'Weichteilmetastasen': 'C79.86', # Sekundäre bösartige Neubildung an sonstigen näher bezeichneten Lokalisationen
     'Sonstige Fernmetastasierung': 'C79.9', # Sekundäre bösartige Neubildung an nicht näher bezeichneten Lokalisationen
 }
 
