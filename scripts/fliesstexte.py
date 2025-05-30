@@ -551,7 +551,7 @@ def define_berrao_texte(bericht_typ, entity, patdata, glossary):
         texte["fliesstext_allgemeinstatus"] = (f"{g('artikel_nominativ_gross','Der/Die')} {g('patient_nominativ','Patient/in')} macht im Gespräch einen kooperativen und kognitiv adäquaten Eindruck. Eine klinische Beurteilung ist im Rahmen der telefonischen Verlaufskontrolle nicht erfolgt.")
         texte["fliesstext_durchgef_therapie"] = (f" ")
         texte["fliesstext_verlauf_unter_therapie"] = (f" ")
-        texte["fliesstext_beurteilung"] = (f"{g('artikel_nominativ_gross','Der/Die')} {g('patient_nominativ','Patient/in')} präsentiert sich -bis auf ______- im Rahmen der radioonkologischer Nachsorge bei vorbekanntem {tumor or '______'} in regelrechtem Verlauf.")
+        texte["fliesstext_beurteilung"] = (f"{g('artikel_nominativ_gross','Der/Die')} {g('patient_nominativ','Patient/in')} präsentiert sich -bis auf ______- im Rahmen der radioonkologischen Nachsorge bei vorbekanntem {tumor or '______'} in regelrechtem Verlauf.")
         texte["fliesstext_procedere"] = [f"Nächste geplante Verlaufskonsultation in ___ Monaten.",
                                          f"Bildgebung ___ empfohlen/veranlasst.",
                                          f"Bei Exazerbation oder Neuauftreten von tumor- oder therapieassoziierten Beschwerden ist eine ausserplanmässige Vorstellung in unserer ambulanten Sprechstunde allzeit möglich."]
