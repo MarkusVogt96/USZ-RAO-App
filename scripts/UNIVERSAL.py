@@ -3882,8 +3882,10 @@ def prozent_zoom_100():
     print("Starte prozent_zoom_100() aus UNIVERSAL")
     local_screenshots_dir = os.path.join(screenshots_dir, 'UNIVERSAL', 'bereich_berichte')
     print("probiere find_button() mit button_prozent_confirm.png")
-    if not find_button('button_offene_berichtszeile.png', base_path=local_screenshots_dir, max_attempts=200, interval=0.1):
-        print("button_offene_berichtszeile nicht gefunden.")
+
+
+    if not find_button('button_leiste_kurz.png', base_path=local_screenshots_dir, max_attempts=200, interval=0.1, confidence=0.95):
+        print("button_leiste_kurz nicht gefunden.")
         return False
     time.sleep(0.3)
     if not find_button('button_prozent_confirm.png', base_path=local_screenshots_dir, max_attempts=20, interval=0.1):

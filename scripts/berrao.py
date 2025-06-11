@@ -282,19 +282,21 @@ def definiere_glossary():
     else: print("WARNUNG: Geschlecht nicht definiert."); glossary = UNIVERSAL.create_patdata_glossary(None)
 
 def check_daten_komplett():
+    # Liste der für Berichte ('a', 'k', 't', 'w') kritischen Variablen
     required_variables = [
-                "datum_erste_rt",
-                "datum_letzte_rt",
-                "behandlungskonzept_serie1",
-                "tumor",
-                "entity",
-                "icd_code"
-            ]
+        "datum_erste_rt",
+        "datum_letzte_rt",
+        "behandlungskonzept_serie1",
+        "tumor",
+        "entity",
+        "icd_code"
+    ]
 
     missing_variables = []
     for var_name in required_variables:
         value = patdata.get(var_name)
-        if value is None or value == "":
+        # Prüft auf None, leeren String "" oder nur Whitespace
+        if value is None or (isinstance(value, str) and not value.strip()):
             missing_variables.append(var_name)
 
     if missing_variables:
@@ -303,23 +305,40 @@ def check_daten_komplett():
             print(f"  - {missing_var}")
 
         while True:
-            choice = input("Möchten Sie diese Daten jetzt bearbeiten/nachtragen? (j/n): ").strip().lower()
+            choice = input("\nVariablen jetzt definieren (dringend empfohlen)? (j/n): ").strip().lower()
             if choice == 'j':
-                print(f"\nINFO: Starte Bearbeitungsfunktion für Patientennummer {patientennummer}...")
-                print("Bitte bearbeiten Sie die Daten in der erscheinenden Übersicht.")
-                import viewjson
-                viewjson.main(patientennummer)
-                print("Daten aktualisiert. Bitte Skript 'Bericht Radioonkologie' neustartet.")
-                sys.exit()
+                print(f"\nINFO: Starte geführte Bearbeitung für Patientennummer {patientennummer}...")
+                
+                try:
+                    # Importiere das neue Skript für die geführte Bearbeitung
+                    import editjson_guided
+                    # Rufe die main-Funktion auf und übergebe Patientennummer und die Liste der fehlenden Keys
+                    editjson_guided.main(patientennummer, missing_variables)
+                    
+                    # Nach der erfolgreichen Bearbeitung ist ein Neustart zwingend, 
+                    # um die aktualisierten Daten in das Skript zu laden.
+                    print("\n--------------------------------------------------------------------")
+                    print("DATEN AKTUALISIERT. Skript 'berrao.py' wird fortgeführt.")
+                    return True
+
+                except ImportError:
+                    print("FEHLER: Das Skript 'editjson_guided.py' konnte nicht gefunden werden.")
+                    sys.exit("Bitte stellen Sie sicher, dass die Datei im richtigen Verzeichnis liegt.")
+                except Exception as e:
+                    print(f"Ein unerwarteter Fehler während der Bearbeitung ist aufgetreten: {e}")
+                    traceback.print_exc()
+                    sys.exit("Abbruch wegen Fehler.")
+
             elif choice == 'n':
                 print("\nWARNUNG: Sie setzen fort, obwohl benötigte Daten fehlen.")
-                print("Die generierten Fließtexte müssen ggf. manuell angepasst werden.")
+                print("Die generierten Fließtexte müssen sehr wahrscheinlich manuell angepasst werden.")
                 break 
             else:
                 print("Ungültige Eingabe. Bitte 'j' oder 'n' eingeben.")
     else:
-        # Keine fehlenden Variablen gefunden für Wochenkontrolle
+        # Keine fehlenden Variablen gefunden
         print(f"INFO: Alle notwendigen Daten für Berichtstyp '{bericht_typ}' scheinen vorhanden zu sein.")
+        return True
 
 
 
@@ -498,7 +517,8 @@ def main():
             # --- Beginn: Validierung der benötigten Daten für Wochenkontrolle ---
             print(f"\nINFO: Prüfe notwendige Daten für Berichtstyp '{bericht_typ}'...")
 
-            check_daten_komplett()
+            if not check_daten_komplett():
+                print("FEHLER: Notwendige Daten für Wochenkontrolle sind nicht komplett und sollten künftig korrigiert werden.")
             
             # --- Weiterer Code für Wochenkontrolle (NACH der Prüfung) ---
             print("Rufe fliesstexte.define_berrao_texte für Typ 'w' auf...")
@@ -522,7 +542,8 @@ def main():
 
             if bericht_typ in berichtstypen_mit_rt_daten:
                 print(f"\nINFO: Prüfe notwendige Daten für Berichtstyp '{bericht_typ}'...")
-                check_daten_komplett()
+                if not check_daten_komplett():
+                    print("FEHLER: Notwendige Daten für Bericht sind nicht komplett und sollten künftig korrigiert werden.")
 
             # --- NEU: Texte holen ---
             print(f"Rufe fliesstexte.define_berrao_texte für Typ '{bericht_typ}' auf...")

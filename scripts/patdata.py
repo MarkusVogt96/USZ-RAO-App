@@ -373,14 +373,26 @@ def fraktionen_woche_auslesen():
         #Bestimmen der Intention
         search_text = str(ocr_aus_screenshot_fraktionen_woche)
 
-        # Initialisiere die Ergebnisvariable mit einem Standardwert
+        fraktionen_mapping = {
+            "1x pro Woche": ["1x pro", "ix pro"],
+            "3x pro Woche": ["3x pro", "30 pro"],
+            "4x pro Woche": ["4x pro", "40 pro"],
+            "5x pro Woche inkl. Feiertag": ["erta", "Feier", "inkl"],
+            "5x pro Woche": ["5x pro", "50 pro"],
+            "6x pro Woche": ["6x pro", "60 pro"],
+            "jeden 2. Tag": ["eden 2", "2. Tag"],
+            "2x pro Tag": ["x pro", "pro Ta"]
+        }
+
+        search_text = str(ocr_aus_screenshot_fraktionen_woche).lower()
         fraktionen_woche_lokal = ""
 
-        # Prüfe in der gewünschten Reihenfolge (Kurativ > Palliativ > Lokal) und setze die Variable
-        if "pro" in search_text or "jeden" in search_text:
-            fraktionen_woche_lokal = ocr_aus_screenshot_fraktionen_woche[0]
-            print(f"Valide OCR-Angabe gefunden: {fraktionen_woche_lokal}")
-            return fraktionen_woche_lokal
+        # Durchsuche den Text nach den definierten Mustern
+        for standard_format, search_patterns in fraktionen_mapping.items():
+            if any(pattern in search_text for pattern in search_patterns):
+                fraktionen_woche_lokal = standard_format
+                print(f"Valide OCR-Angabe gefunden, standardisiert zu: {fraktionen_woche_lokal}")
+                return fraktionen_woche_lokal
         else:
             print("Kein sinnvolles Ergebnis vom OCR des Bildes gefunden. Ggf manuell anpassen!")
             return fraktionen_woche_lokal
@@ -516,12 +528,14 @@ def main():
 
     try:
         # --- 4. Get Basic Patient Data ---
+        stat = UNIVERSAL.userinput_stat("Stationärer Patient (j/n)? ")
         UNIVERSAL.KISIM_im_vordergrund()
         print("\nLese KISIM-Zeile nach Patientendaten aus...")
         nachname, vorname, geburtsdatum, alter, geschlecht, patientennummer, eintrittsdatum = UNIVERSAL.auslesen_patdata_KISIMzeile()
         print("\nLese SPI, REA/IPS...")
-        spi = UNIVERSAL.auslesen_spi()
-        rea, ips = UNIVERSAL.auslesen_reaips()
+        if stat == 'j':
+            spi = UNIVERSAL.auslesen_spi()
+            rea, ips = UNIVERSAL.auslesen_reaips()
 
         print("Basis-Patientendaten, SPI, REA/IPS erfolgreich ausgelesen.")
         if not patientennummer:
@@ -731,7 +745,6 @@ def main():
 
         # --- 8. Ask for inpatient details if applicable ---
         temp_zimmer = ""; temp_aufnahmegrund = ""
-        stat = UNIVERSAL.userinput_stat("Stationärer Patient (j/n)? ")
 
         eintrittsdatum_final = eintrittsdatum # Nimm initial das aus KISIM
 
