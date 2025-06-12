@@ -62,7 +62,7 @@ _universal_initialized = True
 ######################################################
 #speichere reader-Status für easyocr und pytesseract
 reader_easyocr = None
-reader_pytesseract = None
+pytesseract = None
 
 
 ######################################################
@@ -131,18 +131,16 @@ def run_tesseract_ocr_deutsch(screenshot_path):
 
             # Pfad zur Anwendung bestimmen (Bundle oder Skript)
             if getattr(sys, 'frozen', False):
-                # Läuft als PyInstaller-Bundle
                 app_path = sys._MEIPASS
                 print(f"Anwendung läuft als Bundle. Basispfad: {app_path}")
             else:
-                # Läuft als normales Skript
                 script_dir = os.path.dirname(os.path.abspath(__file__))
-                app_path = os.path.dirname(script_dir) # Annahme: UNIVERSAL.py ist in 'scripts/'
+                app_path = os.path.dirname(script_dir)
                 print(f"Anwendung läuft als Skript. Basispfad: {app_path}")
 
             # Pfad zur tesseract.exe finden (Bundle zuerst, dann Fallback)
             tesseract_exe_path_bundle = os.path.join(app_path, 'tesseract', 'tesseract.exe')
-            local_tesseract_fallback = 'C:\\Program Files\\Tesseract-OCR\\tesseract.exe' # Dein lokaler Pfad
+            local_tesseract_fallback = 'C:\\Program Files\\Tesseract-OCR\\tesseract.exe'
 
             tesseract_cmd_to_set = None
             if os.path.exists(tesseract_exe_path_bundle):
@@ -153,7 +151,7 @@ def run_tesseract_ocr_deutsch(screenshot_path):
                 print(f"WARNUNG: Tesseract executable nicht im Bundle/App-Pfad gefunden. Verwende lokalen Fallback: {tesseract_cmd_to_set}")
             else:
                 print(f"FEHLER: Tesseract executable weder im Bundle/App-Pfad ({tesseract_exe_path_bundle}) noch im lokalen Fallback ({local_tesseract_fallback}) gefunden.")
-                return None # Kann ohne Tesseract nicht arbeiten
+                return None
 
             # Tesseract-Pfad in Pytesseract setzen
             pytesseract_module.pytesseract.tesseract_cmd = tesseract_cmd_to_set
@@ -162,14 +160,15 @@ def run_tesseract_ocr_deutsch(screenshot_path):
 
         except ImportError:
             print("FEHLER: Das Modul 'pytesseract' konnte nicht importiert werden.")
-            pytesseract = None # Sicherstellen, dass es None bleibt
+            pytesseract = None
             return None
         except Exception as e:
             print(f"FEHLER bei der Initialisierung von Pytesseract: {e}")
-            pytesseract = None # Sicherstellen, dass es None bleibt
+            pytesseract = None
             return None
 
-    # --- 2. Tessdata-Pfad bestimmen (jedes Mal, da der Pfad vom Kontext abhängt) ---
+    # --- 2. Tessdata-Pfad bestimmen (jedes Mal) ---
+    # (Dieser Teil bleibt unverändert)
     tessdata_config = None
     try:
         if getattr(sys, 'frozen', False):
@@ -179,12 +178,11 @@ def run_tesseract_ocr_deutsch(screenshot_path):
             app_path = os.path.dirname(script_dir)
 
         tessdata_path_bundle = os.path.join(app_path, 'tesseract', 'tessdata')
-        local_tessdata_fallback = 'C:\\Program Files\\Tesseract-OCR\\tessdata' # Dein lokaler tessdata Pfad
+        local_tessdata_fallback = 'C:\\Program Files\\Tesseract-OCR\\tessdata'
 
         tessdata_dir_to_use = None
         if os.path.isdir(tessdata_path_bundle):
             tessdata_dir_to_use = tessdata_path_bundle
-            # print(f"Tessdata Verzeichnis im Bundle/App-Pfad gefunden: {tessdata_dir_to_use}") # Optional: weniger verbose
         elif os.path.isdir(local_tessdata_fallback):
             tessdata_dir_to_use = local_tessdata_fallback
             print(f"WARNUNG: Tessdata Verzeichnis nicht im Bundle/App-Pfad gefunden. Verwende lokalen Fallback: {tessdata_dir_to_use}")
@@ -198,28 +196,26 @@ def run_tesseract_ocr_deutsch(screenshot_path):
         print(f"FEHLER beim Bestimmen des Tessdata-Pfades: {e}")
         return None
 
-    # --- 3. Eingabedatei prüfen ---
+    # --- 3. Eingabedatei prüfen (unverändert) ---
     if not os.path.exists(screenshot_path):
         print(f"FEHLER: Bilddatei nicht gefunden unter: {screenshot_path}")
         return None
 
-    # --- 4. OCR durchführen ---
+    # --- 4. OCR durchführen (mit korrigierter Fehlerbehandlung) ---
     try:
         print(f"Führe Tesseract OCR aus mit config: {tessdata_config}, lang='deu' für Datei: {screenshot_path}")
-        # Verwende das global initialisierte pytesseract-Objekt
         text = pytesseract.image_to_string(screenshot_path, lang='deu', config=tessdata_config)
         print("Tesseract OCR abgeschlossen.")
-        cleaned_text = text.strip() # Einfache Bereinigung
+        cleaned_text = text.strip()
         return cleaned_text
-
-    except pytesseract.TesseractNotFoundError:
-        # Sollte eigentlich nicht passieren, da wir den Pfad vorher setzen
-        print("FEHLER: Tesseract executable nicht gefunden während OCR (unerwartet).")
-        return None
+    # KORRIGIERTER/ROBUSTERER except-Block
     except Exception as e:
-        print(f"FEHLER während pytesseract.image_to_string für {screenshot_path}: {e}")
-        # import traceback # Optional für detaillierteres Debugging
-        # traceback.print_exc()
+        # Prüfen, ob der Fehler ein TesseractNotFoundError ist, falls pytesseract geladen wurde
+        if pytesseract and hasattr(pytesseract, 'TesseractNotFoundError') and isinstance(e, pytesseract.TesseractNotFoundError):
+            print("FEHLER: Tesseract executable nicht gefunden während OCR (unerwartet).")
+        else:
+            print(f"FEHLER während pytesseract.image_to_string für {screenshot_path}: {e}")
+        # traceback.print_exc() # Optional für detailliertes Debugging
         return None
     
 
@@ -2001,6 +1997,164 @@ def auslesen_patdata_KISIMzeile():
 
     # Ausgabe der extrahierten Variablen
     print("\nFunktion hat folgende Variablen extrahiert:")
+    print(f"nachname = {nachname}")
+    print(f"vorname = {vorname}")
+    print(f"geburtsdatum = {geburtsdatum}")
+    print(f"alter = {alter}")
+    print(f"geschlecht = {geschlecht}")
+    print(f"patientennummer = {patientennummer}")
+    print(f"eintrittsdatum = {eintrittsdatum}")
+    print("\n")
+
+    # Gib alle 7 extrahierten Variablen zurück
+    return nachname, vorname, geburtsdatum, alter, geschlecht, patientennummer, eintrittsdatum
+
+
+###################################
+###################################
+
+###################################
+###################################
+### TESSERACT-VERSION ZUM AUSLESEN DER PATIENTENDATEN-ZEILE
+
+def auslesen_patdata_KISIMzeile_tesseract():
+    """
+    Liest Patientendaten (Name, Geburtsdatum, Alter, etc.) aus der oberen KISIM-Zeile.
+    Diese Version verwendet Tesseract OCR anstelle von EasyOCR.
+
+    Die Funktion führt folgende Schritte aus:
+    1. Erstellt einen Screenshot eines definierten Bildschirmbereichs.
+    2. Führt eine Bildvorverarbeitung durch (Skalierung, Kontrast, Schärfen), um die OCR-Qualität zu verbessern.
+    3. Ruft die Funktion `run_tesseract_ocr_deutsch` auf, um Text aus dem Bild zu extrahieren.
+    4. Analysiert den erkannten Text mit regulären Ausdrücken, um die einzelnen Datenfelder zu extrahieren.
+    5. Gibt die extrahierten Daten als 7 separate Variablen zurück.
+
+    Returns:
+        tuple: Ein Tupel mit 7 Elementen in der Reihenfolge:
+               (nachname, vorname, geburtsdatum, alter, geschlecht, patientennummer, eintrittsdatum).
+               Jeder Wert ist ein String oder Integer, oder None, falls die Extraktion fehlschlug.
+    """
+    print(f"\nStart auslesen_patdata_KISIMzeile_tesseract() aus UNIVERSAL.py")
+    # Dynamische Imports für alle benötigten Module
+    try:
+        pyautogui = importlib.import_module("pyautogui") if "pyautogui" not in sys.modules else sys.modules["pyautogui"]
+        re = importlib.import_module("re") if "re" not in sys.modules else sys.modules["re"]
+        PIL_Image = importlib.import_module("PIL.Image") if "PIL.Image" not in sys.modules else sys.modules["PIL.Image"]
+        PIL_ImageEnhance = importlib.import_module("PIL.ImageEnhance") if "PIL.ImageEnhance" not in sys.modules else sys.modules["PIL.ImageEnhance"]
+        PIL_ImageFilter = importlib.import_module("PIL.ImageFilter") if "PIL.ImageFilter" not in sys.modules else sys.modules["PIL.ImageFilter"]
+    except ImportError as e:
+        print(f"FEHLER [auslesen_patdata_KISIMzeile_tesseract]: Import fehlgeschlagen: {e}")
+        return None, None, None, None, None, None, None
+
+    # Pfade definieren - Verwende screenshots_dir
+    screenshot_patdata_dir = os.path.join(screenshots_dir, "patdata")
+    screenshot_preprocessing_dir = os.path.join(screenshots_dir, "UNIVERSAL", "image_preprocessing")
+    # Eindeutige Dateinamen für die Tesseract-Version, um Konflikte zu vermeiden
+    screenshot_path = os.path.join(screenshot_patdata_dir, "screenshot_patdata_tesseract.png")
+    preprocessed_path = os.path.join(screenshot_preprocessing_dir, "screenshot_patdata_preprocessed_from_function_patdata_KISIMzeile_tesseract.png")
+
+    # Initialisiere alle Rückgabewerte mit None
+    nachname, vorname, geburtsdatum, alter, geschlecht, patientennummer, eintrittsdatum = (None,) * 7
+
+    try:
+        print("Starte Auslesen der KISIM-Basisdaten (obere Zeile) mit Tesseract.")
+        ausschnitt = (46, 60, 1000, 20) # Derselbe Ausschnitt wie in der EasyOCR-Version
+
+        # Verzeichnisse sicherstellen
+        os.makedirs(screenshot_patdata_dir, exist_ok=True)
+        os.makedirs(screenshot_preprocessing_dir, exist_ok=True)
+
+        # --- Screenshot und Bildvorverarbeitung (identisch zur Originalfunktion) ---
+        screenshot_patdata = pyautogui.screenshot(region=ausschnitt)
+        screenshot_patdata.save(screenshot_path)
+        print(f"Screenshot gespeichert: {screenshot_path}")
+
+        screenshot_patdata_img = PIL_Image.open(screenshot_path)
+        width, height = screenshot_patdata_img.size
+        screenshot_patdata_preprocessed_pil = screenshot_patdata_img.resize((width * 3, height * 3), PIL_Image.Resampling.LANCZOS)
+        screenshot_patdata_preprocessed_pil = screenshot_patdata_preprocessed_pil.convert('L')
+        screenshot_patdata_preprocessed_pil = PIL_ImageEnhance.Contrast(screenshot_patdata_preprocessed_pil).enhance(2)
+        screenshot_patdata_preprocessed_pil = screenshot_patdata_preprocessed_pil.filter(PIL_ImageFilter.SHARPEN)
+        screenshot_patdata_preprocessed_pil.save(preprocessed_path)
+        print(f"Vorverarbeitetes Bild (Zoom 3x, Contrast, Sharpen) gespeichert: {preprocessed_path}")
+
+        # --- OCR mit Tesseract ---
+        print("Starte OCR mit Tesseract...")
+        # Rufe die bestehende Helper-Funktion auf, die den Pfad zum Bild benötigt
+        ocr_text = run_tesseract_ocr_deutsch(preprocessed_path)
+
+        if ocr_text is None:
+            print("FEHLER: Tesseract OCR hat keinen Text zurückgegeben oder ist fehlgeschlagen.")
+            # Beende die Funktion und gib None-Werte zurück
+            return nachname, vorname, geburtsdatum, alter, geschlecht, patientennummer, eintrittsdatum
+
+        # Bereinige den Output von Tesseract (kann manchmal unnötige Zeichen enthalten)
+        output = ocr_text.strip().replace('\n', ' ').replace('\f', '')
+        print(f"Zusammengefügter Tesseract Output für Regex: '{output}'")
+
+
+        # --- Extraktion aus dem Tesseract-String ---
+
+        # Namen-Extraktion (angepasste Logik für einen einzelnen String)
+        # Findet alle Wörter, die mit einem Grossbuchstaben beginnen und nur aus Buchstaben bestehen.
+        # Annahme: Nachname und Vorname sind die ersten beiden solchen Wörter.
+        potential_names = re.findall(r'\b([A-ZÄÖÜ][a-zäöü]+(?:-[A-ZÄÖÜ][a-zäöü]+)?)\b', output)
+        if len(potential_names) >= 1:
+            nachname = potential_names[0]
+            print(f"Nachname gefunden: {nachname}")
+        if len(potential_names) >= 2:
+            vorname = potential_names[1]
+            print(f"Vorname gefunden: {vorname}")
+
+        # Daten-Extraktion (dd.mm.yyyy) - Dieselbe Regex wie im Original
+        date_pattern = r'\b(\d{2}\.\d{2}\.\d{4})\b'
+        alle_daten = re.findall(date_pattern, output)
+        print(f"Gefundene Daten (dd.mm.yyyy): {alle_daten}")
+        if len(alle_daten) >= 1:
+            geburtsdatum = alle_daten[0]
+            if len(alle_daten) > 1:
+                eintrittsdatum = alle_daten[-1] # Annahme: letztes Datum ist Eintrittsdatum
+        # (Variablen bleiben None, wenn keine Daten gefunden werden)
+
+        # Alter-Extraktion - Dieselbe Regex wie im Original
+        if geburtsdatum:
+            alter_regex = re.escape(geburtsdatum) + r'.*?(\d{1,3})\s*,?\s*(?:Jahre|J)\b'
+            alter_match = re.search(alter_regex, output, re.IGNORECASE)
+            if alter_match:
+                try: alter = int(alter_match.group(1))
+                except ValueError: alter = None
+            else: # Fallback, falls Kontext fehlschlägt
+                alter_match_general = re.search(r'\b(\d{1,3})\s*,?\s*(?:Jahre|J)\b', output, re.IGNORECASE)
+                if alter_match_general:
+                     try: alter = int(alter_match_general.group(1))
+                     except ValueError: alter = None
+
+        # Geschlecht-Extraktion - Dieselbe Regex wie im Original
+        geschlecht_match = re.search(r'(?:,\s*|\(\s*|\b)([MW])\b(?:\s*,|\s*\))?', output)
+        geschlecht = geschlecht_match.group(1) if geschlecht_match else None
+
+        # Patientennummer-Extraktion - Dieselbe robuste Logik wie im Original
+        pat_nr_match = None
+        if geschlecht:
+             pat_nr_regex = rf'\b{re.escape(geschlecht)}\b\D*?(\d{{5,9}})\b'
+             pat_nr_match = re.search(pat_nr_regex, output)
+        if not pat_nr_match:
+             pat_nr_fallback = re.findall(r'\b(\d{5,9})\b', output)
+             if pat_nr_fallback:
+                 age_str = str(alter) if alter is not None else "-1"
+                 possible_pat_nrs = [nr for nr in pat_nr_fallback if nr != age_str]
+                 if possible_pat_nrs:
+                      patientennummer = possible_pat_nrs[-1]
+        else:
+            patientennummer = pat_nr_match.group(1)
+
+    except (pyautogui.PyAutoGUIException, OSError, IOError, FileNotFoundError, PIL_Image.UnidentifiedImageError, RuntimeError, Exception) as e:
+        print(f"FEHLER [auslesen_patdata_KISIMzeile_tesseract]: Ein Fehler ist aufgetreten: {e}")
+        # Stelle sicher, dass bei einem Fehler alle Variablen auf None zurückgesetzt werden
+        nachname, vorname, geburtsdatum, alter, geschlecht, patientennummer, eintrittsdatum = (None,) * 7
+
+    # Ausgabe der extrahierten Variablen (zur Überprüfung)
+    print("\nFunktion hat folgende Variablen extrahiert (Tesseract-Version):")
     print(f"nachname = {nachname}")
     print(f"vorname = {vorname}")
     print(f"geburtsdatum = {geburtsdatum}")

@@ -645,8 +645,10 @@ def main():
 
                 if find_and_click_berrao(image_name="button_bericht_radioonkologie_kopie_patient.png", clicks=2, confidence=0.85, max_attempts=50):
                     time.sleep(0.2)
-                if find_and_click_berrao(image_name="button_bericht_radioonkologie_kopie_hausarzt.png", clicks=2, confidence=0.85, max_attempts=10):
-                    time.sleep(0.2)
+                if not find_and_click_berrao(image_name="button_kein_hausarzt.png", clicks=1, confidence=0.85, max_attempts=5):
+                    if find_and_click_berrao(image_name="button_bericht_radioonkologie_kopie_hausarzt.png", clicks=2, confidence=0.85, max_attempts=10):
+                        time.sleep(0.2)
+                else: print("button_kein_hausarzt.png (Pat hat keinen Hausarzt). Nur Patient als Kopieempfänger eingetragen.")
                 if find_and_click_berrao(image_name="button_bericht_radioonkologie_kopie_ubernehmen.png", confidence=0.85):
                     print("Kopie-Adressaten übernommen.")
                 if find_and_click_berrao(image_name="button_speichern.png", confidence=0.8):
