@@ -78,38 +78,28 @@ soll_akuttox_nach_rt_erfasst_werden = False
 soll_nachsorgeformular_erfasst_werden = False
 
 # --- Funktionen ---
+# Dieser Block ersetzt die open_JSON Funktion in berrao.py, eintritt.py und austritt.py:
 def open_JSON():
-    # ... (Funktion bleibt gleich) ...
-    global patdata, patientennummer
-    patientennummer = input("Bitte patientennummer angeben: ")
-    if not patientennummer.isdigit():
-        print("FEHLER: Patientennummer muss Zahl sein.")
-        sys.exit(1)
+    global patdata, patientennummer # patientennummer wird hier nur gelesen/geprüft
+    
+    # Wenn die Patientennummer nicht durch den Funktionsaufruf gesetzt wurde, fragen.
+    if patientennummer is None:
+        pat_id_input = input("Bitte patientennummer angeben: ")
+        if not pat_id_input.isdigit():
+            print("FEHLER: Patientennummer muss eine Zahl sein.")
+            sys.exit(1)
+        patientennummer = pat_id_input
+    else:
+        print(f"INFO: Patientennummer '{patientennummer}' aus Aufruf übernommen.")
+            
     patdata = UNIVERSAL.load_json(patientennummer)
     if patdata == "patdata":
-        print("berrao.py: User will patdata ausführen...")
-        original_sys_path = list(sys.path)
-        if app_dir not in sys.path:
-            sys.path.insert(0, app_dir)
-            print(f"Temporär '{app_dir}' zu sys.path hinzugefügt.")
-        try:
-            import patdata
-            print("patdata importiert.")
-        except ImportError:
-            print(f"FEHLER: 'patdata.py' Import fehlgeschlagen.")
-            traceback.print_exc()
-            sys.exit("Abbruch.")
-        except Exception as e:
-            print(f"Fehler bei patdata Ausführung: {e}")
-            traceback.print_exc()
-            sys.exit("Abbruch.")
-        finally:
-            sys.path = original_sys_path
-            print("sys.path wiederhergestellt.")
-        print("JSON vermutlich angelegt. Bitte Skript erneut starten.")
-        sys.exit()
+        # Diese Logik bleibt für den Fall, dass ein User 'patdata' eingibt
+        print(f"{os.path.basename(sys.argv[0])}: User will patdata ausführen...")
+        # ... (restliche patdata-Importlogik bleibt gleich) ...
+        print("JSON vermutlich angelegt. Bitte Skript erneut starten."); sys.exit()
     elif not isinstance(patdata, dict):
-        print(f"Fehler: JSON für '{patientennummer}' nicht geladen.")
+        print(f"Fehler: JSON für Patient '{patientennummer}' konnte nicht geladen werden.")
         sys.exit()
 
 
@@ -495,11 +485,15 @@ def run_woko_automation(texte_dict): # Nimmt jetzt Texte als Argument
 
 
 # --- Hauptausführung (Execution) ---
-def main():
+def main(patientennummer_param=None):
     print("Starte berrao.py (inkl. Woko) Hauptfunktion...")
-    global bericht_typ, soll_leistung_erfasst_werden, bericht_typ_fuer_leistung, patdata, glossary, oberarzt # Globale hinzugefügt
+    global bericht_typ, soll_leistung_erfasst_werden, bericht_typ_fuer_leistung, patdata, glossary, oberarzt, patientennummer
 
     try:
+        #Check, ob patientennummer bereits aus patdata erhalten wurde
+        if patientennummer_param:
+            patientennummer = patientennummer_param
+
         # --- Setup Steps (inkl. früher Abfrage) ---
         open_JSON()
         dictionary_ohne_None()

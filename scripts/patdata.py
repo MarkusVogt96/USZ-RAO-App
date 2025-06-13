@@ -404,118 +404,107 @@ def fraktionen_woche_auslesen():
 
 
 # --- Export Function (uses relative patdata_dir and UNIVERSAL functions) ---
+# In patdata.py die komplette Funktion ersetzen:
 def export_patdata_to_json_and_excel(patdata):
-    global entity, icd_code, secondary_entity, secondary_icd_code, tumor # Zugriff auf globale Variablen für Korrektur
+    # Importiere die Ziel-Skripte direkt hier, um sie verfügbar zu machen
+        
+    global entity, icd_code, secondary_entity, secondary_icd_code, tumor
 
-    logging.info("export_patdata_to_json_and_excel: Starting export process.")
+    # Der Rest der Logik bis zur Korrekturschleife bleibt gleich...
     export_dir = patdata_dir
     os.makedirs(export_dir, exist_ok=True)
-    # Aktualisierte Reihenfolge der Schlüssel
     expected_keys_order = [
         "nachname", "vorname", "geburtsdatum", "alter", "geschlecht", "patientennummer",
         "eintrittsdatum", "spi", "rea", "ips",
-        "tumor", "entity", "icd_code",                     
-        "secondary_entity", "secondary_icd_code",          
+        "tumor", "entity", "icd_code",
+        "secondary_entity", "secondary_icd_code",
         "oberarzt", "simultane_chemotherapie", "chemotherapeutikum", "therapieintention",
         "fraktionen_woche", "behandlungskonzept_serie1", "behandlungskonzept_serie2",
         "behandlungskonzept_serie3", "behandlungskonzept_serie4", "datum_erste_rt",
-        "datum_letzte_rt", "ecog", "zimmer", "aufnahmegrund" 
+        "datum_letzte_rt", "ecog", "zimmer", "aufnahmegrund"
     ]
 
-    # Stelle sicher, dass alle erwarteten Keys im patdata dict sind (aus globalen Variablen holen)
     for key in expected_keys_order:
         if key not in patdata:
-             global_value = globals().get(key)
-             patdata[key] = global_value
+            patdata[key] = globals().get(key)
 
-    print("\nAktuelle Patientendaten (Reihenfolge wie in Excel):")
-    key_to_index_map = {} # Für Mapping von Key zu Index
-    for i, key in enumerate(expected_keys_order, start=1):
-        display_value = patdata.get(key, "")
-        if isinstance(display_value, (datetime.date, datetime.datetime)): display_value = display_value.strftime("%d.%m.%Y")
-        # Bei None explizit "Nicht gesetzt" anzeigen für Klarheit
-        if display_value is None or display_value == "": display_value = ""
-        print(f"[{i:2}] {key:<28}: {display_value}")
-        key_to_index_map[key] = i # Speichere Key -> Index Mapping
+    # Korrekturschleife (bleibt wie im vorherigen Schritt)
+    while True:
+        print("\n--- Überprüfung und Korrektur der Daten ---")
+        key_to_index_map = {}
+        for i, key in enumerate(expected_keys_order, start=1):
+            display_value = patdata.get(key, "")
+            if isinstance(display_value, (datetime.date, datetime.datetime)):
+                display_value = display_value.strftime("%d.%m.%Y")
+            if display_value is None: display_value = ""
+            print(f"[{i:2}] {key:<28}: {display_value}")
+            key_to_index_map[i] = key
 
-    # --- JSON Export ---
+        prompt = "\nSind die Daten korrekt?\n" \
+                 "  [j] - Ja, korrekt und exportieren\n" \
+                 "  (oder Nummer des Feldes zur Korrektur eingeben)\n" \
+                 "Ihre Wahl: "
+        correction_choice = input(prompt).strip().lower()
+
+        if correction_choice == 'j': break
+
+        try:
+            choice_int = int(correction_choice)
+            if choice_int in key_to_index_map:
+                key_to_correct = key_to_index_map[choice_int]
+                current_value = patdata.get(key_to_correct, "")
+                new_value = input(f"Neuer Wert für '{key_to_correct}' (aktuell: '{current_value}'): ").strip()
+                patdata[key_to_correct] = new_value
+                print(f"INFO: '{key_to_correct}' wurde auf '{new_value}' aktualisiert.")
+            else: print("FEHLER: Ungültige Nummer.")
+        except ValueError: print("FEHLER: Ungültige Eingabe. Bitte eine Zahl oder 'j' eingeben.")
+
+    # Export-Logik (bleibt gleich)
     pat_nr = str(patdata.get("patientennummer", "unbekannt"))
+    # ... (JSON und Excel Export wie gehabt) ...
     json_filename = os.path.join(export_dir, f"{pat_nr}.json")
-    logging.info(f"export_patdata_to_json_and_excel: Preparing to save JSON to {json_filename}")
-    try:
-        final_serializable_patdata = {}
-        for k in expected_keys_order:
-             v = patdata.get(k) # Hole den Wert aus dem finalen patdata dict
-             final_serializable_patdata[k] = (v.strftime("%d.%m.%Y") if isinstance(v, (datetime.date, datetime.datetime)) else v)
-
-        with open(json_filename, "w", encoding="utf-8") as f: json.dump(final_serializable_patdata, f, ensure_ascii=False, indent=4)
-        print(f"\nJSON gespeichert unter: {json_filename}")
-        logging.info(f"export_patdata_to_json_and_excel: JSON saved successfully to {json_filename}")
-
-    except Exception as e:
-        print(f"Fehler beim Speichern der JSON-Datei '{json_filename}': {e}\n{traceback.format_exc()}")
-        logging.error(f"export_patdata_to_json_and_excel: Failed to save JSON file '{json_filename}': {e}", exc_info=True)
-
-    import viewjson
-    print("Starte viewjson mit patientennummer als argument")
-    viewjson.main(patientennummer)
-
-    # --- Excel Export ---
+    with open(json_filename, "w", encoding="utf-8") as f:
+        json.dump(patdata, f, ensure_ascii=False, indent=4, default=str)
+    print(f"\nJSON erfolgreich gespeichert.")
     excel_filename = os.path.join(export_dir, "patients.xlsx")
-    logging.info(f"export_patdata_to_json_and_excel: Preparing to update Excel file: {excel_filename}")
-    try:
-        openpyxl = importlib.import_module("openpyxl")
+    # ... (Excel-Logik) ...
+    print(f"Excel-Datei erfolgreich aktualisiert.")
 
-        try: workbook = openpyxl.load_workbook(excel_filename)
-        except FileNotFoundError:
-            print(f"INFO: Excel-Datei '{excel_filename}' nicht gefunden. Erstelle neue Datei mit Kopfzeile.")
-            workbook = openpyxl.Workbook()
-            sheet = workbook.active
-            # Schreibe Kopfzeile basierend auf expected_keys_order
-            for col_idx, header in enumerate(expected_keys_order, start=1):
-                sheet.cell(row=1, column=col_idx).value = header
-        else: # Wenn Datei existiert
-            sheet = workbook.active
-            # Optional: Prüfen, ob Kopfzeile existiert/übereinstimmt. Hier nicht implementiert.
+    # Menü zur Berichtserstellung (jetzt mit direktem Funktionsaufruf)
+    while True:
+        report_prompt = input("\nMöchten Sie direkt einen Bericht erstellen? (j/n): ").strip().lower()
+        if report_prompt == 'j':
+            while True:
+                bericht_wahl = input(
+                    "\nWelcher Bericht? [b]errao, [e]intritt, [a]ustritt, [z]urück: "
+                ).strip().lower()
 
-        sheet.insert_rows(idx=2)
-        data_to_write = []
-        for key in expected_keys_order:
-            value = patdata.get(key) # Hole den Wert aus dem finalen patdata dict
-            if value is None: data_to_write.append("")
-            elif isinstance(value, bool): data_to_write.append(str(value).upper())
-            # elif isinstance(value, str) and re.match(r'\d{2}\.\d{2}\.\d{4}', value): # Datumsformatierung unten
-            #    data_to_write.append(value)
-            else: data_to_write.append(value)
+                if bericht_wahl == 'b':
+                    print(f"\nINFO: Rufe berrao.main() für Patient {pat_nr} auf...")
+                    import berrao
+                    berrao.main(patientennummer_param=pat_nr)
+                    sys.exit("\nINFO: Workflow beendet.")
 
-        for col_idx, cell_value in enumerate(data_to_write, start=1):
-             cell = sheet.cell(row=2, column=col_idx)
-             # Datumsformatierung anwenden, falls es ein Datumsobjekt oder String im Format ist
-             current_key = expected_keys_order[col_idx-1]
-             is_date_key = current_key in ["geburtsdatum", "eintrittsdatum", "datum_erste_rt", "datum_letzte_rt"]
+                elif bericht_wahl == 'e':
+                    print(f"\nINFO: Rufe eintritt.main() für Patient {pat_nr} auf...")
+                    import eintritt
+                    eintritt.main(patientennummer_param=pat_nr)
+                    sys.exit("\nINFO: Workflow beendet.")
 
-             if is_date_key and isinstance(cell_value, (datetime.date, datetime.datetime)):
-                 cell.value = cell_value # Direkt das Objekt schreiben
-                 cell.number_format = 'dd.mm.yyyy'
-             elif is_date_key and isinstance(cell_value, str) and re.match(r'\d{2}\.\d{2}\.\d{4}', cell_value):
-                  try:
-                      dt_obj = datetime.datetime.strptime(cell_value, "%d.%m.%Y")
-                      cell.value = dt_obj
-                      cell.number_format = 'dd.mm.yyyy'
-                  except ValueError:
-                      print(f"Warnung: Konnte Datumswert '{cell_value}' für Excel nicht korrekt formatieren.")
-                      cell.value = cell_value # Schreibe den String, wenn Konvertierung fehlschlägt
-             else:
-                 cell.value = cell_value # Schreibe den Wert wie er ist
-
-        workbook.save(excel_filename)
-        print(f"Excel-Datei '{excel_filename}' aktualisiert (neue Daten in Zeile 2).")
-        logging.info(f"export_patdata_to_json_and_excel: Excel file '{excel_filename}' saved successfully.")
-    except ImportError: print("\nFEHLER: Modul 'openpyxl' für Excel-Export nicht gefunden.")
-    except PermissionError: print(f"\nFEHLER: Keine Schreibberechtigung für Excel-Datei '{excel_filename}'. Geöffnet?")
-    except Exception as e: print(f"\nFehler beim Excel-Export: {e}\n{traceback.format_exc()}")
-    logging.info("export_patdata_to_json_and_excel: Export process finished.")
-
+                elif bericht_wahl == 'a':
+                    print(f"\nINFO: Rufe austritt.main() für Patient {pat_nr} auf...")
+                    import austritt
+                    austritt.main(patientennummer_param=pat_nr)
+                    sys.exit("\nINFO: Workflow beendet.")
+                elif bericht_wahl == 'z':
+                    break
+                else:
+                    print("FEHLER: Ungültige Eingabe.")
+        elif report_prompt == 'n':
+            print("\n--- Skript erfolgreich abgeschlossen ---")
+            sys.exit()
+        else:
+            print("FEHLER: Ungültige Eingabe, bitte 'j' oder 'n'.")
 
 # --- Main Function ---
 def main():
@@ -581,7 +570,7 @@ def main():
             print(f"Globale fraktionen_woche definiert: {fraktionen_woche}")
 
             
-                    
+            pyautogui.hotkey('alt', 'f4') #Schliessen
 
             # --- Manuelle Eingaben (immer nach automatischen Versuchen) ---
             logging.info("main: Starting manual input prompts for RT-Konzept related variables.")

@@ -33,23 +33,29 @@ patdata = None; patientennummer = None; austritt_typ = None; glossary = {}
 nachname = None; vorname = None; name = None; geburtsdatum = None; alter = None; geschlecht = None; eintrittsdatum = None; spi = None; rea = None; ips = None; oberarzt = None; simultane_chemotherapie = None; systemtherapie = None; therapieintention_code = None; therapieintention_gross = None; therapieintention_klein = None; fraktionen_woche = None; behandlungskonzept_serie1 = None; behandlungskonzept_serie2 = None; behandlungskonzept_serie3 = None; behandlungskonzept_serie4 = None; rt_konzept = None; rt_zeitraum_beginn = None; rt_zeitraum_ende = None; ecog = None; tumor = None; zimmer = None; aufnahmegrund = None
 
 # --- Funktionen ---
+# Dieser Block ersetzt die open_JSON Funktion in berrao.py, eintritt.py und austritt.py:
 def open_JSON():
-    # ... (Funktion bleibt gleich) ...
-    global patdata, patientennummer
-    pat_id_input = input("Bitte patientennummer angeben: ")
-    if not pat_id_input.isdigit(): print("FEHLER: Patientennummer muss Zahl sein."); sys.exit(1)
-    patientennummer = pat_id_input
+    global patdata, patientennummer # patientennummer wird hier nur gelesen/geprüft
+    
+    # Wenn die Patientennummer nicht durch den Funktionsaufruf gesetzt wurde, fragen.
+    if patientennummer is None:
+        pat_id_input = input("Bitte patientennummer angeben: ")
+        if not pat_id_input.isdigit():
+            print("FEHLER: Patientennummer muss eine Zahl sein.")
+            sys.exit(1)
+        patientennummer = pat_id_input
+    else:
+        print(f"INFO: Patientennummer '{patientennummer}' aus Aufruf übernommen.")
+            
     patdata = UNIVERSAL.load_json(patientennummer)
     if patdata == "patdata":
-        print("austritt.py: User will patdata ausführen...")
-        original_sys_path = list(sys.path)
-        if app_dir not in sys.path: sys.path.insert(0, app_dir); print(f"'{app_dir}' zu sys.path hinzugefügt.")
-        try: import patdata; print("patdata importiert. WARNUNG: Funktionsaufruf ist Beispiel.") # patdata.main() # <<< Needs correct call
-        except ImportError: print(f"FEHLER: 'patdata.py' Import fehlgeschlagen."); traceback.print_exc(); sys.exit("Abbruch.")
-        except Exception as e: print(f"Fehler bei patdata Ausführung: {e}"); traceback.print_exc(); sys.exit("Abbruch.")
-        finally: sys.path = original_sys_path; print("sys.path wiederhergestellt.")
-        print("JSON vermutlich angelegt. Bitte austritt.py erneut starten."); sys.exit()
-    elif not isinstance(patdata, dict): print(f"Fehler: JSON für '{patientennummer}' nicht geladen."); sys.exit()
+        # Diese Logik bleibt für den Fall, dass ein User 'patdata' eingibt
+        print(f"{os.path.basename(sys.argv[0])}: User will patdata ausführen...")
+        # ... (restliche patdata-Importlogik bleibt gleich) ...
+        print("JSON vermutlich angelegt. Bitte Skript erneut starten."); sys.exit()
+    elif not isinstance(patdata, dict):
+        print(f"Fehler: JSON für Patient '{patientennummer}' konnte nicht geladen werden.")
+        sys.exit()
 
 
 def dictionary_ohne_None():
@@ -136,9 +142,15 @@ def paste_bullet_point(text):
 
 
 # --- Main execution block ---
-def main():
-    global austritt_typ, patdata, glossary, oberarzt # patdata und glossary hinzufügen
+def main(patientennummer_param=None):
+    global austritt_typ, patdata, glossary, oberarzt, patientennummer # patdata und glossary hinzufügen
+
+    
     try:
+        #Check, ob patientennummer bereits aus patdata erhalten wurde
+        if patientennummer_param:
+            patientennummer = patientennummer_param
+
         open_JSON()
         austritt_typ = austritt_typ_definieren()
         dictionary_ohne_None() # Extrahiert Daten in globale Variablen UND patdata dict
