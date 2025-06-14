@@ -15,6 +15,9 @@ from pages.entity_pages.EntityPage import EntityPage
 from pages.entity_pages.sop_page import SOPPage
 from pages.entity_pages.contouring_page import ContouringPage
 
+# Component Imports
+from components.sop_search_widget import SopSearchWidget
+
 from pages.tumorgroup_pages.neuroonkologie_page import NeuroonkologiePage
 from pages.tumorgroup_pages.bindegewebstumore_page import BindegewebstumorePage
 from pages.tumorgroup_pages.KopfHalsTumorePage import KopfHalsTumorePage
@@ -157,14 +160,34 @@ class TumorGuideApp(QMainWindow):
         self.left_menu = self._create_left_menu(); self.main_layout.addWidget(self.left_menu)
         content_widget = QWidget(); self.content_layout = QVBoxLayout(content_widget)
         self.content_layout.setContentsMargins(10,10,10,10); self.content_layout.setSpacing(15)
-        header_layout = self._create_header(); self.content_layout.addLayout(header_layout)
-        self.breadcrumb_layout = self._create_breadcrumb_bar(); self.content_layout.addLayout(self.breadcrumb_layout)
+        
+        # Kombiniertes Layout für Breadcrumbs und Searchbar auf derselben Zeile
+        self.header_breadcrumb_layout = QHBoxLayout()
+        self.header_breadcrumb_layout.setContentsMargins(0,0,20,0)  # 20px rechter Abstand
+        self.header_breadcrumb_layout.setSpacing(10)
+        self.header_breadcrumb_layout.setAlignment(Qt.AlignmentFlag.AlignVCenter)  # Vertikale Zentrierung
+        
+        # Breadcrumbs links
+        self.breadcrumb_layout = self._create_breadcrumb_bar()
+        self.header_breadcrumb_layout.addLayout(self.breadcrumb_layout)
+        
+        # Stretch um Platz zwischen Breadcrumbs und Searchbar zu schaffen
+        self.header_breadcrumb_layout.addStretch()
+        
+        # Searchbar wird später hier hinzugefügt
+        self.content_layout.addLayout(self.header_breadcrumb_layout)
         self.stacked_widget = QStackedWidget(); self.content_layout.addWidget(self.stacked_widget)
         self.main_layout.addWidget(content_widget); self.setCentralWidget(main_widget)
         self.tumor_group_page = TumorGroupPage(self); self.stacked_widget.addWidget(self.tumor_group_page)
         self.kisim_page = None; self.cmd_scripts_page = None; self.tumorboards_page = None; self.developer_area_page = None
         self.stacked_widget.currentChanged.connect(self.update_breadcrumb)
         self.stacked_widget.currentChanged.connect(self.handle_page_change)
+        
+        # SOP-Dateien sammeln und Searchbar initialisieren
+        self.sop_files = self._collect_sop_files()
+        self.sop_search_widget = SopSearchWidget(self.sop_files, self)
+        self.sop_search_widget.pdf_selected.connect(self.open_sop_from_search)
+        self.sop_search_widget.hide()  # Standardmäßig versteckt
         
         QTimer.singleShot(10, self._initialize_sacrificial_webengine_html_only)
 
@@ -173,6 +196,14 @@ class TumorGuideApp(QMainWindow):
         
         # Setup monitor detection and positioning
         self.setup_monitor_positioning()
+        
+        # Searchbar zum Header hinzufügen (nach der Initialisierung)
+        self._add_searchbar_to_header()
+        
+        # Initiale Sichtbarkeit der Searchbar setzen (TumorGroupPage ist standardmäßig aktiv)
+        if hasattr(self, 'sop_search_widget'):
+            self.sop_search_widget.show()
+            print(f"{APP_PREFIX}Searchbar initial sichtbar (Tumor navigator ist Startseite)")
         
         print(f"{APP_PREFIX}TumorGuideApp initialization complete.")
 
@@ -222,6 +253,61 @@ class TumorGuideApp(QMainWindow):
             # Fallback to normal maximized on primary monitor
             self.show()
             self.showMaximized()
+
+    def _collect_sop_files(self):
+        """Sammelt alle PDF-Dateien aus dem assets/sop Verzeichnis rekursiv"""
+        sop_files = []
+        base_dir = os.path.dirname(os.path.abspath(__file__))
+        sop_dir = os.path.join(base_dir, 'assets', 'sop')
+        
+        if not os.path.exists(sop_dir):
+            print(f"WARNUNG: {APP_PREFIX}SOP-Verzeichnis nicht gefunden: {sop_dir}")
+            return sop_files
+            
+        # Rekursiv alle PDF-Dateien sammeln
+        for root, dirs, files in os.walk(sop_dir):
+            for file in files:
+                if file.lower().endswith('.pdf'):
+                    full_path = os.path.join(root, file)
+                    sop_files.append(full_path)
+                    
+        print(f"{APP_PREFIX}Gefundene SOP-PDF-Dateien: {len(sop_files)}")
+        return sop_files
+        
+    def _add_searchbar_to_header(self):
+        """Fügt die Searchbar zum kombinierten Header-Breadcrumb-Layout hinzu"""
+        if hasattr(self, 'sop_search_widget') and hasattr(self, 'header_breadcrumb_layout'):
+            # Searchbar rechts zum kombinierten Layout hinzufügen
+            self.header_breadcrumb_layout.addWidget(self.sop_search_widget)
+            print(f"{APP_PREFIX}Searchbar zum kombinierten Header-Breadcrumb-Layout hinzugefügt")
+                
+    def open_sop_from_search(self, pdf_path):
+        """Öffnet eine SOP-PDF aus der Suche in der PdfReaderPage"""
+        if not os.path.exists(pdf_path):
+            print(f"ERROR: {APP_PREFIX}PDF-Datei nicht gefunden: {pdf_path}")
+            return
+            
+        try:
+            # Extrahiere Gruppen- und Entity-Namen aus dem Pfad für die Breadcrumbs
+            rel_path = os.path.relpath(pdf_path, os.path.join(os.path.dirname(__file__), 'assets', 'sop'))
+            path_parts = rel_path.split(os.sep)
+            
+            group_name = path_parts[0] if len(path_parts) > 1 else "SOP"
+            entity_name = path_parts[1] if len(path_parts) > 2 else os.path.basename(pdf_path).replace('.pdf', '')
+            
+            # Erstelle PdfReaderPage
+            pdf_reader = PdfReaderPage(self, pdf_path, group_name, entity_name)
+            
+            # Füge zur StackedWidget hinzu und zeige an
+            pdf_index = self.stacked_widget.addWidget(pdf_reader)
+            self.stacked_widget.setCurrentIndex(pdf_index)
+            
+            print(f"{APP_PREFIX}SOP-PDF geöffnet: {os.path.basename(pdf_path)}")
+            
+        except Exception as e:
+            print(f"ERROR: {APP_PREFIX}Fehler beim Öffnen der SOP-PDF: {e}")
+            import traceback
+            traceback.print_exc()
 
     def _initialize_sacrificial_webengine_html_only(self):
         if self._sacrificial_web_view_html is None:
@@ -307,7 +393,7 @@ class TumorGuideApp(QMainWindow):
                 elif item_text=="Developer Area":menu_button.clicked.connect(self.open_developer_area_page)
             self.menu_buttons[item_text]=menu_button;menu_layout.addWidget(menu_button)
         menu_layout.addStretch();return menu_frame
-    def _create_header(self): header_layout=QHBoxLayout();header_layout.setContentsMargins(0,0,30,0);header_layout.setSpacing(0);header_layout.addStretch();return header_layout
+
     def _create_breadcrumb_bar(self): breadcrumb_layout=QHBoxLayout();breadcrumb_layout.setContentsMargins(0,0,0,0);breadcrumb_layout.setSpacing(5);breadcrumb_layout.setAlignment(Qt.AlignmentFlag.AlignLeft);return breadcrumb_layout
     def _clear_layout(self,layout):
         while layout.count():
@@ -376,7 +462,7 @@ class TumorGuideApp(QMainWindow):
             else:
                 add_separator();add_button("KISIM Scripts",KisimPage);add_separator();add_label(script_name)
         else:add_separator();add_label(page_name.replace('Page',''))
-        self.breadcrumb_layout.addStretch()
+        # addStretch() wird jetzt im übergeordneten header_breadcrumb_layout gemacht
     def find_page_index(self,page_type,entity_name=None,group_name=None):
         for i in range(self.stacked_widget.count()):
             widget=self.stacked_widget.widget(i)
@@ -531,6 +617,17 @@ class TumorGuideApp(QMainWindow):
 
     def handle_page_change(self,index):
         current_widget=self.stacked_widget.widget(index);page_name=current_widget.__class__.__name__ if current_widget else"None";print(f"{APP_PREFIX}Page changed to index {index}, widget: {page_name}")
+        
+        # Searchbar nur bei TumorGroupPage (Tumor navigator) anzeigen
+        if hasattr(self, 'sop_search_widget'):
+            if isinstance(current_widget, TumorGroupPage):
+                self.sop_search_widget.show()
+                print(f"{APP_PREFIX}Searchbar angezeigt (Tumor navigator aktiv)")
+            else:
+                self.sop_search_widget.hide()
+                self.sop_search_widget.clear_search()  # Suchfeld leeren
+                print(f"{APP_PREFIX}Searchbar versteckt")
+        
         if hasattr(self,'cmd_scripts_page')and self.cmd_scripts_page is not None:
             if current_widget is not self.cmd_scripts_page:print(f"{APP_PREFIX}Navigated away from CmdScriptsPage, attempting to stop script...");self.cmd_scripts_page.stop_current_script()
             else:print(f"{APP_PREFIX}Navigated TO CmdScriptsPage, no script stop needed.")
