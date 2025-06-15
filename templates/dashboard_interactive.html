@@ -529,7 +529,7 @@
                 <div class="tab" onclick="showTab('tumorboards')">📋 Tumorboards</div>
                 <div class="tab" onclick="showTab('radiotherapy')">〰〰 Radiotherapie</div>
                 <div class="tab" onclick="showTab('icd')">🏥 ICD-Codes</div>
-                <div class="tab" onclick="showTab('temporal')">●━━━━● Zeitverlauf</div>
+                <div class="tab" onclick="showTab('temporal')">●━━● Zeitverlauf</div>
                 <div class="tab" onclick="showTab('charts')">📈 Grafische Darstellung</div>
             </div>
 
@@ -1126,15 +1126,13 @@
             let html = '<table class="data-table"><thead><tr><th onclick="sortTable(0)">ICD-Familie 🏥</th><th onclick="sortTable(1)">Beschreibung 📋</th><th onclick="sortTable(2)">Fälle 📊</th><th onclick="sortTable(3)">Patienten 👥</th></tr></thead><tbody>';
             
             stats.forEach(stat => {
-                // Truncate description if too long
-                const shortDesc = stat.description.length > 40 ? 
-                    stat.description.substring(0, 37) + '...' : 
-                    stat.description;
+                // Show full description in smaller text with line breaks
+                const fullDesc = stat.description;
                 
                 html += `
                     <tr class="clickable" onclick="selectIcdFamily('${stat.icd_family}')" title="${stat.description}">
                         <td><strong>${stat.icd_family}</strong></td>
-                        <td style="font-size: 0.9rem;">${shortDesc}</td>
+                        <td style="font-size: 0.75rem; line-height: 1.2; max-width: 300px; word-wrap: break-word; white-space: normal;">${fullDesc}</td>
                         <td>${stat.total_cases}</td>
                         <td>${stat.unique_patients}</td>
                     </tr>
@@ -1342,15 +1340,14 @@
             
             filteredData.slice(0, 15).forEach(item => {
                 // Truncate description for table display
-                const shortDesc = item.description.length > 35 ? 
-                    item.description.substring(0, 32) + '...' : 
-                    item.description;
+                // Show full description in smaller text with line breaks
+                const fullDesc = item.description;
                     
                 html += `
                     <tr class="clickable" onclick="selectIcdInTumorboard('${item.tumorboard_type}', '${item.icd_family}')" title="${item.description}">
                         <td>${item.tumorboard_type}</td>
                         <td><strong>${item.icd_family}</strong></td>
-                        <td style="font-size: 0.85rem;">${shortDesc}</td>
+                        <td style="font-size: 0.75rem; line-height: 1.2; max-width: 300px; word-wrap: break-word; white-space: normal;">${fullDesc}</td>
                         <td>${item.total_cases}</td>
                         <td>${item.unique_patients}</td>
                     </tr>
@@ -1423,11 +1420,6 @@
                         <button onclick="updateChart()" style="width: 100%; padding: 12px; background: linear-gradient(45deg, #4FC3F7, #29B6F6); border: none; border-radius: 8px; color: white; font-weight: bold; cursor: pointer;">
                             📊 Chart erstellen
                         </button>
-                        
-                        <div style="margin-top: 20px; padding: 15px; background: rgba(255,255,255,0.05); border-radius: 8px; font-size: 0.9rem;">
-                            <strong>💡 Tipp:</strong><br>
-                            Experimentieren Sie mit verschiedenen Kombinationen von Chart-Typ und Achsen für unterschiedliche Einblicke in Ihre Daten.
-                        </div>
                     </div>
                 </div>
             `;
@@ -1545,30 +1537,61 @@
         
         // Generate bar chart
         function generateBarChart(data, maxValue, yAxis) {
-            let html = '<div style="display: flex; align-items: end; justify-content: space-around; height: 300px; padding: 20px;">';
+            // OPTIMIZED POSITIONS - X-axis at 3/4 height for better space usage
+            const containerHeight = 300;
+            const xAxisPosition = 240; // X-axis at 3/4 of container height (240/300 = 80%)
+            const barAreaHeight = 200; // Much more space above X-axis for bars (40-240px)
+            const labelAreaHeight = 40; // Compact space below X-axis for labels
             
-            data.forEach(item => {
-                const height = (parseFloat(item.value) / maxValue) * 250;
-                const color = getRandomColor();
+            let html = `<div style="position: relative; height: ${containerHeight}px; padding: 20px;">`;
+            
+            // FIXED X-axis line at exact position
+            html += `<div style="position: absolute; top: ${xAxisPosition}px; left: 20px; right: 20px; height: 2px; background: rgba(255,255,255,0.3);"></div>`;
+            
+            // Bar container - positioned ABOVE the fixed X-axis
+            html += `<div style="position: absolute; top: 40px; left: 20px; right: 20px; height: ${barAreaHeight}px; display: flex; align-items: end; justify-content: space-around;">`;
+            
+            data.forEach((item, index) => {
+                // Scale height to fit within bar area (max 90% to leave margin for value labels)
+                const height = Math.min((parseFloat(item.value) / maxValue) * barAreaHeight * 0.9, barAreaHeight * 0.9);
+                const colors = ['#4FC3F7', '#66BB6A', '#FFA726', '#EF5350', '#AB47BC', '#26C6DA', '#8BC34A', '#FF7043'];
+                const color = colors[index % colors.length];
+                const description = getIcdDescription(item.label);
                 
                 html += `
-                    <div style="display: flex; flex-direction: column; align-items: center; margin: 0 10px;">
-                        <div style="font-size: 0.8rem; margin-bottom: 5px; color: #4FC3F7; font-weight: bold;">
+                    <div style="display: flex; flex-direction: column; align-items: center; position: relative; max-width: 80px;"
+                         title="${item.label}: ${item.value}${yAxis === 'percentage' ? '%' : ''} ${description ? '- ' + description : ''}">
+                        <!-- Value label above bar -->
+                        <div style="position: absolute; bottom: ${height + 5}px; font-size: 0.8rem; color: #4FC3F7; font-weight: bold; white-space: nowrap;">
                             ${item.value}${yAxis === 'percentage' ? '%' : ''}
                         </div>
+                        <!-- The bar itself -->
                         <div style="
                             width: 40px; 
                             height: ${height}px; 
                             background: ${color}; 
                             border-radius: 4px 4px 0 0;
                             transition: all 0.3s ease;
-                        "></div>
-                        <div style="font-size: 0.7rem; margin-top: 8px; text-align: center; max-width: 60px; word-wrap: break-word;">
-                            ${item.label}
-                        </div>
+                            cursor: pointer;
+                        " onmouseover="this.style.transform='scaleY(1.05)'" onmouseout="this.style.transform='scaleY(1)'"></div>
                     </div>
                 `;
             });
+            
+            html += '</div>';
+            
+            // Labels GUARANTEED below X-axis with 5px margin
+            html += `<div style="position: absolute; top: ${xAxisPosition + 5}px; left: 20px; right: 20px; height: ${labelAreaHeight}px; display: flex; justify-content: space-around; align-items: flex-start;">`;
+            data.forEach((item, index) => {
+                const description = getIcdDescription(item.label);
+                html += `
+                    <div style="text-align: center; max-width: 80px; font-size: 0.7rem; line-height: 1.1;">
+                        <strong>${item.label}</strong>
+                        ${description ? `<br><span style="font-size: 0.6rem; opacity: 0.8;">${description.substring(0, 30)}...</span>` : ''}
+                    </div>
+                `;
+            });
+            html += '</div>';
             
             html += '</div>';
             return html;
@@ -1577,53 +1600,62 @@
         // Generate pie chart
         function generatePieChart(data) {
             const total = data.reduce((sum, item) => sum + parseFloat(item.value), 0);
-            let html = '<div style="display: flex; align-items: center; justify-content: center; height: 300px;">';
+            let html = '<div style="display: flex; align-items: center; justify-content: space-between; height: 300px; padding: 20px;">';
             
-            // Simple pie representation with colored blocks
-            html += '<div style="display: flex; flex-direction: column; gap: 15px;">';
+            // SVG Pie Chart
+            html += '<div style="flex: 1; display: flex; justify-content: center;">';
+            html += '<svg width="250" height="250" viewBox="0 0 250 250">';
             
-            data.forEach(item => {
-                const percentage = ((parseFloat(item.value) / total) * 100).toFixed(1);
-                const color = getRandomColor();
-                
-                html += `
-                    <div style="display: flex; align-items: center; gap: 10px;">
-                        <div style="width: 20px; height: 20px; background: ${color}; border-radius: 3px;"></div>
-                        <div style="font-size: 0.9rem;">
-                            <strong>${item.label}</strong>: ${item.value} (${percentage}%)
-                        </div>
-                    </div>
-                `;
-            });
-            
-            html += '</div></div>';
-            return html;
-        }
-        
-        // Generate line chart
-        function generateLineChart(data, maxValue, yAxis) {
-            let html = '<div style="position: relative; height: 300px; padding: 20px;">';
-            
-            // Draw line points
-            html += '<div style="display: flex; align-items: end; justify-content: space-between; height: 250px; border-bottom: 2px solid rgba(255,255,255,0.3);">';
+            let currentAngle = 0;
+            const colors = ['#4FC3F7', '#66BB6A', '#FFA726', '#EF5350', '#AB47BC', '#26C6DA', '#8BC34A', '#FF7043'];
             
             data.forEach((item, index) => {
-                const height = (parseFloat(item.value) / maxValue) * 200;
+                const percentage = parseFloat(item.value) / total;
+                const sliceAngle = percentage * 360;
+                const endAngle = currentAngle + sliceAngle;
+                
+                // Calculate path for pie slice
+                const startAngleRad = (currentAngle * Math.PI) / 180;
+                const endAngleRad = (endAngle * Math.PI) / 180;
+                const centerX = 125;
+                const centerY = 125;
+                const radius = 100;
+                
+                const x1 = centerX + radius * Math.cos(startAngleRad);
+                const y1 = centerY + radius * Math.sin(startAngleRad);
+                const x2 = centerX + radius * Math.cos(endAngleRad);
+                const y2 = centerY + radius * Math.sin(endAngleRad);
+                
+                const largeArcFlag = sliceAngle > 180 ? 1 : 0;
+                
+                const pathData = [
+                    `M ${centerX} ${centerY}`,
+                    `L ${x1} ${y1}`,
+                    `A ${radius} ${radius} 0 ${largeArcFlag} 1 ${x2} ${y2}`,
+                    'Z'
+                ].join(' ');
+                
+                html += `<path d="${pathData}" fill="${colors[index % colors.length]}" stroke="#1a2633" stroke-width="2" opacity="0.9"></path>`;
+                
+                currentAngle = endAngle;
+            });
+            
+            html += '</svg></div>';
+            
+            // Legend with ICD descriptions if applicable
+            html += '<div style="flex: 1; padding-left: 20px;">';
+            html += '<h4 style="color: #4FC3F7; margin-bottom: 15px;">Legende</h4>';
+            
+            data.forEach((item, index) => {
+                const percentage = ((parseFloat(item.value) / total) * 100).toFixed(1);
+                const description = getIcdDescription(item.label);
                 
                 html += `
-                    <div style="display: flex; flex-direction: column; align-items: center;">
-                        <div style="font-size: 0.8rem; margin-bottom: 5px; color: #4FC3F7; font-weight: bold;">
-                            ${item.value}${yAxis === 'percentage' ? '%' : ''}
-                        </div>
-                        <div style="
-                            width: 8px; 
-                            height: 8px; 
-                            background: #4FC3F7; 
-                            border-radius: 50%;
-                            margin-bottom: ${200 - height}px;
-                        "></div>
-                        <div style="font-size: 0.7rem; margin-top: 8px; text-align: center;">
-                            ${item.label}
+                    <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px;">
+                        <div style="width: 18px; height: 18px; background: ${colors[index % colors.length]}; border-radius: 4px; flex-shrink: 0;"></div>
+                        <div style="font-size: 0.85rem; line-height: 1.2; flex: 1;">
+                            <strong>${item.label}</strong>: ${item.value} (${percentage}%)
+                            ${description ? `<br><span style="opacity: 0.8; font-size: 0.75rem;">${description}</span>` : ''}
                         </div>
                     </div>
                 `;
@@ -1633,9 +1665,164 @@
             return html;
         }
         
-        // Generate scatter chart
+        // Generate line chart (best for temporal data showing trends over time)
+        function generateLineChart(data, maxValue, yAxis) {
+            // OPTIMIZED POSITIONS - X-axis at 3/4 height for better space usage
+            const containerHeight = 300;
+            const xAxisPosition = 240; // X-axis at 3/4 of container height (240/300 = 80%)
+            const chartAreaHeight = 200; // Much more space above X-axis for chart (40-240px)
+            const labelAreaHeight = 40; // Compact space below X-axis for labels
+            
+            let html = `<div style="position: relative; height: ${containerHeight}px; padding: 20px;">`;
+            
+            // Info about line chart usage
+            html += '<div style="text-align: center; margin-bottom: 10px; font-size: 0.8rem; opacity: 0.7;">Liniendiagramme eignen sich am besten für Zeitverläufe und Trends</div>';
+            
+            // FIXED X-axis and Y-axis lines at exact positions
+            html += `<div style="position: absolute; top: ${xAxisPosition}px; left: 20px; right: 20px; height: 2px; background: rgba(255,255,255,0.3);"></div>`;
+            html += `<div style="position: absolute; top: 40px; left: 20px; width: 2px; height: ${chartAreaHeight + 20}px; background: rgba(255,255,255,0.3);"></div>`;
+            
+            // Chart area - positioned ABOVE the fixed X-axis
+            html += `<div style="position: absolute; top: 40px; left: 22px; right: 20px; height: ${chartAreaHeight}px;">`;
+            
+            // Calculate exact positions for points
+            const pointPositions = [];
+            data.forEach((item, index) => {
+                const xPercent = data.length === 1 ? 50 : (index / (data.length - 1)) * 80 + 10; // Spread across 80% of width
+                const yPercent = 95 - (parseFloat(item.value) / maxValue) * 90; // Use 90% of height, inverted
+                pointPositions.push({ 
+                    x: xPercent, 
+                    y: yPercent, 
+                    item: item 
+                });
+            });
+            
+            // Draw connecting lines (SVG) - lines go exactly through the points
+            html += '<svg style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none;">';
+            for (let i = 0; i < pointPositions.length - 1; i++) {
+                const pos1 = pointPositions[i];
+                const pos2 = pointPositions[i + 1];
+                html += `<line x1="${pos1.x}%" y1="${pos1.y}%" x2="${pos2.x}%" y2="${pos2.y}%" stroke="#4FC3F7" stroke-width="3" opacity="0.8"/>`;
+            }
+            html += '</svg>';
+            
+            // Draw points on the exact line positions
+            pointPositions.forEach((pos, index) => {
+                html += `
+                    <div style="position: absolute; left: ${pos.x}%; top: ${pos.y}%; transform: translate(-50%, -50%);">
+                        <!-- Value label above point -->
+                        <div style="position: absolute; bottom: 15px; left: 50%; transform: translateX(-50%); font-size: 0.8rem; color: #4FC3F7; font-weight: bold; white-space: nowrap;">
+                            ${pos.item.value}${yAxis === 'percentage' ? '%' : ''}
+                        </div>
+                        <!-- The point -->
+                        <div style="
+                            width: 10px; 
+                            height: 10px; 
+                            background: #4FC3F7; 
+                            border-radius: 50%;
+                            border: 2px solid #29B6F6;
+                            cursor: pointer;
+                        " title="${pos.item.label}: ${pos.item.value}${yAxis === 'percentage' ? '%' : ''}"></div>
+                    </div>
+                `;
+            });
+            
+            html += '</div>';
+            
+            // Labels GUARANTEED below X-axis with 5px margin
+            html += `<div style="position: absolute; top: ${xAxisPosition + 5}px; left: 20px; right: 20px; height: ${labelAreaHeight}px; display: flex; justify-content: space-around; align-items: flex-start;">`;
+            data.forEach((item, index) => {
+                const description = getIcdDescription(item.label);
+                html += `
+                    <div style="text-align: center; max-width: 100px; font-size: 0.7rem; line-height: 1.1;">
+                        <strong>${item.label}</strong>
+                        ${description ? `<br><span style="font-size: 0.6rem; opacity: 0.8;">${description.substring(0, 25)}...</span>` : ''}
+                    </div>
+                `;
+            });
+            html += '</div>';
+            
+            html += '</div>';
+            return html;
+        }
+        
+        // Generate scatter chart (shows correlation between two variables)
         function generateScatterChart(data, maxValue, yAxis) {
-            return generateBarChart(data, maxValue, yAxis); // Fallback to bar chart for simplicity
+            let html = '<div style="position: relative; height: 300px; padding: 20px;">';
+            
+            // Info about scatter chart usage
+            html += '<div style="text-align: center; margin-bottom: 10px; font-size: 0.8rem; opacity: 0.7;">Streudiagramme zeigen Korrelationen zwischen zwei Variablen</div>';
+            
+            // Create coordinate system with axes
+            html += '<div style="position: relative; height: 250px; border-left: 2px solid rgba(255,255,255,0.3); border-bottom: 2px solid rgba(255,255,255,0.3);">';
+            
+            // Add axis labels
+            html += '<div style="position: absolute; left: -80px; top: 50%; transform: rotate(-90deg); font-size: 0.8rem; opacity: 0.7;">↑ ' + getAxisLabel(yAxis) + '</div>';
+            html += '<div style="position: absolute; bottom: -25px; left: 50%; transform: translateX(-50%); font-size: 0.8rem; opacity: 0.7;">X-Achse (Index) →</div>';
+            
+            // Draw grid lines
+            html += '<svg style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none;">';
+            // Horizontal grid lines
+            for (let i = 1; i <= 4; i++) {
+                const y = (i / 4) * 100;
+                html += `<line x1="0%" y1="${y}%" x2="100%" y2="${y}%" stroke="rgba(255,255,255,0.1)" stroke-width="1"/>`;
+            }
+            // Vertical grid lines
+            for (let i = 1; i <= 4; i++) {
+                const x = (i / 4) * 100;
+                html += `<line x1="${x}%" y1="0%" x2="${x}%" y2="100%" stroke="rgba(255,255,255,0.1)" stroke-width="1"/>`;
+            }
+            html += '</svg>';
+            
+            // Scatter points
+            html += '<div style="position: relative; height: 100%;">';
+            
+            data.forEach((item, index) => {
+                const xPos = ((index + 1) / (data.length + 1)) * 80 + 10; // Spread along X-axis
+                const yPos = (parseFloat(item.value) / maxValue) * 80; // Height based on value
+                const pointSize = Math.max(8, Math.min(20, parseFloat(item.value) * 2)); // Size based on value
+                const description = getIcdDescription(item.label);
+                
+                // Create scattered position with some randomness for better visualization
+                const scatterX = xPos + (Math.random() - 0.5) * 15; // Add some horizontal scatter
+                const scatterY = 80 - yPos; // Invert Y for bottom-up display
+                
+                html += `
+                    <div style="position: absolute; left: ${scatterX}%; bottom: ${yPos}%; transform: translate(-50%, 50%);" 
+                         title="${item.label}: ${item.value}${yAxis === 'percentage' ? '%' : ''} ${description ? '- ' + description : ''}">
+                        <div style="
+                            width: ${pointSize}px; 
+                            height: ${pointSize}px; 
+                            background: radial-gradient(circle, #4FC3F7, #29B6F6);
+                            border-radius: 50%;
+                            border: 2px solid rgba(255,255,255,0.7);
+                            cursor: pointer;
+                            transition: all 0.3s ease;
+                            position: relative;
+                        " onmouseover="this.style.transform='scale(1.5)'" onmouseout="this.style.transform='scale(1)'">
+                        </div>
+                        <div style="
+                            position: absolute; 
+                            top: ${pointSize + 5}px; 
+                            left: 50%; 
+                            transform: translateX(-50%);
+                            font-size: 0.6rem; 
+                            text-align: center; 
+                            white-space: nowrap;
+                            background: rgba(0,0,0,0.7);
+                            padding: 2px 4px;
+                            border-radius: 3px;
+                            opacity: 0;
+                            transition: opacity 0.3s ease;
+                        " onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0'">
+                            ${item.label}<br>${item.value}
+                        </div>
+                    </div>
+                `;
+            });
+            
+            html += '</div></div></div>';
+            return html;
         }
         
         // Get random color for charts
@@ -1677,6 +1864,14 @@
         
         function getDatasourceInfo(x, y) {
             return `${dashboardData.key_metrics.total_cases} Fälle, ${dashboardData.key_metrics.unique_patients} Patienten`;
+        }
+        
+        // Get ICD description for a given ICD family code
+        function getIcdDescription(icdCode) {
+            if (!dashboardData.icd_data || !dashboardData.icd_data.top_codes) return null;
+            
+            const icdInfo = dashboardData.icd_data.top_codes.find(item => item.icd_family === icdCode);
+            return icdInfo ? icdInfo.description : null;
         }
 
         function selectIcdInTumorboard(tumorboard, icd) {

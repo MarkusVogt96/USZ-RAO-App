@@ -180,8 +180,8 @@ class DeveloperAreaPage(QWidget):
         db_manager_button.clicked.connect(self.open_database_manager)
         buttons_layout.addWidget(db_manager_button)
         
-        # Database Dashboard Button  
-        db_dashboard_button = QPushButton("📊 Database Dashboard")
+        # Database Dashboard Button with subtitle inside
+        db_dashboard_button = QPushButton("📊 Database Dashboard\n(open in browser)")
         db_dashboard_button.setStyleSheet("""
             QPushButton {
                 background-color: #2a3642;
@@ -340,8 +340,8 @@ class DeveloperAreaPage(QWidget):
                 file_url = f"file:///{html_path.as_posix()}"
                 webbrowser.open(file_url)
                 
-                self.show_compact_info_message("Dashboard geöffnet", 
-                                              "Das Dashboard wurde in Ihrem Browser geöffnet.")
+                # Pop-up message removed - info now shown in button subtitle
+                logging.info("Dashboard opened in browser successfully")
             else:
                 self.show_styled_message("Fehler", "Konnte Dashboard nicht generieren.", QMessageBox.Icon.Warning)
                 
