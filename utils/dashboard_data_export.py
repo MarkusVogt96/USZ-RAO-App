@@ -3,7 +3,15 @@ import json
 import logging
 from pathlib import Path
 from datetime import datetime
-from .database_utils import TumorboardDatabase
+import sys
+import os
+
+# Add parent directory to Python path for imports
+parent_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if parent_dir not in sys.path:
+    sys.path.insert(0, parent_dir)
+
+from utils.database_utils import TumorboardDatabase
 
 class DashboardDataExporter:
     """Export database data for interactive dashboard"""
@@ -40,10 +48,10 @@ class DashboardDataExporter:
                     'generated_at': datetime.now().isoformat(),
                     'key_metrics': key_metrics,
                     'tumorboard_stats': tumorboard_stats,
-                    'temporal': temporal_data,
-                    'radiotherapy': radiotherapy_data,
-                    'study_enrollment': study_enrollment_data,
-                    'icd_analysis': icd_analysis_data
+                    'temporal_data': temporal_data,
+                    'radiotherapy_data': radiotherapy_data,
+                    'study_enrollment_data': study_enrollment_data,
+                    'icd_data': icd_analysis_data
                 }
                 
                 # Write JSON file
@@ -238,31 +246,64 @@ class DashboardDataExporter:
         ]
     
     def _get_icd_analysis_data(self, conn):
-        """Get ICD analysis data"""
+        """Get ICD analysis data using families instead of individual codes"""
+        from utils.icd10_mapping import get_icd_family_description
+        
         cursor = conn.cursor()
         
-        # ICD family analysis
+        # Top ICD families (aggregated from individual codes)
         cursor.execute('''
             SELECT 
-                icd_family as family,
+                icd_family,
                 COUNT(DISTINCT unique_key) as total_cases,
                 COUNT(DISTINCT patient_number) as unique_patients
             FROM patients 
             WHERE icd_family IS NOT NULL AND icd_family != '' AND icd_family != '-'
             GROUP BY icd_family
             ORDER BY total_cases DESC
+            LIMIT 20
         ''')
         
-        results = cursor.fetchall()
+        top_families_results = cursor.fetchall()
         
-        return [
-            {
-                'icd_family': row[0],
-                'total_cases': row[1],
-                'unique_patients': row[2]
-            }
-            for row in results
-        ]
+        # ICD families by tumorboard
+        cursor.execute('''
+            SELECT 
+                e.name as tumorboard_type,
+                p.icd_family,
+                COUNT(DISTINCT p.unique_key) as total_cases,
+                COUNT(DISTINCT p.patient_number) as unique_patients
+            FROM patients p
+            JOIN tumorboard_sessions s ON p.session_id = s.id
+            JOIN tumorboard_entities e ON s.entity_id = e.id
+            WHERE p.icd_family IS NOT NULL AND p.icd_family != '' AND p.icd_family != '-'
+            GROUP BY e.name, p.icd_family
+            ORDER BY e.name, total_cases DESC
+        ''')
+        
+        by_tumorboard_results = cursor.fetchall()
+        
+        return {
+            'top_codes': [
+                {
+                    'icd_family': row[0],
+                    'description': get_icd_family_description(row[0]),
+                    'total_cases': row[1],
+                    'unique_patients': row[2]
+                }
+                for row in top_families_results
+            ],
+            'by_tumorboard': [
+                {
+                    'tumorboard_type': row[0],
+                    'icd_family': row[1],
+                    'description': get_icd_family_description(row[1]),
+                    'total_cases': row[2],
+                    'unique_patients': row[3]
+                }
+                for row in by_tumorboard_results
+            ]
+        }
 
 
 def generate_dashboard_data():
