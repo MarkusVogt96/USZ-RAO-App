@@ -732,12 +732,42 @@ class TumorboardSessionPage(QWidget):
         try:
             if self.temp_excel_path and self.temp_excel_path.exists():
                 import shutil
-                shutil.copy2(self.temp_excel_path, self.source_excel_path)
-                logging.info(f"Copied temporary file to source: {self.source_excel_path}")
-                return True
+                import time
+                
+                # Check if source file is accessible (not locked by another process)
+                try:
+                    # Try to open the source file briefly to check if it's locked
+                    with open(self.source_excel_path, 'r+b') as f:
+                        pass
+                except PermissionError as pe:
+                    raise Exception(f"Quelldatei ist gesperrt oder wird von einem anderen Programm verwendet: {self.source_excel_path}. Fehler: {pe}")
+                except FileNotFoundError:
+                    # File doesn't exist yet, that's okay
+                    pass
+                
+                # Attempt the copy with retry logic
+                max_retries = 3
+                for attempt in range(max_retries):
+                    try:
+                        shutil.copy2(self.temp_excel_path, self.source_excel_path)
+                        logging.info(f"Copied temporary file to source: {self.source_excel_path}")
+                        return True
+                    except PermissionError as pe:
+                        if attempt < max_retries - 1:
+                            logging.warning(f"Copy attempt {attempt + 1} failed with permission error, retrying in 1 second...")
+                            time.sleep(1)
+                            continue
+                        else:
+                            raise Exception(f"Berechtigung verweigert beim Kopieren nach {max_retries} Versuchen. Quelldatei: {self.temp_excel_path}, Zieldatei: {self.source_excel_path}. Fehler: {pe}")
+                    except Exception as e:
+                        raise Exception(f"Unerwarteter Fehler beim Kopieren. Quelldatei: {self.temp_excel_path}, Zieldatei: {self.source_excel_path}. Fehler: {e}")
+            else:
+                raise Exception(f"Temporäre Datei nicht gefunden oder nicht zugänglich: {self.temp_excel_path}")
+                
         except Exception as e:
             logging.error(f"Error copying temporary file to source: {e}")
-            return False
+            # Re-raise with the detailed error message
+            raise e
 
     def cleanup_temp_file(self):
         """Clean up the temporary Excel file"""
@@ -1163,6 +1193,8 @@ class TumorboardSessionPage(QWidget):
         
         self.studie_combo = NoScrollComboBox()
         self.studie_combo.addItems([
+            "-",
+            "nicht qualifiziert",
             "CHESS",
             "DeEscO",
             "FLASH",
@@ -1177,10 +1209,8 @@ class TumorboardSessionPage(QWidget):
             "SHARP",
             "SINGLE ISOCENTER",
             "SPRINT",
-            "SPRINT",
             "TASTE",
-            "X-SMILE",
-            "nicht qualifiziert"
+            "X-SMILE"
         ])        
         self.studie_combo.setStyleSheet(self.get_input_style())
         self.studie_combo.currentTextChanged.connect(self.update_label_styles)
@@ -1256,6 +1286,11 @@ class TumorboardSessionPage(QWidget):
 
     def mark_unsaved_changes(self):
         """Mark that there are unsaved changes"""
+        # Ensure temp file exists when making changes
+        if not self.ensure_temp_file_exists():
+            logging.error("Cannot mark unsaved changes - failed to create temp file")
+            return
+            
         self.has_unsaved_changes = True
 
     def update_label_styles(self):
@@ -1914,6 +1949,10 @@ class TumorboardSessionPage(QWidget):
         result = msg_box.exec()
         
         if result == QMessageBox.StandardButton.Yes:
+            # WICHTIG: Check if this is first time finalization BEFORE writing timestamp file
+            timestamp_file = Path.home() / "tumorboards" / self.tumorboard_name / self.date_str / "finalized_timestamp.txt"
+            is_first_time_finalization = not timestamp_file.exists()
+            
             # Check which patients were changed before saving
             changed_patients = self.get_changed_patients_for_finalization()
             
@@ -1954,41 +1993,13 @@ class TumorboardSessionPage(QWidget):
             
             # Copy temporary file to source file
             try:
-                if not self.copy_temp_to_source():
-                    error_msg = QMessageBox(self)
-                    error_msg.setWindowTitle("Fehler")
-                    error_msg.setText("Fehler beim Übertragen der Änderungen zur Haupt-Excel-Datei.")
-                    error_msg.setIcon(QMessageBox.Icon.Critical)
-                    error_msg.setStandardButtons(QMessageBox.StandardButton.Ok)
-                    error_msg.setStyleSheet("""
-                        QMessageBox {
-                            background-color: #1a2633;
-                            color: white;
-                        }
-                        QMessageBox QLabel {
-                            color: white;
-                            font-size: 14px;
-                        }
-                        QPushButton {
-                            background-color: #114473;
-                            color: white;
-                            border: none;
-                            border-radius: 4px;
-                            padding: 8px 16px;
-                            font-weight: bold;
-                            min-width: 80px;
-                        }
-                        QPushButton:hover {
-                            background-color: #1a5a9e;
-                        }
-                    """)
-                    error_msg.exec()
-                    return
+                self.copy_temp_to_source()
+                logging.info("Successfully copied temporary file to source")
             except Exception as e:
                 logging.error(f"Error copying temporary file to source: {e}")
                 error_msg = QMessageBox(self)
-                error_msg.setWindowTitle("Fehler")
-                error_msg.setText(f"Fehler beim Übertragen der Änderungen: {e}")
+                error_msg.setWindowTitle("Fehler beim Übertragen")
+                error_msg.setText(f"Fehler beim Übertragen der Änderungen zur Haupt-Excel-Datei:\n\n{str(e)}\n\nBitte stellen Sie sicher, dass:\n• Die Excel-Datei nicht in einem anderen Programm geöffnet ist\n• Sie Schreibberechtigung für den Ordner haben\n• Genügend Speicherplatz vorhanden ist")
                 error_msg.setIcon(QMessageBox.Icon.Critical)
                 error_msg.setStandardButtons(QMessageBox.StandardButton.Ok)
                 error_msg.setStyleSheet("""
@@ -2022,9 +2033,14 @@ class TumorboardSessionPage(QWidget):
             user_name = f"{vorname} {nachname}"
             
             # Save timestamp to file
-            timestamp_file = Path.home() / "tumorboards" / self.tumorboard_name / self.date_str / "finalized_timestamp.txt"
             try:
-                if timestamp_file.exists():
+                if is_first_time_finalization:
+                    # First time finalization
+                    with open(timestamp_file, 'w', encoding='utf-8') as f:
+                        f.write(f"Abgeschlossen: {timestamp_str} von {user_name}\n")
+                    
+                    logging.info(f"Tumorboard first finalized at {timestamp_str} by {user_name}")
+                else:
                     # Already finalized before - this is an edit session
                     if changed_patients:
                         # Only add edit entry if patients were actually changed
@@ -2037,12 +2053,6 @@ class TumorboardSessionPage(QWidget):
                         logging.info(f"Logged edit session by {user_name} for patients: {patient_numbers_str}")
                     else:
                         logging.info(f"No changes detected - no edit timestamp added")
-                else:
-                    # First time finalization
-                    with open(timestamp_file, 'w', encoding='utf-8') as f:
-                        f.write(f"Abgeschlossen: {timestamp_str} von {user_name}\n")
-                    
-                    logging.info(f"Tumorboard first finalized at {timestamp_str} by {user_name}")
                 
             except Exception as e:
                 logging.error(f"Error saving timestamp: {e}")
@@ -2081,6 +2091,31 @@ class TumorboardSessionPage(QWidget):
                 export_success = export_tumorboard_to_collection(self.tumorboard_name, self.date_str)
                 if export_success:
                     logging.info(f"Successfully exported {self.tumorboard_name} {self.date_str} to collection Excel")
+                    
+                    # Update database completion tracking
+                    try:
+                        from utils.database_utils import TumorboardDatabase
+                        db = TumorboardDatabase()
+                        
+                        # Use the previously determined finalization status
+                        is_edit = not is_first_time_finalization
+                        
+                        # Update session completion data
+                        success = db.update_session_completion_data(
+                            self.tumorboard_name, 
+                            self.date_str, 
+                            finalized_by=user_name,
+                            is_edit=is_edit
+                        )
+                        
+                        if success:
+                            logging.info(f"Successfully updated session completion tracking for {self.tumorboard_name} {self.date_str}")
+                        else:
+                            logging.warning(f"Failed to update session completion tracking for {self.tumorboard_name} {self.date_str}")
+                            
+                    except Exception as tracking_error:
+                        logging.error(f"Error updating session completion tracking: {tracking_error}")
+                        # Don't fail the entire operation if tracking fails
                 else:
                     logging.warning(f"Export to collection Excel failed for {self.tumorboard_name} {self.date_str}")
                     # Show error message to user if collection file doesn't exist
@@ -2204,6 +2239,11 @@ class TumorboardSessionPage(QWidget):
 
     def save_to_excel(self, skip_edit_logging=False):
         """Save all patient data back to Excel file"""
+        # Ensure temp file exists for editing
+        if not self.ensure_temp_file_exists():
+            logging.error("Cannot save to Excel - failed to ensure temp file exists")
+            raise Exception("Temporäre Datei konnte nicht erstellt werden")
+        
         # Use temporary Excel file during session, source file only during finalization
         excel_path = self.temp_excel_path if self.temp_excel_path and self.temp_excel_path.exists() else self.source_excel_path
         
@@ -2760,3 +2800,27 @@ class TumorboardSessionPage(QWidget):
                 patient['aufgebot'] == "-" and 
                 patient['studie'] == "-" and
                 patient['bemerkung'] == "-")
+
+    def ensure_temp_file_exists(self):
+        """Ensure temporary file exists for editing, create if necessary"""
+        try:
+            # If temp file doesn't exist, create it
+            if not self.temp_excel_path or not self.temp_excel_path.exists():
+                # Create temporary file name
+                temp_filename = f"{self.date_str}_temp_session.xlsx"
+                self.temp_excel_path = self.source_excel_path.parent / temp_filename
+                
+                # Create new temp file from source
+                if self.create_temp_excel_file():
+                    logging.info(f"Created new temporary file for editing: {self.temp_excel_path}")
+                    return True
+                else:
+                    logging.error("Failed to create temporary file for editing")
+                    return False
+            else:
+                logging.info(f"Temporary file already exists: {self.temp_excel_path}")
+                return True
+                
+        except Exception as e:
+            logging.error(f"Error ensuring temp file exists: {e}")
+            return False

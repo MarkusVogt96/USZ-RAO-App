@@ -30,20 +30,20 @@ class DashboardDataExporter:
                 # Radiotherapy data
                 radiotherapy_data = self._get_radiotherapy_data(conn)
                 
-                # ICD code data
-                icd_data = self._get_icd_data(conn)
+                # Study enrollment data
+                study_enrollment_data = self._get_study_enrollment_data(conn)
                 
-                # Patient flow data
-                patient_flow = self._get_patient_flow_data(conn)
+                # ICD analysis data
+                icd_analysis_data = self._get_icd_analysis_data(conn)
                 
                 dashboard_data = {
                     'generated_at': datetime.now().isoformat(),
                     'key_metrics': key_metrics,
                     'tumorboard_stats': tumorboard_stats,
-                    'temporal_data': temporal_data,
-                    'radiotherapy_data': radiotherapy_data,
-                    'icd_data': icd_data,
-                    'patient_flow': patient_flow
+                    'temporal': temporal_data,
+                    'radiotherapy': radiotherapy_data,
+                    'study_enrollment': study_enrollment_data,
+                    'icd_analysis': icd_analysis_data
                 }
                 
                 # Write JSON file
@@ -215,91 +215,53 @@ class DashboardDataExporter:
             ]
         }
     
-    def _get_icd_data(self, conn):
-        """Get ICD code statistics"""
+    def _get_study_enrollment_data(self, conn):
+        """Get study enrollment data"""
         cursor = conn.cursor()
         
-        # Top ICD codes
+        # Study enrollment data
         cursor.execute('''
             SELECT 
-                icd_code,
+                study_enrollment as status,
+                COUNT(*) as count
+            FROM patients 
+            WHERE study_enrollment IS NOT NULL
+            GROUP BY study_enrollment
+            ORDER BY count DESC
+        ''')
+        
+        results = cursor.fetchall()
+        
+        return [
+            {'status': row[0], 'count': row[1]}
+            for row in results
+        ]
+    
+    def _get_icd_analysis_data(self, conn):
+        """Get ICD analysis data"""
+        cursor = conn.cursor()
+        
+        # ICD family analysis
+        cursor.execute('''
+            SELECT 
+                icd_family as family,
                 COUNT(DISTINCT unique_key) as total_cases,
                 COUNT(DISTINCT patient_number) as unique_patients
             FROM patients 
-            WHERE icd_code IS NOT NULL AND icd_code != '' AND icd_code != '-'
-            GROUP BY icd_code
+            WHERE icd_family IS NOT NULL AND icd_family != '' AND icd_family != '-'
+            GROUP BY icd_family
             ORDER BY total_cases DESC
-            LIMIT 15
         ''')
         
-        top_icd_results = cursor.fetchall()
-        
-        # ICD codes by tumorboard
-        cursor.execute('''
-            SELECT 
-                e.name as tumorboard_type,
-                p.icd_code,
-                COUNT(DISTINCT p.unique_key) as total_cases
-            FROM patients p
-            JOIN tumorboard_sessions s ON p.session_id = s.id
-            JOIN tumorboard_entities e ON s.entity_id = e.id
-            WHERE p.icd_code IS NOT NULL AND p.icd_code != '' AND p.icd_code != '-'
-            GROUP BY e.name, p.icd_code
-            ORDER BY e.name, total_cases DESC
-        ''')
-        
-        icd_by_tb_results = cursor.fetchall()
-        
-        return {
-            'top_codes': [
-                {
-                    'icd_code': row[0],
-                    'total_cases': row[1],
-                    'unique_patients': row[2]
-                }
-                for row in top_icd_results
-            ],
-            'by_tumorboard': [
-                {
-                    'tumorboard_type': row[0],
-                    'icd_code': row[1],
-                    'total_cases': row[2]
-                }
-                for row in icd_by_tb_results
-            ]
-        }
-    
-    def _get_patient_flow_data(self, conn):
-        """Get patient flow data for Sankey diagram"""
-        cursor = conn.cursor()
-        
-        # Patient flow: Tumorboard -> Radiotherapy Decision
-        cursor.execute('''
-            SELECT 
-                e.name as tumorboard_type,
-                CASE 
-                    WHEN p.radiotherapy_indicated = '-' OR p.radiotherapy_indicated IS NULL OR p.radiotherapy_indicated = '' 
-                    THEN 'Nicht besprochen'
-                    ELSE p.radiotherapy_indicated 
-                END as radiotherapy_decision,
-                COUNT(DISTINCT p.unique_key) as count
-            FROM patients p
-            JOIN tumorboard_sessions s ON p.session_id = s.id
-            JOIN tumorboard_entities e ON s.entity_id = e.id
-            GROUP BY e.name, radiotherapy_decision
-            HAVING count > 0
-            ORDER BY e.name, count DESC
-        ''')
-        
-        flow_results = cursor.fetchall()
+        results = cursor.fetchall()
         
         return [
             {
-                'source': row[0],
-                'target': row[1],
-                'value': row[2]
+                'icd_family': row[0],
+                'total_cases': row[1],
+                'unique_patients': row[2]
             }
-            for row in flow_results
+            for row in results
         ]
 
 
