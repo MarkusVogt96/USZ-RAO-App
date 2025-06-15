@@ -4059,28 +4059,49 @@ def prozent_zoom_100():
 
 ###################################
 ###################################
-def gem_fl(zwischenablage):
+def gem_fl_dg(za):
     try:
         with open(os.path.join(user_home, 'kp', 'k1.txt'), 'r') as f:
             k1 = f.read().strip()
         with open(os.path.join(user_home, 'kp', 'k2.txt'), 'r') as f:
             k2 = f.read().strip()
-        with open(os.path.join(user_home, 'kp', 'p.txt'), 'r') as f:
-            p = f.read().strip()
+        with open(os.path.join(user_home, 'kp', 'p_dg.txt'), 'r') as f:
+            p_dg = f.read().strip()
         from google import genai
     except Exception as e:
         print(f"Fehler beim Lesen der Dateien aus dem kp Ordner: {e}")
         return False
     k = str(k1) + str(k2)
-    print(f"k: {k}")
     
-    p = p + str(zwischenablage)
+    p_dg = p_dg + str(za)
     c = genai.Client(api_key=f"{k}")
+    print("Starte req...")
     response = c.models.generate_content(
-        model="gemini-2.5-flash-preview-05-20", contents=f"{p}"
+        model="gemini-2.5-flash-preview-05-20", contents=f"{p_dg}"
     )
     return response.text
 
 ###################################
 ###################################
 
+def gem_fl_an(za):
+    try:
+        with open(os.path.join(user_home, 'kp', 'k1.txt'), 'r') as f:
+            k1 = f.read().strip()
+        with open(os.path.join(user_home, 'kp', 'k2.txt'), 'r') as f:
+            k2 = f.read().strip()
+        with open(os.path.join(user_home, 'kp', 'p_an.txt'), 'r') as f:
+            p_an = f.read().strip()
+        from google import genai
+    except Exception as e:
+        print(f"Fehler beim Lesen der Dateien aus dem kp Ordner: {e}")
+        return False
+    k = str(k1) + str(k2)
+    
+    p_an = p_an + str(za)
+    c = genai.Client(api_key=f"{k}")
+    print("Starte req...")
+    response = c.models.generate_content(
+        model="gemini-2.5-flash-preview-05-20", contents=f"{p_an}"
+    )
+    return response.text
