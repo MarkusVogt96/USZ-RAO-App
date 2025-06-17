@@ -273,16 +273,18 @@ def create_excel_file():
     # Regex patterns
     patient_num_re = re.compile(r"\b\d{5,10}\b")
     geschlecht_geb_re = re.compile(r"\b([MW])\s*/\s*(\d{2}\.\d{2}\.\d{4})")
-    diagnose_re = re.compile(r"Diagnose\s*\n([^\n\r]*)", re.IGNORECASE)
 
     # Collect data for each PDF
     patient_data = []
 
-    # Sort files numerically (1.pdf, 2.pdf, ...)
+    # Sortiere Dateien numerisch. Funktioniert für "1 - 12345.pdf"
     pdf_files = sorted(
-        [f for f in os.listdir(dated_folder) if f.lower().endswith(".pdf") and re.fullmatch(r"\d+(\s-\s\d+)?\.pdf", f)],
+        [f for f in os.listdir(dated_folder) if f.lower().endswith(".pdf") and re.fullmatch(r"\d+\s-\s\d+\.pdf", f)],
         key=lambda x: int(re.match(r"(\d+)", x).group(1))
     )
+    if not pdf_files:
+        print("Keine passend benannten PDF-Dateien für die Excel-Erstellung gefunden.")
+        return
 
     for filename in pdf_files:
         pdf_path = os.path.join(dated_folder, filename)
@@ -291,35 +293,39 @@ def create_excel_file():
                 text = ""
                 for page in doc:
                     text += page.get_text()
-            # Suche nach "Patienteninformationen"
-            idx = text.find("Patienteninformationen")
+            
+            # Extrahiere Daten
             patientennummer = name = geschlecht = geburtsdatum = diagnose = ""
-            if idx != -1:
-                after = text[idx + len("Patienteninformationen"):].lstrip()
+            
+            # Suche nach "Patienteninformationen"
+            idx_info = text.find("Patienteninformationen")
+            if idx_info != -1:
+                after_info = text[idx_info + len("Patienteninformationen"):].lstrip()
                 # Patientennummer
-                match_num = patient_num_re.search(after)
+                match_num = patient_num_re.search(after_info)
                 if match_num:
                     patientennummer = match_num.group()
                     # Name: Zeile direkt unter Patientennummer
-                    lines = after[match_num.end():].lstrip().splitlines()
+                    lines = after_info[match_num.end():].lstrip().splitlines()
                     if lines:
                         name = lines[0].strip()
                 # Geschlecht und Geburtsdatum
-                match_geschlecht = geschlecht_geb_re.search(after)
+                match_geschlecht = geschlecht_geb_re.search(after_info)
                 if match_geschlecht:
                     geschlecht = match_geschlecht.group(1)
                     geburtsdatum = match_geschlecht.group(2)
+
             # Diagnose extrahieren
             idx_diag = text.lower().find("diagnose")
             if idx_diag != -1:
                 diag_after = text[idx_diag + len("diagnose"):].lstrip()
-                # Diagnose ist die erste nicht-leere Zeile nach "Diagnose"
                 diag_lines = diag_after.splitlines()
                 for line in diag_lines:
                     line = line.strip()
                     if line:
                         diagnose = line
                         break
+            
             patient_data.append([patientennummer, name, geschlecht, geburtsdatum, diagnose])
         except Exception as e:
             print(f"Fehler beim Auslesen von {filename}: {e}")
@@ -342,11 +348,48 @@ def create_excel_file():
         ws[f"D{idx}"] = geschlecht
         ws[f"E{idx}"] = geburtsdatum
         ws[f"F{idx}"] = diagnose
-    # Speichern und umbenennen
+
+    # === NEUER TEIL: FINALE PDF-UMBENENNUNG UND EXCEL-ANPASSUNG ===
+
+    # Zweite Umbenennung der PDFs basierend auf den extrahierten Namen
+    print("\nBenenne PDFs final um (Nachname - Patientennummer.pdf)...")
+    for i, filename in enumerate(pdf_files):
+        if i < len(patient_data):
+            patnum, name, _, _, _ = patient_data[i]
+            
+            # Extrahiere Nachname (das erste Wort des Namens)
+            nachname = "Unbekannt"
+            if name and name.strip():
+                # Nimmt das erste Wort (vor Komma oder Leerzeichen)
+                nachname = name.strip().split(',')[0].strip().split()[0]
+
+            if patnum and nachname != "Unbekannt":
+                old_path = os.path.join(dated_folder, filename)
+                new_filename = f"{nachname} - {patnum}.pdf"
+                new_path = os.path.join(dated_folder, new_filename)
+                
+                if os.path.exists(old_path):
+                    try:
+                        os.rename(old_path, new_path)
+                        print(f"'{filename}' umbenannt in '{new_filename}'")
+                    except Exception as e:
+                        print(f"Fehler beim Umbenennen von '{filename}' zu '{new_filename}': {e}")
+                else:
+                    print(f"Warnung: Quelldatei für Umbenennung nicht gefunden: {old_path}")
+            else:
+                print(f"Warnung: Kein Name oder Patientennummer für '{filename}', Umbenennung wird übersprungen.")
+
+    # Spalte A in der Excel-Datei löschen
+    print("\nLösche Spalte A in der Excel-Datei...")
+    ws.delete_cols(1)  # Löscht die erste Spalte (Spalte A)
+
+    # === ENDE NEUER TEIL ===
+
+    # Excel-Datei speichern und umbenennen
     date_str = datetime.now().strftime("%d.%m.%Y")
     excel_final = os.path.join(dated_folder, f"{date_str}.xlsx")
     wb.save(excel_final)
-    print(f"Excel-Datei gespeichert als {excel_final}")
+    print(f"\nExcel-Datei gespeichert als {excel_final}")
 
     # Template-Datei im Zielordner löschen
     try:
@@ -354,9 +397,6 @@ def create_excel_file():
         print(f"Template-Datei {excel_dst} wurde gelöscht.")
     except Exception as e:
         print(f"Fehler beim Löschen der Template-Datei: {e}")
-
-
-    
 
 
 def main():
@@ -384,7 +424,7 @@ def main():
     # Nach dem Verschieben der PDFs aufrufen:
     pdfs_umbenennen(dated_folder)
     create_excel_file()
-    print("Tumorboard PDF-Erstellung abgeschlossen und Excel befüllt.")
+    print("\nProzess abgeschlossen. PDFs wurden final umbenannt und die Excel-Liste wurde erstellt.")
 
 
 if __name__ == "__main__":
