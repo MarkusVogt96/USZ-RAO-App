@@ -118,8 +118,7 @@ entity_keywords = {
     'Schwannom': [' schwannom'],
     'Hypophysenadenom': ['hypophy'],
     'Kraniopharyngeom': ['raniopharyng'],
-    'Arteriovenöse Malformation': ['arteriovenöse Malf', 'venöse Malf', 'avm'],
-
+    'Arteriovenöse Malformation': ['arteriovenöse Malf', 'venöse Malf', 'avm', 'venöser Malf', ],
     'Sarkom': ['sarkom'],
 
     # --- Kopf-Hals (Spezifisch vor Generisch) ---

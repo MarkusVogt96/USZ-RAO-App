@@ -515,7 +515,7 @@ def define_berrao_texte(bericht_typ, entity, patdata, glossary):
                                         f"{konzept_alle_serien}\n\n"
                                         f"Fraktionen: {fraktionen_woche or '__'}\n\n"
                                         f"Technik: Nach CT/MR-gestützer Planung erfolgte die Radiotherapie im Bereich oben genannter Lokalisationen am Linearbeschleuniger mit 6 MV Photonen in VMAT/Rapid Arc-Technik.")
-        texte["fliesstext_verlauf_unter_therapie"] = (f"Die Radiotherapie konnte im o.g. Zeitraum zeitgerecht und -bis auf eine mild ausgeprägte _____- komplikationslos durchgeführt werden.")
+        texte["fliesstext_verlauf_unter_therapie"] = (f"Die Radiotherapie konnte im o.g. Zeitraum zeitgerecht und -bis auf eine mild ausgeprägte _____ - komplikationslos durchgeführt werden.")
         texte["fliesstext_beurteilung"] = (f"Regelrechte Abschlusskontrolle nach erfolgter Radiotherapie.\nZum aktuellen Zeitpunkt präsentieren sich keine interventionsbedürftigen Akuttoxizitäten. ")
         texte["fliesstext_procedere"] = [f"Eine erste ambulante Verlaufskontrolle im Rahmen der radioonkologischen Therapienachsorge wird in ca. 6 Wochen in der ambulanten Sprechstunde von {prof_dr} {oberarzt} angestrebt. {g('artikel_nominativ_gross','Der/Die')} {g('patient_nominativ','Patient/in')} erhält zeitnah das entsprechende, direkte Aufgebot.",
                                 f"Sonstiger weiterer Verlauf gemäss des leitliniengerechten, tumorspezifischen Nachsorgeschemas. {g('artikel_nominativ_gross','Der/Die')} {g('patient_nominativ','Patient/in')} ist zwecks entsprechender onkologischer Betreuung bei ______ angebunden.",

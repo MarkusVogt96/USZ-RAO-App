@@ -13,3 +13,9 @@ license_state.txt
 # Ignoriere Build-Ausgabe
 build/
 dist/
+
+#Ignoriere Screenshots patdata
+scripts/screenshots pyautogui/patdata/screenshot_patdata.png
+scripts/screenshots pyautogui/UNIVERSAL/image_preprocessing/screenshot_patdata_preprocessed_from_function_patdata_KISIMzeile.png
+scripts/screenshots pyautogui/UNIVERSAL/image_preprocessing/screenshot_rtkonzept_intention.png
+scripts/screenshots pyautogui/UNIVERSAL/image_preprocessing/screenshot_rtkonzept_original_from_patdata.png

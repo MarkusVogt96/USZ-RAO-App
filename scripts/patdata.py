@@ -476,7 +476,7 @@ def export_patdata_to_json_and_excel(patdata):
         if report_prompt == 'j':
             while True:
                 bericht_wahl = input(
-                    "\nWelcher Bericht? [b]errao, [e]intritt, [a]ustritt, [z]urück: "
+                    "\n\nWelche Art Bericht? \n[b]-Bericht Radioonkologie (Erstkons, WoKo, Abschluss, VK)\n[e]-Eintritt stationär \n[a]- Austritt stationär  \n[-]-Abbrechen\nAuswahl: "
                 ).strip().lower()
 
                 if bericht_wahl == 'b':
@@ -496,7 +496,7 @@ def export_patdata_to_json_and_excel(patdata):
                     import austritt
                     austritt.main(patientennummer_param=pat_nr)
                     sys.exit("\nINFO: Workflow beendet.")
-                elif bericht_wahl == 'z':
+                elif bericht_wahl == '-':
                     break
                 else:
                     print("FEHLER: Ungültige Eingabe.")
