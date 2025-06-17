@@ -705,11 +705,11 @@ def main():
                 else: # Kein Match gefunden
                     if tumor: # Nur fragen wenn etwas eingegeben wurde
                         print(f"Keine automatische Übereinstimmung für '{tumor}' gefunden.")
-                        prompt = "Möchten Sie manuell eine primäre Entität auswählen? [a]=Ja / [-]=Nein/Überspringen: "
+                        prompt = "Möchten Sie manuell eine primäre Entität auswählen? [a]=Ja / [n]=Nein/Überspringen: "
                         choice = input(prompt).strip().lower()
                         if choice == 'a':
                             entity, icd_code = manuelle_entity_auswahl()
-                        else: # '-' oder andere Eingabe
+                        else: 
                             entity = None
                             icd_code = None
                             print("Primäre Entität nicht gesetzt.")

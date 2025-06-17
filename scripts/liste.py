@@ -225,9 +225,14 @@ def main():
     time.sleep(0.25) # CHANGED: Increased delay after tab for reliability
 
     # Systemtherapie
-    paste_with_delay(chemotherapeutikum)
-    pyautogui.press('tab')
-    time.sleep(0.25) # CHANGED: Increased delay after tab for reliability
+    if not simultane_chemotherapie:
+        keine_systemtherapie = "keine simultane Systemtherapie"
+        clipboard.copy(keine_systemtherapie)
+        pyautogui.hotkey('ctrl', 'v')
+    else: 
+        paste_with_delay(chemotherapeutikum)
+        pyautogui.press('tab')
+        time.sleep(0.25) # CHANGED: Increased delay after tab for reliability
 
     # RT Start und Ende
     zeitraum = f"{datum_erste_rt} - {datum_letzte_rt}" if datum_erste_rt and datum_letzte_rt else ""
