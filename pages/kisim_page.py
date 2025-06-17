@@ -26,7 +26,7 @@ script_definitions = [
     ("Sozialberatung (stat)", "sb.py"),
     ("Physio (stat)", "physio.py"),
     ("Planungs-CT/MRI", "planungsbildgebung.py"),
-    ("Ergo (stat)", "ergo.py"),
+    ("S-O-P Eintrag", "sop_station.py"),
     # Add new scripts here with ("Tile Name", "filename.py")
 ]
 # ---------------------------------------------------------
