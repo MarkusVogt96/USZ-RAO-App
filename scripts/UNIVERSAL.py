@@ -281,13 +281,6 @@ def get_reader_easyocr():
             reader_easyocr = None # Sicherstellen, dass Reader None bleibt
     # Gib den (möglicherweise neu initialisierten oder bereits existierenden) Reader zurück
     return reader_easyocr
-###################################
-###################################
-def key():
-    with open(r"C:\Users\votma\api_key.txt", "r") as f:
-        api_key = f.read().strip()
-
-    print(api_key)
 
 
 ###################################
@@ -675,7 +668,8 @@ def find_and_click_button_offset(
     y_offset=0,
     max_attempts=50,
     interval=0.05,
-    confidence=0.9
+    confidence=0.9,
+    rightclick=False,  # Neu: Option für Rechtsklick
 ):
     """
     Sucht wiederholt nach einem Bild anhand seines vollständigen Pfades und führt
@@ -690,6 +684,7 @@ def find_and_click_button_offset(
         max_attempts (int): Maximale Anzahl von Suchversuchen.
         interval (float): Wartezeit zwischen den Versuchen in Sekunden.
         confidence (float): Genauigkeitsschwelle für die Bilderkennung.
+        rightclick (bool): Wenn True, wird ein Rechtsklick statt eines Linksklicks ausgeführt.
 
     Returns:
         bool: True, wenn das Bild gefunden und der Offset-Klick ausgeführt wurde, sonst False.
@@ -741,7 +736,11 @@ def find_and_click_button_offset(
                 print(f"Führe {click_desc} aus bei Offset-Position ({target_x}, {target_y})...")
 
                 # Führe die Klicks aus
-                pyautogui.click(x=target_x, y=target_y, clicks=clicks, interval=0.1)
+                if rightclick:
+                    pyautogui.rightClick(x=target_x, y=target_y, interval=0.1)
+                else:
+                    # Standard-Linksklick
+                    pyautogui.click(x=target_x, y=target_y, clicks=clicks, interval=0.1)
 
                 print(f"'{image_filename}' -> Offset-{click_desc} ausgeführt.")
                 return True # Erfolg

@@ -7,6 +7,7 @@ import clipboard
 from datetime import datetime
 import shutil
 import re
+import json
 import openpyxl
 from openpyxl import load_workbook
 
@@ -24,42 +25,46 @@ user_home = os.path.expanduser("~")
 
 #Definne global variables
 alle_tumorboards = [
-    "GAS-CHI-ONK",
-    "GIT",
-    "Gyn",
+    "GI",
+    "Gyn Becken",
+    "Gyn Mamma",
     "HCC",
     "HPB",
-    "Hämato-Onkologie/Lymphome",
-    "Hyperthermie",
-    "LLMZ",
-    "Melanome",
-    "Neuro-Onkologie",
+    "Melanom",
+    "Neuro",
     "NET",
-    "ORL",
-    "Paragangliome",
+    "KHT",
     "Pädiatrie",
-    "Protonentherapie",
+    "Hypophyse",
+    "Lymphom",
     "Sarkom",
     "Schädelbasis",
     "Schilddrüse",
     "Thorax",
-    "Transplantationsboard",
-    "Uro",
-    "Vascular",
-    "ZKGS"
+    "Uro"
 ]
 
 tumorboard_auswahl = None
 
 
 tumorboard_png_mapping = {
-    "GAS-CHI-ONK": "button_tumorboard_gas-chi-onk.png",
-    "GIT": "button_tumorboard_gi.png",
+    "GI": "button_tumorboard_gi.png",
+    "Gyn Becken": "button_tumorboard_gynbecken.png",
+    "Gyn Mamma": "button_tumorboard_XXX.png",
     "HCC": "button_tumorboard_hcc.png",
-    "LLMZ": "button_tumorboard_llmz.png",
+    "HPB": "button_tumorboard_XXX.png",
+    "Melanom": "button_tumorboard_melanom.png",
+    "Neuro": "button_tumorboard_neuro.png",
+    "NET": "button_tumorboard_net.png",
+    "KHT": "button_tumorboard_kht.png",
+    "Pädiatrie": "button_tumorboard_XXX.png",
+    "Hypophyse": "button_tumorboard_XXX.png",
+    "Lymphom": "button_tumorboard_llmz.png",
     "Sarkom": "button_tumorboard_sarkom.png",
     "Schädelbasis": "button_tumorboard_schaedelbasis.png",
+    "Schilddrüse": "button_tumorboard_XXX.png",
     "Thorax": "button_tumorboard_thorax.png",
+    "Uro": "button_tumorboard_uro.png"
 }
 
 def userinput():
@@ -75,7 +80,12 @@ def userinput():
                 print(f"Ausgewählt: {tumorboard_auswahl}")
                 # Set the path to the tumorboard folder
                 global tb_folder
-                tb_folder = os.path.join(os.path.expanduser("~"), "tumorboards", tumorboard_auswahl)
+                # Check if the network path exists
+                net_path = r"K:\RAO_Aerzte\Mitarbeiter\Vogt\USZ-RAO-App"
+                if os.path.exists(net_path):
+                    tb_folder = os.path.join(net_path, "tumorboards", tumorboard_auswahl)
+                else:
+                    tb_folder = os.path.join(os.path.expanduser("~"), "tumorboards", tumorboard_auswahl)
                 break
             else:
                 print("Ungültige Nummer. Bitte erneut versuchen.")
@@ -130,13 +140,8 @@ def open_tumorboard():
     time.sleep(2)
 
 def tumorboard_nach_nachname_sortieren():
-    #Sortierung festlegen
-    location_grauer_bereich = pyautogui.locateOnScreen(os.path.join(local_screenshots_dir, "button_grauer_bereich.png"), confidence=0.8)
-    if location_grauer_bereich is not None:
-        x, y = pyautogui.center(location_grauer_bereich)
-        pyautogui.rightClick(x, y) #klickt auf grauer Bereich
-    else:
-        print("Fehler: Grauer Bereich nicht gefunden.")
+    if not UNIVERSAL.find_and_click_button_offset(image_name="button_erledigt_am.png", base_path=local_screenshots_dir, y_offset=30, rightclick=True):
+        print("Konnte nicht unter Erledigt am rechtsklicken.")
         return False
     
     time.sleep(1)
@@ -160,12 +165,8 @@ def tumorboard_nach_nachname_sortieren():
 
 
 def als_pdf_speichern():
-    location_grauer_bereich = pyautogui.locateOnScreen(os.path.join(local_screenshots_dir, "button_grauer_bereich.png"), confidence=0.8)
-    if location_grauer_bereich is not None:
-        x, y = pyautogui.center(location_grauer_bereich)
-        pyautogui.rightClick(x, y) #klickt auf grauer Bereich
-    else:
-        print("Fehler: Grauer Bereich nicht gefunden.")
+    if not UNIVERSAL.find_and_click_button_offset(image_name="button_erledigt_am.png", base_path=local_screenshots_dir, y_offset=30, rightclick=True):
+        print("Konnte nicht unter Erledigt am rechtsklicken.")
         return False
     
     time.sleep(1)
@@ -343,13 +344,11 @@ def create_excel_file():
     wb = load_workbook(excel_dst)
     ws = wb.active
     for idx, (patnum, name, geschlecht, geburtsdatum, diagnose) in enumerate(patient_data, start=2):
-        ws[f"B{idx}"] = patnum
-        ws[f"C{idx}"] = name
-        ws[f"D{idx}"] = geschlecht
-        ws[f"E{idx}"] = geburtsdatum
-        ws[f"F{idx}"] = diagnose
-
-    # === NEUER TEIL: FINALE PDF-UMBENENNUNG UND EXCEL-ANPASSUNG ===
+        ws[f"A{idx}"] = patnum
+        ws[f"B{idx}"] = name
+        ws[f"C{idx}"] = geschlecht
+        ws[f"D{idx}"] = geburtsdatum
+        ws[f"E{idx}"] = diagnose
 
     # Zweite Umbenennung der PDFs basierend auf den extrahierten Namen
     print("\nBenenne PDFs final um (Nachname - Patientennummer.pdf)...")
@@ -379,12 +378,6 @@ def create_excel_file():
             else:
                 print(f"Warnung: Kein Name oder Patientennummer für '{filename}', Umbenennung wird übersprungen.")
 
-    # Spalte A in der Excel-Datei löschen
-    print("\nLösche Spalte A in der Excel-Datei...")
-    ws.delete_cols(1)  # Löscht die erste Spalte (Spalte A)
-
-    # === ENDE NEUER TEIL ===
-
     # Excel-Datei speichern und umbenennen
     date_str = datetime.now().strftime("%d.%m.%Y")
     excel_final = os.path.join(dated_folder, f"{date_str}.xlsx")
@@ -397,6 +390,106 @@ def create_excel_file():
         print(f"Template-Datei {excel_dst} wurde gelöscht.")
     except Exception as e:
         print(f"Fehler beim Löschen der Template-Datei: {e}")
+
+    return excel_final #für die ICD-Anreicherung
+
+
+
+def icd(excel_path):
+    # Prüft, ob die Funktion für den aktuellen Benutzer ausgeführt werden soll.
+    if not user_home.endswith("votma"):
+        return
+    
+    print("lese k1 und k2...")
+    try:
+        with open(os.path.join(user_home, 'kp', 'k1.txt'), 'r') as f:
+            k1 = f.read().strip()
+        with open(os.path.join(user_home, 'kp', 'k2.txt'), 'r') as f:
+            k2 = f.read().strip()
+        with open(os.path.join(user_home, 'kp', 'p_dg.txt'), 'r') as f:
+            p_dg = f.read().strip()
+        from google import genai
+    except Exception as e:
+        print(f"Fehler beim Lesen der Dateien aus dem kp Ordner: {e}")
+        return False
+    k = str(k1) + str(k2)
+
+
+    # Lade die Excel-Datei
+    try:
+        wb = load_workbook(excel_path)
+        ws = wb.active
+    except FileNotFoundError:
+        print(f"Fehler: Excel-Datei nicht gefunden unter {excel_path}")
+        return
+    except Exception as e:
+        print(f"Fehler beim Laden der Excel-Datei: {e}")
+        return
+
+    # 1. Sammle alle Diagnosen und ihre Zeilennummern
+    diagnoses_list = []
+    row_indices = []
+    for row_index in range(2, ws.max_row + 1):
+        diagnosis_cell = ws[f'E{row_index}']
+        if diagnosis_cell.value and str(diagnosis_cell.value).strip():
+            diagnoses_list.append(str(diagnosis_cell.value).strip())
+            row_indices.append(row_index)
+    
+    if not diagnoses_list:
+        print("Keine Diagnosen in der Excel-Datei gefunden. Überspringe AI-Anfrage.")
+        return
+
+    print(f"{len(diagnoses_list)} Diagnosen gefunden. Bereite einzelne AI-Anfrage vor...")
+
+    # 2. Erstelle einen einzigen, gebündelten Prompt für die AI
+    prompt = (
+        f"Gegeben ist eine Python-Liste von medizinischen Diagnosen: {diagnoses_list}. "
+        "Für JEDE Diagnose in dieser Liste, gib den wahrscheinlichsten deutschen ICD-10-GM-Code und die dazugehörige offizielle deutsche Beschreibung zurück. "
+        "Die Nutzung von Z-Diagnosen (Beobachtungen) ist dabei nicht erwünscht. Wenn ein unklare Raumforderung besteht, kann eine R-Diagnose verwendet werden."
+        "Bei konkretem Verdacht auf ein Malignom kann bereits die entsprechende C-Diagnose verwendet werden, bei benignen Tumoren entsprechend die D-Diagnose."
+        "Formatiere die gesamte Antwort als ein einziges JSON-Objekt, das eine Liste von Objekten ist. "
+        "Die zurückgegebene Liste MUSS exakt die gleiche Anzahl an Elementen haben wie die Eingabeliste und die Reihenfolge beibehalten. "
+        "Jedes Objekt in der Liste muss die Schlüssel 'icd_code' und 'icd_beschreibung' enthalten. "
+        "Gib NUR das JSON-Objekt zurück, ohne zusätzlichen Text, Erklärungen oder Markdown-Formatierung wie ```json ... ```."
+        "Beispiel für eine erwartete Antwort bei einer Liste mit zwei Eingabediagnosen: "
+        "[{\"icd_code\": \"C50.9\", \"icd_beschreibung\": \"Bösartige Neubildung der Brustdrüse, nicht näher bezeichnet\"}, "
+        "{\"icd_code\": \"C18.7\", \"icd_beschreibung\": \"Bösartige Neubildung des Colon sigmoideum\"}]"
+    )
+
+    try:
+        # 3. Sende die gebündelte Anfrage an die AI
+        
+        c = genai.Client(api_key=f"{k}")
+        print("Starte req...")
+        response = c.models.generate_content(
+            model="gemini-2.5-flash", contents=f"{prompt}"
+        )
+        response_text = response.text.strip().replace("```json", "").replace("```", "").strip()
+        results_data = json.loads(response_text)
+
+        # 4. Überprüfe die Antwort und schreibe die Ergebnisse zurück
+        if isinstance(results_data, list) and len(results_data) == len(diagnoses_list):
+            print("Erfolgreiche Antwort erhalten. Schreibe Daten in Excel...")
+            for i, result in enumerate(results_data):
+                row = row_indices[i]
+                icd_code = result.get("icd_code", "N/A")
+                icd_beschreibung = result.get("icd_beschreibung", "Keine Beschreibung gefunden")
+                
+                ws[f'F{row}'] = icd_code
+                ws[f'G{row}'] = icd_beschreibung
+            
+            # 5. Speichere die aktualisierte Excel-Datei
+            wb.save(excel_path)
+            print(f"\nICD-10-Anreicherung abgeschlossen. Datei '{excel_path}' wurde aktualisiert.")
+
+        else:
+            print("\nFEHLER: Die AI-Antwort hatte ein unerwartetes Format oder eine falsche Anzahl von Ergebnissen.")
+            print(f"Erwartet: Liste mit {len(diagnoses_list)} Elementen. Erhalten: {type(results_data)} mit {len(results_data) if isinstance(results_data, list) else 'N/A'} Elementen.")
+
+    except json.JSONDecodeError:
+        print(f"\nFEHLER: Kein JSON zurück. Antwortbeginn: {response.text[:200]}...")
+    except Exception as e:
+        print(f"\nFEHLER bei der Anfrage: {e}")
 
 
 def main():
@@ -423,8 +516,14 @@ def main():
     als_pdf_speichern()
     # Nach dem Verschieben der PDFs aufrufen:
     pdfs_umbenennen(dated_folder)
-    create_excel_file()
-    print("\nProzess abgeschlossen. PDFs wurden final umbenannt und die Excel-Liste wurde erstellt.")
+    excel_path = create_excel_file()
+    
+    # Wenn die Excel-Datei erfolgreich erstellt wurde, starte die ICD-10-Anreicherung
+    if excel_path:
+        print(f"excel_path: {excel_path}; start icd...")
+        icd(excel_path)
+
+    print("\nProzess abgeschlossen.")
 
 
 if __name__ == "__main__":
