@@ -1461,7 +1461,7 @@ def laborhadh_ausfuellen(datum_labor):
         time.sleep(0.05)
         pyautogui.hotkey('ctrl', 'tab')
         time.sleep(0.05)
-        zeit = '06:00'
+        zeit = '07:00'
         print(f"Füge Zeit '{zeit}' ein...")
         clipboard.copy(zeit)
         pyautogui.hotkey('ctrl', 'v')

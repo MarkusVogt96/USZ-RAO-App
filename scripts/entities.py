@@ -45,7 +45,7 @@ entity_dictionary_icd = {
     'Diffus-grosszelligem B-Zell-Lymphom': 'C83.3', # Diffuses großzelliges B-Zell-Lymphom
     'Hodgkin-Lymphom': 'C81.9', # Hodgkin-Lymphom, nicht näher bezeichneter Typ
     'MALT-Lymphom': 'C88.4', # Extranodales Marginalzonen-B-Zell-Lymphom des Mukosa-assoziierten lymphatischen Gewebes [MALT-Lymphom]
-    'Plasmozytom': 'C90.2', # Plasmozytom, extramedullär
+    'Plasmozytom': 'C90.00', # Plasmozytom, extramedullär
     'Thymom': 'C37', #Bösartige Neubildung des Thymus
 
     # --- Thorax ---
@@ -219,7 +219,7 @@ uaw_mapping = {
     'Schwannom': '', #keine allgemeine Aussage gültig, lageabhängig
     'Hypophysenadenom': 'Müdigkeit, Fatigue, Hypophyseninsuffizienz mit ggf. notwendiger Hormonsubstitution, langfristig leicht erhöhtes Risiko für Schlaganfälle aufgrund der Nähe zur A. carotis im Sinus cavernosus sowie selten Gesichtsfeldstörungen bei Affektion des N. opticus/Chiasma (<3% Risiko)',
     'Kraniopharyngeom': 'Müdigkeit, Fatigue, Hypophyseninsuffizienz mit ggf. notwendiger Hormonsubstitution, langfristig leicht erhöhtes Risiko für Schlaganfälle aufgrund der Nähe zur A. carotis im Sinus cavernosus sowie selten Gesichtsfeldstörungen bei Affektion des N. opticus/Chiasma (<3% Risiko)',
-    'Arteriovenöse Malformation': '',
+    'Arteriovenöse Malformation': 'Müdigkeit, Fatigue, Hirnödem mit entsprechender Hirndrucksymptomatik sowie Radionekrose',
     
     'Sarkom': '', #keine allgemeine Aussage gültig, lageabhängig
 
