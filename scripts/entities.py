@@ -257,10 +257,10 @@ uaw_mapping = {
     'Mesotheliom': '',
 
     # --- Abdomen / Gastrointestinal ---
-    'Cholangiocellulärem Karzinom': 'Nausea und Emesis, Fatigue, Leberfunktionsstörungen, Oberbauchschmerzen, Appetitlosigkeit, Diarrhoe sowie selten Darmperforationen',
-    'Hepatocellulärem Karzinom': 'Nausea und Emesis, Fatigue, Leberfunktionsstörungen, Oberbauchschmerzen, Appetitlosigkeit, Diarrhoe sowie selten Darmperforationen',
+    'Cholangiocellulärem Karzinom': 'Nausea und Emesis, Fatigue, Leberfunktionsstörungen, Oberbauchschmerzen, Appetitlosigkeit, Diarrhoe sowie selten Hohlorganperforationen bis hin zur Peritonitis.',
+    'Hepatocellulärem Karzinom': 'Nausea und Emesis, Fatigue, Leberfunktionsstörungen, Oberbauchschmerzen, Appetitlosigkeit, Diarrhoe sowie selten Hohlorganperforationen bis hin zur Peritonitis.',
     'Ösophaguskarzinom': '',
-    'Pankreaskarzinom': ' Nausea und Emesis, Fatigue, Leberfunktionsstörungen, Oberbauchschmerzen, Appetitlosigkeit, Diarrhoe sowie selten Darmperforationen',
+    'Pankreaskarzinom': ' Nausea und Emesis, Fatigue, Leberfunktionsstörungen, Oberbauchschmerzen, Appetitlosigkeit, Diarrhoe sowie selten Hohlorganperforationen bis hin zur Peritonitis.',
     'Kolonkarzinom': '',
     'Rektumkarzinom': '',
     'Analkarzinom': '',
