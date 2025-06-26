@@ -1,89 +1,116 @@
+#!/usr/bin/env python3
 """
-Interactive Tumorboard Analytics Dashboard
-Vollständig interaktives Dashboard mit Filtern, Tabs und anklickbaren Elementen
+Interactive Dashboard Generator for Tumorboard Analytics
+This script generates a complete HTML dashboard with embedded data and opens it in the browser.
 """
 
 import sys
-import logging
+import os
 import webbrowser
+import logging
 from pathlib import Path
 
-# Add parent directory to path (to access utils from pages folder)
-sys.path.insert(0, str(Path(__file__).parent.parent))
+# Add parent directory to Python path for imports
+parent_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if parent_dir not in sys.path:
+    sys.path.insert(0, parent_dir)
+
+from utils.dashboard_html_generator import generate_complete_dashboard
+from utils.database_utils import sync_all_collection_files
+from utils.dashboard_data_export import test_aufgebot_mapping
 
 def main():
-    """Main function to run interactive dashboard in browser"""
-    print("🏥 Tumorboard Analytics Dashboard (Interaktive Version)")
-    print("=" * 70)
-    print("🎯 Features:")
-    print("   ✅ Dropdown-Filter für Tumorboards und Zeiträume")
-    print("   ✅ Anklickbare Tabs für verschiedene Ansichten")
-    print("   ✅ Interaktive Karten und Tabellen")
-    print("   ✅ Hover-Effekte und Tooltips")
-    print("   ✅ Dynamische Datenfilterung")
-    print("   ✅ Responsive Design")
-    print("")
+    """Main function to generate and open dashboard"""
+    print("🚀 Generiere interaktives Tumorboard-Dashboard...")
+    
+    # Setup logging
+    logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
     
     try:
-        # Setup logging
-        logging.basicConfig(
-            level=logging.INFO,
-            format='%(asctime)s - %(levelname)s - %(message)s'
-        )
+        # Test Aufgebot mapping
+        print("\n🔧 Teste Aufgebot-Mapping...")
+        if test_aufgebot_mapping():
+            print("✅ Aufgebot-Mapping Test erfolgreich")
+        else:
+            print("❌ Aufgebot-Mapping Test fehlgeschlagen")
         
-        # Import required modules
-        from utils.dashboard_html_generator import generate_complete_dashboard
+        # Sync collection files to database
+        print("\n📊 Synchronisiere Collection-Dateien mit der Datenbank...")
+        sync_success = sync_all_collection_files()
+        if sync_success:
+            print("✅ Datenbank-Synchronisation erfolgreich")
+        else:
+            print("⚠️ Datenbank-Synchronisation fehlgeschlagen oder keine neuen Daten")
         
-        print("📊 Generiere interaktives Dashboard mit eingebetteten Daten...")
+        # Generate dashboard
+        print("\n🎨 Generiere Dashboard HTML...")
+        dashboard_path = generate_complete_dashboard(interactive=True)
         
-        # Generate interactive HTML with embedded data
-        html_file = generate_complete_dashboard(interactive=True)
-        if html_file:
-            print(f"✅ Interaktives Dashboard generiert: {html_file}")
+        if dashboard_path and Path(dashboard_path).exists():
+            print(f"✅ Dashboard erfolgreich generiert: {dashboard_path}")
+            
+            # Open in browser
+            print("🌐 Öffne Dashboard im Browser...")
+            webbrowser.open(f"file://{dashboard_path}")
+            print("Dashboard geöffnet! Prüfen Sie Ihren Browser.")
+            
+            # Show summary
+            print(f"\n📍 Dashboard-Pfad: {dashboard_path}")
+            print("📈 Features:")
+            print("   • Übersicht mit Key Metrics")
+            print("   • Tumorboard-Analyse")
+            print("   • Radiotherapie-Statistiken")
+            print("   • 🆕 Art des Aufgebots (Kat I/II/III)")
+            print("   • ICD-Code-Analyse")
+            print("   • Zeitverlauf")
+            print("   • Interaktive Charts")
+            
         else:
             print("❌ Fehler beim Generieren des Dashboards")
-            return
+            return False
+            
+    except Exception as e:
+        print(f"❌ Fehler: {e}")
+        logging.error(f"Error in dashboard generation: {e}")
+        return False
+    
+    return True
+
+
+def test_aufgebot_only():
+    """Test only the Aufgebot functionality"""
+    print("🔧 Teste nur Aufgebot-Funktionalität...")
+    
+    try:
+        from utils.dashboard_data_export import DashboardDataExporter
+        import json
         
-        print("🌐 Öffne interaktives Dashboard im Browser...")
+        exporter = DashboardDataExporter()
+        data_path = exporter.export_dashboard_data()
         
-        # Open in default browser
-        html_path = Path(html_file)
-        file_url = f"file:///{html_path.as_posix()}"
-        webbrowser.open(file_url)
+        if data_path and Path(data_path).exists():
+            with open(data_path, 'r', encoding='utf-8') as f:
+                data = json.load(f)
+            
+            print("\n📊 Aufgebot-Daten:")
+            if 'aufgebot_data' in data:
+                print("✅ Aufgebot-Daten gefunden:")
+                print(json.dumps(data['aufgebot_data'], indent=2, ensure_ascii=False))
+            else:
+                print("❌ Keine Aufgebot-Daten gefunden")
+                print("Verfügbare Keys:", list(data.keys()))
         
-        print("✅ Interaktives Dashboard im Browser geöffnet!")
-        print(f"📂 Dashboard-Datei: {html_file}")
-        print(f"🔗 URL: {file_url}")
-        print("")
-        print("🎮 Interaktive Features:")
-        print("   🔽 Dropdown-Menüs: Wählen Sie Tumorboards und Zeiträume")
-        print("   📑 Tabs: Klicken Sie auf verschiedene Bereiche")
-        print("   📊 Karten: Klicken Sie auf Metriken für Details")
-        print("   📋 Tabellen: Klicken Sie auf Zeilen für Aktionen")
-        print("   🎯 Buttons: Wechseln Sie zwischen Ansichten")
-        print("   🔄 Filter: Kombinieren Sie verschiedene Filter")
-        print("")
-        print("💡 Tipps:")
-        print("   - Hovern Sie über Elemente für Tooltips")
-        print("   - Nutzen Sie die Filter-Kombinationen")
-        print("   - Klicken Sie auf Balken und Fortschrittsanzeigen")
-        print("   - Wechseln Sie zwischen Tabellen- und Balkenansicht")
-        print("   - Aktualisieren Sie die Browser-Seite für neue Daten")
-        print("")
-        
-        # Keep script running so user can see the output
-        input("Drücken Sie Enter zum Beenden...")
-        
-    except ImportError as e:
-        print(f"❌ Import-Fehler: {e}")
-        print("💡 Stellen Sie sicher, dass alle Module verfügbar sind")
-        sys.exit(1)
+        return True
         
     except Exception as e:
-        print(f"❌ Fehler beim Starten des interaktiven Dashboards: {e}")
-        logging.error(f"Interactive dashboard startup error: {e}")
-        sys.exit(1)
+        print(f"❌ Test fehlgeschlagen: {e}")
+        return False
 
 
 if __name__ == "__main__":
-    main() 
+    import sys
+    
+    if len(sys.argv) > 1 and sys.argv[1] == "--test-aufgebot":
+        test_aufgebot_only()
+    else:
+        main() 

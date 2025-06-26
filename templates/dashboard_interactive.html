@@ -528,6 +528,7 @@
                 <div class="tab active" onclick="showTab('overview')">📊 Übersicht</div>
                 <div class="tab" onclick="showTab('tumorboards')">📋 Tumorboards</div>
                 <div class="tab" onclick="showTab('radiotherapy')">〰〰 Radiotherapie</div>
+                <div class="tab" onclick="showTab('aufgebot')">🔔 Art des Aufgebots</div>
                 <div class="tab" onclick="showTab('icd')">🏥 ICD-Codes</div>
                 <div class="tab" onclick="showTab('temporal')">●━━● Zeitverlauf</div>
                 <div class="tab" onclick="showTab('charts')">📈 Grafische Darstellung</div>
@@ -572,6 +573,20 @@
                 <div class="chart-container full-width">
                     <div class="chart-title">〰〰 Radiotherapie-Analyse</div>
                     <div id="radiotherapyDetails"></div>
+                </div>
+            </div>
+
+            <!-- Aufgebot Tab -->
+            <div class="tab-content" id="aufgebot-tab">
+                <div class="charts-grid">
+                    <div class="chart-container">
+                        <div class="chart-title">🔔 Aufgebot-Kategorien (Alle)</div>
+                        <div id="aufgebotStats"></div>
+                    </div>
+                    <div class="chart-container">
+                        <div class="chart-title">📋 Aufgebot nach Tumorboard</div>
+                        <div id="aufgebotByTumorboard"></div>
+                    </div>
                 </div>
             </div>
 
@@ -819,6 +834,53 @@
         "unique_patients": 1
       }
     ]
+  },
+  "aufgebot_data": {
+    "all_patients": [
+      {
+        "category": "Kat I",
+        "count": 3
+      },
+      {
+        "category": "Kat II", 
+        "count": 2
+      },
+      {
+        "category": "Kat III",
+        "count": 2
+      }
+    ],
+    "specified_only": [
+      {
+        "category": "Kat I",
+        "count": 3
+      },
+      {
+        "category": "Kat II",
+        "count": 2
+      },
+      {
+        "category": "Kat III",
+        "count": 2
+      }
+    ],
+    "by_tumorboard": [
+      {
+        "tumorboard_type": "Thorax",
+        "category": "Kat I",
+        "count": 3
+      },
+      {
+        "tumorboard_type": "Thorax",
+        "category": "Kat II",
+        "count": 2
+      },
+      {
+        "tumorboard_type": "Thorax",
+        "category": "Kat III",
+        "count": 2
+      }
+    ]
   }
 };
                 
@@ -955,6 +1017,7 @@
         function updateAllViews() {
             createTumorboardStats();
             createRadiotherapyStats();
+            createAufgebotStats();
             createIcdStats();
             createTemporalStats();
             createDetailedViews();
@@ -984,6 +1047,7 @@
                 'overview': 'Übersicht',
                 'tumorboards': 'Tumorboards',
                 'radiotherapy': 'Radiotherapie',
+                'aufgebot': 'Art des Aufgebots',
                 'icd': 'ICD-Codes',
                 'temporal': 'Zeitverlauf',
                 'flow': 'Patientenfluss'
@@ -1118,6 +1182,75 @@
             console.log(`Radiotherapie-Filter: ${status}`);
         }
 
+        // Create Aufgebot statistics
+        function createAufgebotStats() {
+            const container = document.getElementById('aufgebotStats');
+            const stats = dashboardData.aufgebot_data.specified_only;
+            
+            let html = '';
+            const total = stats.reduce((sum, stat) => sum + stat.count, 0);
+            
+            stats.forEach(stat => {
+                const percentage = total > 0 ? (stat.count / total * 100).toFixed(1) : 0;
+                
+                // Use different colors for different categories
+                let color = '#4FC3F7'; // Default blue
+                if (stat.category === 'Kat I') color = '#FF5722'; // Red for urgent
+                else if (stat.category === 'Kat II') color = '#FF9800'; // Orange for medium
+                else if (stat.category === 'Kat III') color = '#4CAF50'; // Green for consultation needed
+                
+                html += `
+                    <div class="stat-item" onclick="filterByAufgebot('${stat.category}')">
+                        <div class="stat-label">${stat.category}</div>
+                        <div class="stat-value">${stat.count} (${percentage}%)</div>
+                    </div>
+                    <div class="progress-bar" onclick="filterByAufgebot('${stat.category}')">
+                        <div class="progress-fill" style="width: ${percentage}%; background: ${color};"></div>
+                    </div>
+                `;
+            });
+            
+            container.innerHTML = html || '<div class="stat-item">Keine Aufgebot-Daten verfügbar</div>';
+            
+            // Also update the tumorboard breakdown
+            createAufgebotByTumorboard();
+        }
+
+        function createAufgebotByTumorboard() {
+            const container = document.getElementById('aufgebotByTumorboard');
+            const stats = dashboardData.aufgebot_data.by_tumorboard;
+            
+            let html = '<table class="data-table"><thead><tr><th onclick="sortTable(0)">Tumorboard 📋</th><th onclick="sortTable(1)">Kategorie 🔔</th><th onclick="sortTable(2)">Anzahl 📊</th></tr></thead><tbody>';
+            
+            stats.forEach(stat => {
+                let badge = '';
+                if (stat.category === 'Kat I') badge = '🚨'; // Urgent
+                else if (stat.category === 'Kat II') badge = '⚠️'; // Medium priority
+                else if (stat.category === 'Kat III') badge = '💬'; // Consultation needed
+                
+                html += `
+                    <tr class="clickable" onclick="filterByAufgebotAndTumorboard('${stat.tumorboard_type}', '${stat.category}')">
+                        <td><strong>${stat.tumorboard_type}</strong></td>
+                        <td>${badge} ${stat.category}</td>
+                        <td>${stat.count}</td>
+                    </tr>
+                `;
+            });
+            
+            html += '</tbody></table>';
+            container.innerHTML = html;
+        }
+
+        function filterByAufgebot(category) {
+            // In a real implementation, this would filter the data
+            console.log(`Aufgebot-Filter: ${category}`);
+        }
+
+        function filterByAufgebotAndTumorboard(tumorboard, category) {
+            // In a real implementation, this would filter the data
+            console.log(`Filter: ${tumorboard} - ${category}`);
+        }
+
         // Create ICD statistics
         function createIcdStats() {
             const container = document.getElementById('icdStats');
@@ -1178,6 +1311,7 @@
         function createDetailedViews() {
             createTumorboardDetailsView();
             createRadiotherapyDetailsView();
+            createAufgebotDetailsView();
             createIcdDetailsView();
             createChartAnalysisView();
         }
@@ -1304,6 +1438,13 @@
             
             html += '</tbody></table>';
             container.innerHTML = html;
+        }
+        
+        // Create detailed Aufgebot analysis
+        function createAufgebotDetailsView() {
+            // Note: This function will be called but the tab content is handled by createAufgebotStats
+            // which is called in updateAllViews and creates both charts in the Aufgebot tab
+            console.log('Aufgebot details view initialized');
         }
         
         // Create ICD details view

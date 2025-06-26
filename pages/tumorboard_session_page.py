@@ -2824,3 +2824,23 @@ class TumorboardSessionPage(QWidget):
         except Exception as e:
             logging.error(f"Error ensuring temp file exists: {e}")
             return False
+
+    @staticmethod
+    def normalize_aufgebot_type(value):
+        """Normalize aufgebot type to categorical values for database consistency"""
+        if not value or str(value).strip() in ['-', '', 'nan']:
+            return None
+        
+        value_str = str(value).strip()
+        
+        # Map long descriptions to short categories
+        if "Kat I:" in value_str or "1-3 Tagen" in value_str:
+            return "Kat I"
+        elif "Kat II:" in value_str or "5-7 Tagen" in value_str:
+            return "Kat II"
+        elif "Kat III:" in value_str or "Nach Eingang des Konsils" in value_str:
+            return "Kat III"
+        elif value_str in ["Kat I", "Kat II", "Kat III"]:
+            return value_str
+        else:
+            return value_str  # Return as-is for unknown values

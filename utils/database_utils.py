@@ -331,7 +331,7 @@ class TumorboardDatabase:
                             'icd_code': raw_icd_code,
                             'icd_family': icd_family,  # New field for grouped analysis
                             'radiotherapy_indicated': self._clean_value(row.get('Radiotherapie indiziert', '')),
-                            'aufgebot_type': self._clean_value(row.get('Art des Aufgebots', '')),
+                            'aufgebot_type': self._normalize_aufgebot_type(row.get('Art des Aufgebots', '')),
                             'study_enrollment': self._clean_value(row.get('Vormerken für Studie', '')),
                             'remarks': self._clean_value(row.get('Bemerkung/Procedere', ''))
                         }
@@ -570,6 +570,28 @@ class TumorboardDatabase:
         except Exception as e:
             logging.error(f"Error updating session completion data: {e}")
             return False
+    
+    @staticmethod
+    def _normalize_aufgebot_type(value):
+        """Normalize aufgebot type to categorical values"""
+        if not value or str(value).strip() in ['-', '', 'nan']:
+            return None
+        
+        value_str = str(value).strip()
+        
+        # Map long descriptions to short categories
+        if "Kat I:" in value_str or "1-3 Tagen" in value_str:
+            return "Kat I"
+        elif "Kat II:" in value_str or "5-7 Tagen" in value_str:
+            return "Kat II"
+        elif "Kat III:" in value_str or "Nach Eingang des Konsils" in value_str:
+            return "Kat III"
+        elif value_str in ["Kat I", "Kat II", "Kat III"]:
+            return value_str
+        else:
+            # Log unknown values for debugging
+            logging.warning(f"Unknown aufgebot type value: {value_str}")
+            return value_str  # Return as-is for unknown values
 
 
 def sync_all_collection_files():
