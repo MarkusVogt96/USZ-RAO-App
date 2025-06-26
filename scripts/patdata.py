@@ -476,7 +476,7 @@ def export_patdata_to_json_and_excel(patdata):
         if report_prompt == 'j':
             while True:
                 bericht_wahl = input(
-                    "\nWelcher Bericht? [b]errao, [e]intritt, [a]ustritt, [z]urück: "
+                    "\n\nWelche Art Bericht? \n[b]-Bericht Radioonkologie (Erstkons, WoKo, Abschluss, VK)\n[e]-Eintritt stationär \n[a]- Austritt stationär  \n[-]-Abbrechen\nAuswahl: "
                 ).strip().lower()
 
                 if bericht_wahl == 'b':
@@ -496,7 +496,7 @@ def export_patdata_to_json_and_excel(patdata):
                     import austritt
                     austritt.main(patientennummer_param=pat_nr)
                     sys.exit("\nINFO: Workflow beendet.")
-                elif bericht_wahl == 'z':
+                elif bericht_wahl == '-':
                     break
                 else:
                     print("FEHLER: Ungültige Eingabe.")
@@ -705,11 +705,11 @@ def main():
                 else: # Kein Match gefunden
                     if tumor: # Nur fragen wenn etwas eingegeben wurde
                         print(f"Keine automatische Übereinstimmung für '{tumor}' gefunden.")
-                        prompt = "Möchten Sie manuell eine primäre Entität auswählen? [a]=Ja / [-]=Nein/Überspringen: "
+                        prompt = "Möchten Sie manuell eine primäre Entität auswählen? [a]=Ja / [n]=Nein/Überspringen: "
                         choice = input(prompt).strip().lower()
                         if choice == 'a':
                             entity, icd_code = manuelle_entity_auswahl()
-                        else: # '-' oder andere Eingabe
+                        else: 
                             entity = None
                             icd_code = None
                             print("Primäre Entität nicht gesetzt.")

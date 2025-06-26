@@ -115,13 +115,12 @@ def run_tesseract_ocr_deutsch(screenshot_path):
         None: Wenn ein Fehler auftritt (Initialisierung, Datei nicht gefunden, OCR-Fehler).
     """
     print(f"Starte run_tesseract_ocr_deutsch (All-in-One) für: {screenshot_path}")
-    global pytesseract  # Wir brauchen die globale Variable, um den Ladezustand zu speichern
+    global pytesseract
 
-    # --- 1. Pytesseract laden und Pfad setzen (nur beim ersten Aufruf) ---
+    # --- 1. Pytesseract laden und Pfad setzen (unverändert) ---
     if pytesseract is None:
         print("Pytesseract Modul noch nicht geladen oder initialisiert. Versuche Initialisierung...")
         try:
-            # Modul laden
             if "pytesseract" not in sys.modules:
                 pytesseract_module = importlib.import_module("pytesseract")
                 print("Modul 'pytesseract' erfolgreich importiert.")
@@ -129,93 +128,84 @@ def run_tesseract_ocr_deutsch(screenshot_path):
                 pytesseract_module = sys.modules["pytesseract"]
                 print("Modul 'pytesseract' war bereits importiert.")
 
-            # Pfad zur Anwendung bestimmen (Bundle oder Skript)
             if getattr(sys, 'frozen', False):
                 app_path = sys._MEIPASS
                 print(f"Anwendung läuft als Bundle. Basispfad: {app_path}")
             else:
-                script_dir = os.path.dirname(os.path.abspath(__file__))
-                app_path = os.path.dirname(script_dir)
+                app_path = app_dir
                 print(f"Anwendung läuft als Skript. Basispfad: {app_path}")
 
-            # Pfad zur tesseract.exe finden (Bundle zuerst, dann Fallback)
-            tesseract_exe_path_bundle = os.path.join(app_path, 'tesseract', 'tesseract.exe')
+            tesseract_exe_path_bundle = os.path.join(app_path, 'offline_packages', 'tesseract', 'tesseract.exe')
             local_tesseract_fallback = 'C:\\Program Files\\Tesseract-OCR\\tesseract.exe'
 
             tesseract_cmd_to_set = None
             if os.path.exists(tesseract_exe_path_bundle):
                 tesseract_cmd_to_set = tesseract_exe_path_bundle
-                print(f"Tesseract executable im Bundle/App-Pfad gefunden: {tesseract_cmd_to_set}")
+                print(f"Tesseract executable im App-Pfad gefunden: {tesseract_cmd_to_set}")
             elif os.path.exists(local_tesseract_fallback):
                 tesseract_cmd_to_set = local_tesseract_fallback
-                print(f"WARNUNG: Tesseract executable nicht im Bundle/App-Pfad gefunden. Verwende lokalen Fallback: {tesseract_cmd_to_set}")
+                print(f"WARNUNG: Tesseract executable nicht im App-Pfad gefunden. Verwende lokalen Fallback: {tesseract_cmd_to_set}")
             else:
-                print(f"FEHLER: Tesseract executable weder im Bundle/App-Pfad ({tesseract_exe_path_bundle}) noch im lokalen Fallback ({local_tesseract_fallback}) gefunden.")
+                print(f"FEHLER: Tesseract executable weder im App-Pfad ({tesseract_exe_path_bundle}) noch im lokalen Fallback ({local_tesseract_fallback}) gefunden.")
                 return None
 
-            # Tesseract-Pfad in Pytesseract setzen
             pytesseract_module.pytesseract.tesseract_cmd = tesseract_cmd_to_set
-            pytesseract = pytesseract_module # Modul global verfügbar machen für zukünftige Aufrufe
+            pytesseract = pytesseract_module
             print("Pytesseract initialisiert und tesseract_cmd gesetzt.")
 
         except ImportError:
             print("FEHLER: Das Modul 'pytesseract' konnte nicht importiert werden.")
-            pytesseract = None
             return None
         except Exception as e:
             print(f"FEHLER bei der Initialisierung von Pytesseract: {e}")
-            pytesseract = None
             return None
 
-    # --- 2. Tessdata-Pfad bestimmen (jedes Mal) ---
-    # (Dieser Teil bleibt unverändert)
-    tessdata_config = None
+    # --- 2. Tessdata-Pfad bestimmen und als Umgebungsvariable setzen ---
+    tessdata_dir_to_use = None
     try:
         if getattr(sys, 'frozen', False):
             app_path = sys._MEIPASS
         else:
-            script_dir = os.path.dirname(os.path.abspath(__file__))
-            app_path = os.path.dirname(script_dir)
+            app_path = app_dir
 
-        tessdata_path_bundle = os.path.join(app_path, 'tesseract', 'tessdata')
+        tessdata_path_bundle = os.path.join(app_path, 'offline_packages', 'tesseract', 'tessdata')
         local_tessdata_fallback = 'C:\\Program Files\\Tesseract-OCR\\tessdata'
-
-        tessdata_dir_to_use = None
+        
         if os.path.isdir(tessdata_path_bundle):
             tessdata_dir_to_use = tessdata_path_bundle
         elif os.path.isdir(local_tessdata_fallback):
             tessdata_dir_to_use = local_tessdata_fallback
-            print(f"WARNUNG: Tessdata Verzeichnis nicht im Bundle/App-Pfad gefunden. Verwende lokalen Fallback: {tessdata_dir_to_use}")
+            print(f"WARNUNG: Tessdata Verzeichnis nicht im App-Pfad gefunden. Verwende lokalen Fallback: {tessdata_dir_to_use}")
         else:
-            print(f"FEHLER: Tessdata Verzeichnis weder im Bundle/App-Pfad ({tessdata_path_bundle}) noch im lokalen Fallback ({local_tessdata_fallback}) gefunden.")
+            print(f"FEHLER: Tessdata Verzeichnis weder im App-Pfad ({tessdata_path_bundle}) noch im lokalen Fallback ({local_tessdata_fallback}) gefunden.")
             return None
 
-        tessdata_config = f'--tessdata-dir "{tessdata_dir_to_use}"'
+        # === FINALE KORREKTUR HIER ===
+        # Setze die Umgebungsvariable direkt auf den 'tessdata'-Ordner.
+        os.environ['TESSDATA_PREFIX'] = tessdata_dir_to_use
+        print(f"INFO: TESSDATA_PREFIX Umgebungsvariable gesetzt auf: {os.environ['TESSDATA_PREFIX']}")
 
     except Exception as e:
         print(f"FEHLER beim Bestimmen des Tessdata-Pfades: {e}")
         return None
 
-    # --- 3. Eingabedatei prüfen (unverändert) ---
+    # --- 3. Eingabedatei prüfen ---
     if not os.path.exists(screenshot_path):
         print(f"FEHLER: Bilddatei nicht gefunden unter: {screenshot_path}")
         return None
 
-    # --- 4. OCR durchführen (mit korrigierter Fehlerbehandlung) ---
+    # --- 4. OCR durchführen (ohne 'config' Parameter) ---
     try:
-        print(f"Führe Tesseract OCR aus mit config: {tessdata_config}, lang='deu' für Datei: {screenshot_path}")
-        text = pytesseract.image_to_string(screenshot_path, lang='deu', config=tessdata_config)
+        print(f"Führe Tesseract OCR aus (via TESSDATA_PREFIX), lang='deu' für Datei: {screenshot_path}")
+        text = pytesseract.image_to_string(screenshot_path, lang='deu')
         print("Tesseract OCR abgeschlossen.")
         cleaned_text = text.strip()
         return cleaned_text
-    # KORRIGIERTER/ROBUSTERER except-Block
     except Exception as e:
-        # Prüfen, ob der Fehler ein TesseractNotFoundError ist, falls pytesseract geladen wurde
         if pytesseract and hasattr(pytesseract, 'TesseractNotFoundError') and isinstance(e, pytesseract.TesseractNotFoundError):
             print("FEHLER: Tesseract executable nicht gefunden während OCR (unerwartet).")
         else:
             print(f"FEHLER während pytesseract.image_to_string für {screenshot_path}: {e}")
-        # traceback.print_exc() # Optional für detailliertes Debugging
         return None
     
 
@@ -291,13 +281,6 @@ def get_reader_easyocr():
             reader_easyocr = None # Sicherstellen, dass Reader None bleibt
     # Gib den (möglicherweise neu initialisierten oder bereits existierenden) Reader zurück
     return reader_easyocr
-###################################
-###################################
-def key():
-    with open(r"C:\Users\votma\api_key.txt", "r") as f:
-        api_key = f.read().strip()
-
-    print(api_key)
 
 
 ###################################
@@ -685,7 +668,8 @@ def find_and_click_button_offset(
     y_offset=0,
     max_attempts=50,
     interval=0.05,
-    confidence=0.9
+    confidence=0.9,
+    rightclick=False,  # Neu: Option für Rechtsklick
 ):
     """
     Sucht wiederholt nach einem Bild anhand seines vollständigen Pfades und führt
@@ -700,6 +684,7 @@ def find_and_click_button_offset(
         max_attempts (int): Maximale Anzahl von Suchversuchen.
         interval (float): Wartezeit zwischen den Versuchen in Sekunden.
         confidence (float): Genauigkeitsschwelle für die Bilderkennung.
+        rightclick (bool): Wenn True, wird ein Rechtsklick statt eines Linksklicks ausgeführt.
 
     Returns:
         bool: True, wenn das Bild gefunden und der Offset-Klick ausgeführt wurde, sonst False.
@@ -751,7 +736,11 @@ def find_and_click_button_offset(
                 print(f"Führe {click_desc} aus bei Offset-Position ({target_x}, {target_y})...")
 
                 # Führe die Klicks aus
-                pyautogui.click(x=target_x, y=target_y, clicks=clicks, interval=0.1)
+                if rightclick:
+                    pyautogui.rightClick(x=target_x, y=target_y, interval=0.1)
+                else:
+                    # Standard-Linksklick
+                    pyautogui.click(x=target_x, y=target_y, clicks=clicks, interval=0.1)
 
                 print(f"'{image_filename}' -> Offset-{click_desc} ausgeführt.")
                 return True # Erfolg
@@ -1471,7 +1460,7 @@ def laborhadh_ausfuellen(datum_labor):
         time.sleep(0.05)
         pyautogui.hotkey('ctrl', 'tab')
         time.sleep(0.05)
-        zeit = '06:00'
+        zeit = '07:00'
         print(f"Füge Zeit '{zeit}' ein...")
         clipboard.copy(zeit)
         pyautogui.hotkey('ctrl', 'v')

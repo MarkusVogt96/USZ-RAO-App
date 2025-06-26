@@ -305,8 +305,16 @@ def check_daten_komplett():
                     # Rufe die main-Funktion auf und übergebe Patientennummer und die Liste der fehlenden Keys
                     editjson_guided.main(patientennummer, missing_variables)
                     
-                    # Nach der erfolgreichen Bearbeitung ist ein Neustart zwingend, 
-                    # um die aktualisierten Daten in das Skript zu laden.
+                    print("\nINFO: JSON-Datei aktualisiert. Lade Patientendaten neu in berrao.py...")
+                    # 1. patdata neu laden
+                    # Die open_JSON Funktion liest die globale patientennummer.
+                    open_JSON() 
+                    
+                    # 2. Globale Einzelvariablen aus dem neu geladenen patdata-Dictionary füllen
+                    # Dies ist entscheidend, damit die Skriptvariablen (z.B. datum_erste_rt) aktualisiert werden
+                    dictionary_ohne_None() 
+                    print("Patientendaten in berrao.py erfolgreich neu geladen und globale Variablen aktualisiert.")
+
                     print("\n--------------------------------------------------------------------")
                     print("DATEN AKTUALISIERT. Skript 'berrao.py' wird fortgeführt.")
                     return True

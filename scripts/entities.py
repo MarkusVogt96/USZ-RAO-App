@@ -45,7 +45,7 @@ entity_dictionary_icd = {
     'Diffus-grosszelligem B-Zell-Lymphom': 'C83.3', # Diffuses großzelliges B-Zell-Lymphom
     'Hodgkin-Lymphom': 'C81.9', # Hodgkin-Lymphom, nicht näher bezeichneter Typ
     'MALT-Lymphom': 'C88.4', # Extranodales Marginalzonen-B-Zell-Lymphom des Mukosa-assoziierten lymphatischen Gewebes [MALT-Lymphom]
-    'Plasmozytom': 'C90.2', # Plasmozytom, extramedullär
+    'Plasmozytom': 'C90.00', # Plasmozytom, extramedullär
     'Thymom': 'C37', #Bösartige Neubildung des Thymus
 
     # --- Thorax ---
@@ -118,8 +118,7 @@ entity_keywords = {
     'Schwannom': [' schwannom'],
     'Hypophysenadenom': ['hypophy'],
     'Kraniopharyngeom': ['raniopharyng'],
-    'Arteriovenöse Malformation': ['arteriovenöse Malf', 'venöse Malf', 'avm'],
-
+    'Arteriovenöse Malformation': ['arteriovenöse Malf', 'venöse Malf', 'avm', 'venöser Malf', ],
     'Sarkom': ['sarkom'],
 
     # --- Kopf-Hals (Spezifisch vor Generisch) ---
@@ -220,7 +219,7 @@ uaw_mapping = {
     'Schwannom': '', #keine allgemeine Aussage gültig, lageabhängig
     'Hypophysenadenom': 'Müdigkeit, Fatigue, Hypophyseninsuffizienz mit ggf. notwendiger Hormonsubstitution, langfristig leicht erhöhtes Risiko für Schlaganfälle aufgrund der Nähe zur A. carotis im Sinus cavernosus sowie selten Gesichtsfeldstörungen bei Affektion des N. opticus/Chiasma (<3% Risiko)',
     'Kraniopharyngeom': 'Müdigkeit, Fatigue, Hypophyseninsuffizienz mit ggf. notwendiger Hormonsubstitution, langfristig leicht erhöhtes Risiko für Schlaganfälle aufgrund der Nähe zur A. carotis im Sinus cavernosus sowie selten Gesichtsfeldstörungen bei Affektion des N. opticus/Chiasma (<3% Risiko)',
-    'Arteriovenöse Malformation': '',
+    'Arteriovenöse Malformation': 'Müdigkeit, Fatigue, Hirnödem mit entsprechender Hirndrucksymptomatik sowie Radionekrose',
     
     'Sarkom': '', #keine allgemeine Aussage gültig, lageabhängig
 
@@ -258,10 +257,10 @@ uaw_mapping = {
     'Mesotheliom': '',
 
     # --- Abdomen / Gastrointestinal ---
-    'Cholangiocellulärem Karzinom': 'Nausea und Emesis, Fatigue, Leberfunktionsstörungen, Oberbauchschmerzen, Appetitlosigkeit, Diarrhoe sowie selten Darmperforationen',
-    'Hepatocellulärem Karzinom': 'Nausea und Emesis, Fatigue, Leberfunktionsstörungen, Oberbauchschmerzen, Appetitlosigkeit, Diarrhoe sowie selten Darmperforationen',
+    'Cholangiocellulärem Karzinom': 'Nausea und Emesis, Fatigue, Leberfunktionsstörungen, Oberbauchschmerzen, Appetitlosigkeit, Diarrhoe sowie selten Hohlorganperforationen bis hin zur Peritonitis.',
+    'Hepatocellulärem Karzinom': 'Nausea und Emesis, Fatigue, Leberfunktionsstörungen, Oberbauchschmerzen, Appetitlosigkeit, Diarrhoe sowie selten Hohlorganperforationen bis hin zur Peritonitis.',
     'Ösophaguskarzinom': '',
-    'Pankreaskarzinom': ' Nausea und Emesis, Fatigue, Leberfunktionsstörungen, Oberbauchschmerzen, Appetitlosigkeit, Diarrhoe sowie selten Darmperforationen',
+    'Pankreaskarzinom': ' Nausea und Emesis, Fatigue, Leberfunktionsstörungen, Oberbauchschmerzen, Appetitlosigkeit, Diarrhoe sowie selten Hohlorganperforationen bis hin zur Peritonitis.',
     'Kolonkarzinom': '',
     'Rektumkarzinom': '',
     'Analkarzinom': '',

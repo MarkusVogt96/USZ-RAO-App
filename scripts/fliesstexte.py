@@ -471,13 +471,13 @@ def define_berrao_texte(bericht_typ, entity, patdata, glossary):
         print("Definiere Texte für Berrao Erstkonsultation (Typ e)...")
 
         texte["fliesstext_wir_berichten"] = f"Wir berichten Ihnen über oben {g('genannte_akkusativ', 'genannten/genannte')} {g('patient_akkusativ','Patienten/in')}, {g('artikel_akkusativ_klein','den/die')} wir am {heute} zur Erstkonsultation gesehen haben."
-        texte["fliesstext_onkologischer_krankheitsverlauf"] = (f"{g('herrfrau','Herr/Frau')} {nachname} ist {g('ein_nominativ','ein/eine')} {alter}-{g('jährig_nominativ','jährige/r')} {g('patient_nominativ','Patient/in')} mit einem {tumor} (Erstdiagnose _____ )."
+        texte["fliesstext_onkologischer_krankheitsverlauf"] = (f"{g('herrfrau','Herr/Frau')} {nachname} ist {g('ein_nominativ','ein/eine')} {alter}-{g('jährig_nominativ','jährige/r')} {g('patient_nominativ','Patient/in')} mit {tumor} (Erstdiagnose _____ )."
                                                       f"\n\n[BISHERIGER VERLAUF]"
                                                       f"\n\n{g('artikel_nominativ_gross','Der/Die')} {alter}-jährige {g('patient_nominativ','Patient/in')} wird uns nun zur Evaluation einer potenziellen Radiotherapie in unsere ambulante Sprechstunde zugewiesen.")
         texte["fliesstext_aktueller_onkologischer_status"] = (f" ")
         texte["fliesstext_indikation"] = (f" ")
         texte["fliesstext_anamnese"] = (f"{g('herrfrau','Herr/Frau')} {nachname} stellte sich planmässig zur heutigen Erstkonsultation vor, um mit uns im Sinne eines shared decision-making "
-                               f"etwaig indizierte radioonkologische Therapieoptionen im Rahmen der onkologischer Grunderkrankung bei {tumor} zu evaluieren.\n\n- ")
+                               f"etwaig indizierte radioonkologische Therapieoptionen im Rahmen der onkologischen Grunderkrankung bei {tumor} zu evaluieren.\n\n- ")
         texte["fliesstext_allgemeinstatus"] = (f"{alter}-{g('jährig_nominativ','jährige/r')} {g('patient_nominativ','Patient/in')} in {beschreibung_ecog.get(ecog, "____")} Allgemeinzustand (ECOG {ecog}) und normalem Ernährungszustand. "
                                       f"{g('artikel_nominativ_gross','Der/Die')} {g('patient_nominativ','Patient/in')} zeigt sich wach und kooperativ, sowie zu allen Qualitäten orientiert. "
                                       f"Klinisch präsentiert sich {g('artikel_nominativ_klein','der/die')} {g('patient_nominativ','Patient/in')} normokard und eupnoeisch, sowie in Ruhe kardiopulmonal kompensiert."
@@ -493,7 +493,7 @@ def define_berrao_texte(bericht_typ, entity, patdata, glossary):
         texte["fliesstext_procedere"] = [f"Zeitnahe Durchführung des Planungs-CT sowie Planungs-MR; {g('artikel_dativ_klein','dem/der')} {g('patient_dativ','Patienten/in')} wurden die entsprechenden Termine im Rahmen der heutigen Sprechstunde mitgeteilt ( __.__.2025).",
                                 f"Der anschliessende Beginn der Radiotherapie steht aktuell noch nicht fest; {g('artikel_nominativ_klein','der/die')} {g('patient_nominativ','Patient/in')} erhält in Bälde ein direktes Aufgebot.",
                                 f"Komplettierung der prätherapeutischen Diagnostik mit _____, anschliessend Wiedervorstellung zur Evaluation der indizierten Therapieoptionen.",
-                                f"Zeitnahe Vorstellung {g('artikel_genitiv_klein','des/der')} {g('patient_genitiv','Patienten/in')} in der Sprechstunde der Kollegen der MOH USZ (Medizinische Onkologie und Hämatologie) zur Evaluation und ggf. Initiation einer begleitenden Systemtherapie. Eine diesbezüglich Anbindung ist unsererseits bereits aufgegleist; ein entsprechendes Aufgebot erfolgt zeitnah.",
+                                f"Zeitnahe Vorstellung {g('artikel_genitiv_klein','des/der')} {g('patient_genitiv','Patienten/in')} in der Sprechstunde der Kollegen der MOH USZ (Medizinische Onkologie und Hämatologie) zur Evaluation und ggf. Initiation einer begleitenden Systemtherapie. Eine diesbezügliche Anbindung ist unsererseits bereits aufgegleist; ein entsprechendes Aufgebot erfolgt zeitnah.",
                                 f"Bei Exazerbation oder Neuauftreten von allfälligen Beschwerden ist eine ausserplanmässige Vorstellung in unserer ambulanten Sprechstunde jederzeit möglich."]
 
     elif bericht_typ == "a":
@@ -515,7 +515,7 @@ def define_berrao_texte(bericht_typ, entity, patdata, glossary):
                                         f"{konzept_alle_serien}\n\n"
                                         f"Fraktionen: {fraktionen_woche or '__'}\n\n"
                                         f"Technik: Nach CT/MR-gestützer Planung erfolgte die Radiotherapie im Bereich oben genannter Lokalisationen am Linearbeschleuniger mit 6 MV Photonen in VMAT/Rapid Arc-Technik.")
-        texte["fliesstext_verlauf_unter_therapie"] = (f"Die Radiotherapie konnte im o.g. Zeitraum zeitgerecht und -bis auf eine mild ausgeprägte _____- komplikationslos durchgeführt werden.")
+        texte["fliesstext_verlauf_unter_therapie"] = (f"Die Radiotherapie konnte im o.g. Zeitraum zeitgerecht und -bis auf eine mild ausgeprägte _____ - komplikationslos durchgeführt werden.")
         texte["fliesstext_beurteilung"] = (f"Regelrechte Abschlusskontrolle nach erfolgter Radiotherapie.\nZum aktuellen Zeitpunkt präsentieren sich keine interventionsbedürftigen Akuttoxizitäten. ")
         texte["fliesstext_procedere"] = [f"Eine erste ambulante Verlaufskontrolle im Rahmen der radioonkologischen Therapienachsorge wird in ca. 6 Wochen in der ambulanten Sprechstunde von {prof_dr} {oberarzt} angestrebt. {g('artikel_nominativ_gross','Der/Die')} {g('patient_nominativ','Patient/in')} erhält zeitnah das entsprechende, direkte Aufgebot.",
                                 f"Sonstiger weiterer Verlauf gemäss des leitliniengerechten, tumorspezifischen Nachsorgeschemas. {g('artikel_nominativ_gross','Der/Die')} {g('patient_nominativ','Patient/in')} ist zwecks entsprechender onkologischer Betreuung bei ______ angebunden.",
