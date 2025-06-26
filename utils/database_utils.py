@@ -5,6 +5,7 @@ from pathlib import Path
 from datetime import datetime
 import os
 import re
+import shutil
 
 class TumorboardDatabase:
     """Central database for all tumorboard data"""
@@ -15,8 +16,8 @@ class TumorboardDatabase:
         else:
             self.db_path = Path(db_path)
         
-        # Ensure tumorboards directory exists
-        self.db_path.parent.mkdir(exist_ok=True)
+        # Ensure tumorboards and __SQLite_database directories exist
+        self.db_path.parent.mkdir(parents=True, exist_ok=True)
         
         self.init_database()
     
@@ -29,6 +30,36 @@ class TumorboardDatabase:
             logging.info("Database connections closed")
         except Exception as e:
             logging.warning(f"Error closing database connections: {e}")
+    
+    def create_database_backup(self):
+        """Create a timestamped backup of the database before modifications"""
+        try:
+            # Check if database file exists
+            if not self.db_path.exists():
+                logging.info("Database file does not exist yet, no backup needed")
+                return True
+            
+            # Create backup directory in the same location as the database
+            backup_dir = self.db_path.parent / "backup"
+            backup_dir.mkdir(exist_ok=True)
+            
+            # Generate timestamp for backup filename (format: yyyy-mm-dd_hhmm)
+            timestamp = datetime.now().strftime("%Y-%m-%d_%H%M")
+            backup_filename = f"{timestamp}_master_tumorboard.db"
+            backup_path = backup_dir / backup_filename
+            
+            # Close any open connections before backup
+            self.close_all_connections()
+            
+            # Copy database to backup location
+            shutil.copy2(self.db_path, backup_path)
+            
+            logging.info(f"Database backup created successfully: {backup_path}")
+            return True
+            
+        except Exception as e:
+            logging.error(f"Error creating database backup: {e}")
+            return False
     
     def init_database(self):
         """Initialize database with required tables"""
@@ -213,12 +244,18 @@ class TumorboardDatabase:
             logging.error(f"Error getting/creating entity {entity_name}: {e}")
             raise e
     
-    def import_collection_excel(self, tumorboard_name, collection_excel_path):
+    def import_collection_excel(self, tumorboard_name, collection_excel_path, create_backup=True):
         """Import data from a collection Excel file into the database"""
         try:
             if not Path(collection_excel_path).exists():
                 logging.error(f"Collection Excel file not found: {collection_excel_path}")
                 return False
+            
+            # Create backup before importing data (only if requested)
+            if create_backup:
+                backup_success = self.create_database_backup()
+                if not backup_success:
+                    logging.warning("Database backup failed, but continuing with import")
             
             # Get or create entity
             entity_id = self.get_or_create_entity(tumorboard_name)
@@ -604,6 +641,11 @@ def sync_all_collection_files():
             logging.warning("Tumorboards directory not found")
             return False
         
+        # Create backup before syncing all files
+        backup_success = db.create_database_backup()
+        if not backup_success:
+            logging.warning("Database backup failed, but continuing with sync")
+        
         synced_count = 0
         
         # Find all collection Excel files
@@ -617,7 +659,7 @@ def sync_all_collection_files():
                 
                 if collection_file and collection_file.exists():
                     logging.info(f"Syncing collection file: {collection_file}")
-                    success = db.import_collection_excel(entity_dir.name, collection_file)
+                    success = db.import_collection_excel(entity_dir.name, collection_file, create_backup=False)
                     if success:
                         synced_count += 1
                     else:

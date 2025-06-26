@@ -8,12 +8,15 @@ from pathlib import Path
 import pandas as pd
 
 class ExcelViewerPage(QWidget):
-    def __init__(self, main_window, tumorboard_name, date_str):
+    def __init__(self, main_window, tumorboard_name, date_str, tumorboard_base_path=None):
         super().__init__()
         logging.info(f"Initializing ExcelViewerPage for: {tumorboard_name} on {date_str}")
         self.main_window = main_window
         self.tumorboard_name = tumorboard_name
         self.date_str = date_str
+        
+        # Store the tumorboard base path for consistent file operations
+        self.tumorboard_base_path = tumorboard_base_path or (Path.home() / "tumorboards")
         
         # Store combined identifier for find_page_index
         self.entity_name = f"{tumorboard_name}_{date_str}"
@@ -203,7 +206,7 @@ class ExcelViewerPage(QWidget):
 
     def load_excel_file(self):
         """Load and display the Excel file for the specific tumorboard and date"""
-        excel_path = Path.home() / "tumorboards" / self.tumorboard_name / self.date_str / f"{self.date_str}.xlsx"
+        excel_path = self.tumorboard_base_path / self.tumorboard_name / self.date_str / f"{self.date_str}.xlsx"
         
         logging.info(f"Attempting to load Excel file: {excel_path}")
 
@@ -262,11 +265,7 @@ class ExcelViewerPage(QWidget):
                 column_name = str(df.columns[col - 1])  # Offset by 1 for original column index
                 current_width = self.table_widget.columnWidth(col)
                 
-                # Hide specific columns
-                if 'anmeldung' in column_name.lower() and 'nr' in column_name.lower():
-                    self.table_widget.setColumnHidden(col, True)
-                    continue
-                elif 'icd' in column_name.lower() and ('beschreibung' in column_name.lower() or 'description' in column_name.lower()):
+                if 'beschreibung' in column_name.lower():
                     self.table_widget.setColumnHidden(col, True)
                     continue
                 
@@ -279,28 +278,34 @@ class ExcelViewerPage(QWidget):
                     self.table_widget.setColumnWidth(col, 126)  # HIER BREITE DER PATIENTENNUMMER SPALTE ANPASSEN
                 
                 elif 'name' in column_name.lower() and 'patient' not in column_name.lower():
-                    self.table_widget.setColumnWidth(col, 180)  # HIER BREITE DER NAME SPALTE ANPASSEN
+                    self.table_widget.setColumnWidth(col, 150)  # HIER BREITE DER NAME SPALTE ANPASSEN
 
                 elif 'geschlecht' in column_name.lower():
                     self.table_widget.setColumnWidth(col, 90)  # HIER BREITE DER GESCHLECHT SPALTE ANPASSEN
 
                 elif 'geburt' in column_name.lower() or 'datum' in column_name.lower():
-                    self.table_widget.setColumnWidth(col, 120)  # HIER BREITE DER GEBURTSDATUM SPALTE ANPASSEN
+                    self.table_widget.setColumnWidth(col, 110)  # HIER BREITE DER GEBURTSDATUM SPALTE ANPASSEN
 
                 elif 'diagnose' in column_name.lower():
-                    self.table_widget.setColumnWidth(col, 400)  # HIER BREITE DER DIAGNOSE SPALTE ANPASSEN
+                    self.table_widget.setColumnWidth(col, 300)  # HIER BREITE DER DIAGNOSE SPALTE ANPASSEN
 
                 elif 'icd' in column_name.lower():
-                    self.table_widget.setColumnWidth(col, 80)  # HIER BREITE DER DZD/ICD SPALTE ANPASSEN
+                    self.table_widget.setColumnWidth(col, 60)  # HIER BREITE DER DZD/ICD SPALTE ANPASSEN
 
                 elif 'radiotherapie' in column_name.lower() or 'indiziert' in column_name.lower():
-                    self.table_widget.setColumnWidth(col, 150)  # HIER BREITE DER RADIOTHERAPIE SPALTE ANPASSEN
+                    self.table_widget.setColumnWidth(col, 60)  # HIER BREITE DER RADIOTHERAPIE SPALTE ANPASSEN
 
                 elif 'aufgebot' in column_name.lower():
-                    self.table_widget.setColumnWidth(col, 150)  # HIER BREITE DER APPS-AUFGEBOTS SPALTE ANPASSEN
+                    self.table_widget.setColumnWidth(col, 120)  # HIER BREITE DER APPS-AUFGEBOTS SPALTE ANPASSEN
+
+                elif 'teams' in column_name.lower() :
+                    self.table_widget.setColumnWidth(col, 140)  # HIER BREITE DER TEAMS PRIORISIERUNG SPALTE ANPASSEN
+
+                elif 'studie' in column_name.lower():
+                    self.table_widget.setColumnWidth(col, 100)  # HIER BREITE DER VORMERKEN FÜR STUDIE SPALTE ANPASSEN
 
                 elif 'bemerkung' in column_name.lower():
-                    self.table_widget.setColumnWidth(col, 150)  # HIER BREITE DER BEMERKUNGSPROZEDERE SPALTE ANPASSEN
+                    self.table_widget.setColumnWidth(col, 120)  # HIER BREITE DER BEMERKUNGSPROZEDERE SPALTE ANPASSEN
 
             logging.info(f"Successfully loaded Excel file with {len(df)} rows and {len(df.columns)} columns")
 
@@ -381,13 +386,13 @@ class ExcelViewerPage(QWidget):
             self.main_window.stacked_widget.setCurrentIndex(existing_page_index)
         else:
             logging.info("Creating new tumorboard session page.")
-            session_page = TumorboardSessionPage(self.main_window, self.tumorboard_name, self.date_str)
+            session_page = TumorboardSessionPage(self.main_window, self.tumorboard_name, self.date_str, self.tumorboard_base_path)
             new_index = self.main_window.stacked_widget.addWidget(session_page)
             self.main_window.stacked_widget.setCurrentIndex(new_index) 
 
     def refresh_finalization_state(self):
         """Check if tumorboard is finalized and update UI accordingly"""
-        timestamp_file = Path.home() / "tumorboards" / self.tumorboard_name / self.date_str / "finalized_timestamp.txt"
+        timestamp_file = self.tumorboard_base_path / self.tumorboard_name / self.date_str / "finalized_timestamp.txt"
         
         if timestamp_file.exists():
             try:
@@ -420,9 +425,8 @@ class ExcelViewerPage(QWidget):
         """Handle editing of a finalized tumorboard with warning dialog"""
         msg_box = QMessageBox(self)
         msg_box.setWindowTitle("Abgeschlossenes Tumorboard bearbeiten")
-        msg_box.setText("Möchten Sie das abgeschlossene Tumorboard nachträglich bearbeiten?\n\n"
-                        "Bitte beachten Sie: Wenn Sie das bearbeitete Tumorboard speichern, "
-                        "erfolgt die Dokumentation mittels Timestamp und Ihrer Benutzerdaten.")
+        msg_box.setText("Möchten Sie das finalisierte Tumorboard nachträglich bearbeiten?\n\n"
+                        "Bitte beachten: Ihr Name wird in der Dokumentation des Tumorboards vermerkt.")
         msg_box.setStandardButtons(QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No)
         msg_box.setDefaultButton(QMessageBox.StandardButton.No)
         msg_box.setStyleSheet("""
