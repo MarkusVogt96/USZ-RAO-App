@@ -187,4 +187,33 @@ C:.
 *   Die `Tumor Boards Page` bietet eine Übersicht der wöchentlichen Tumorboards inklusive Tag, Zeit und Ort.
 *   Sie ermöglicht den Zugriff auf die jeweiligen Tumorboard-Listen, die typischerweise am Morgen des Board-Tages bereitgestellt werden.
 *   Ein integriertes Tool unterstützt die Digitalisierung der Patientenfälle, die im Tumorboard besprochen wurden (z.B. Erfassung strukturierter Daten, Notizen).
+*   **Automatische Aktualisierung:** Die `SpecificTumorboardPage` aktualisiert automatisch die angezeigten Tumorboard-Daten (aktuelle und vergangene Termine) jedes Mal, wenn die Seite aufgerufen wird. Dies gewährleistet, dass Änderungen an den Tumorboard-Ordnern (Hinzufügen/Löschen von Datums-Ordnern) sofort ohne App-Neustart sichtbar werden.
+*   **Intelligente Pfad-Hierarchie:** Das System verwendet eine Fallback-Strategie für Tumorboard-Daten:
+    1. **Priorität 1:** `K:\RAO_Projekte\App\tumorboards\` (Intranet/primär)
+    2. **Priorität 2:** `{Benutzer-Home}\tumorboards\` (lokal/Fallback)
+    3. **Fehlerbehandlung:** Automatische Warnungen bei Fallback-Nutzung oder Fehlermeldungen bei komplettem Ausfall
+*   **Export-Import-Konsistenz:** Das System merkt sich, von welchem Pfad die Tumorboard-Daten geladen wurden, und exportiert beim Abschließen der Tumorboard-Session automatisch in denselben Pfad:
+    - **Intranet-Export:** Wurden Daten von `K:\RAO_Projekte\App\tumorboards\` geladen → Export erfolgt nach `K:\`
+    - **Lokaler Export:** Wurden Daten von `{Benutzer-Home}\tumorboards\` geladen → Export erfolgt lokal mit Administratoren-Warnung
+*   **Administratoren-Warnung bei lokalem Export:** Nach Abschluss eines lokalen Tumorboards wird automatisch eine Warnung angezeigt, die darauf hinweist, dass die Daten manuell auf den Server übertragen werden müssen
+
+### 4.5. Automatisches Datenbank-Backup-System
+
+Das System implementiert ein robustes Backup-System für die zentrale SQLite-Datenbank:
+
+*   **Backup-Auslöser:** Automatische Backups werden erstellt vor:
+    - Synchronisation aller Collection-Excel-Dateien zur Datenbank (`sync_all_collection_files()`)
+    - Import einzelner Collection-Excel-Dateien (`import_collection_excel()` mit `create_backup=True`)
+*   **Backup-Speicherort:** `{Benutzer-Home}/tumorboards/__SQLite_database/backup/`
+*   **Backup-Namensformat:** `YYYY-MM-DD_HHMM_master_tumorboard.db`
+    - Beispiel: `2024-06-26_2209_master_tumorboard.db`
+*   **Backup-Logik:**
+    1. Prüfung ob Datenbank-Datei existiert (bei neuer Installation nicht nötig)
+    2. Automatische Erstellung des Backup-Verzeichnisses falls nicht vorhanden
+    3. Schließung aller offenen Datenbankverbindungen vor Backup
+    4. Kopie der aktuellen `master_tumorboard.db` mit Zeitstempel
+    5. Logging des Backup-Erfolgs/Fehlers
+*   **Fehlerbehandlung:** Bei Backup-Fehlern wird eine Warnung geloggt, aber der Import/Sync wird fortgesetzt
+*   **Implementierung:** Die Backup-Funktionalität ist in der `TumorboardDatabase.create_database_backup()` Methode implementiert und wird automatisch von den entsprechenden Sync-Funktionen aufgerufen
+
 *   Die genaue Implementierung der Datenhaltung und des Digitalisierungstools ist noch in Entwicklung, greift aber potenziell auf externe Dateien oder eine interne Datenstruktur zu.

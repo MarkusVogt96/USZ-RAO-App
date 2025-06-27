@@ -1,6 +1,6 @@
-from PyQt6.QtWidgets import QWidget, QVBoxLayout, QLabel, QPushButton, QHBoxLayout, QScrollArea, QFrame
+from PyQt6.QtWidgets import QWidget, QVBoxLayout, QLabel, QPushButton, QHBoxLayout, QScrollArea, QFrame, QMessageBox
 from PyQt6.QtCore import Qt
-from PyQt6.QtGui import QFont
+from PyQt6.QtGui import QFont, QShowEvent
 import os
 import datetime
 import re
@@ -16,6 +16,15 @@ class SpecificTumorboardPage(QWidget):
         
         # Store tumorboard_name as attribute for find_page_index
         self.entity_name = tumorboard_name
+        
+        # Initialize UI components that will be populated
+        self.content_layout = None
+        
+        # Track path usage for warning dialogs
+        self.using_fallback_path = False
+        
+        # Store the actual tumorboard base path that was determined
+        self.tumorboard_base_path = None
         
         self.setup_ui()
         logging.info(f"SpecificTumorboardPage UI setup complete for {tumorboard_name}.")
@@ -46,40 +55,204 @@ class SpecificTumorboardPage(QWidget):
         """)
 
         # Content widget
-        content_widget = QWidget()
-        content_layout = QVBoxLayout(content_widget)
-        content_layout.setSpacing(15)
-        content_layout.setContentsMargins(20, 20, 20, 20)
+        self.content_widget = QWidget()
+        self.content_layout = QVBoxLayout(self.content_widget)
+        self.content_layout.setSpacing(15)
+        self.content_layout.setContentsMargins(20, 20, 20, 20)
+
+        # Initially populate the content
+        self._populate_content()
+
+        scroll_area.setWidget(self.content_widget)
+        main_layout.addWidget(scroll_area)
+
+    def _populate_content(self):
+        """Populate the content with current tumorboard data"""
+        # Clear existing content
+        self._clear_content_layout()
 
         # Get tumorboard dates
         current_dates, past_dates = self._scan_tumorboard_dates()
 
+        # If no data was found, show appropriate message
+        if not current_dates and not past_dates:
+            self._show_no_data_content()
+            return
+
         # Current/Future Tumorboards Section
         current_section = self._create_section("Aktuelle Tumorboards", current_dates, is_current=True)
-        content_layout.addWidget(current_section)
+        self.content_layout.addWidget(current_section)
 
         # Past Tumorboards Section
-        past_section = self._create_section("Abgeschlossene Tumorboards", past_dates, is_current=False)
-        content_layout.addWidget(past_section)
+        past_section = self._create_section("Vergangene Tumorboards", past_dates, is_current=False)
+        self.content_layout.addWidget(past_section)
 
         # Add stretch to push content to top
-        content_layout.addStretch()
+        self.content_layout.addStretch()
 
-        scroll_area.setWidget(content_widget)
-        main_layout.addWidget(scroll_area)
+    def _show_no_data_content(self):
+        """Show content when no tumorboard data is available"""
+        # Create error message widget
+        error_frame = QFrame()
+        error_frame.setStyleSheet("""
+            QFrame {
+                background-color: #2d1b1b;
+                border: 2px solid #d32f2f;
+                border-radius: 10px;
+                padding: 20px;
+                margin: 20px;
+            }
+        """)
+
+        error_layout = QVBoxLayout(error_frame)
+        error_layout.setSpacing(15)
+
+        # Error title
+        error_title = QLabel("❌ Kein Zugriff auf (K:\\)RAO_Daten")
+        error_title.setFont(QFont("Helvetica", 18, QFont.Weight.Bold))
+        error_title.setStyleSheet("color: #f44336; text-align: center;")
+        error_title.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        error_layout.addWidget(error_title)
+
+        # Error message
+        error_message = QLabel(
+            "Es besteht kein Zugriff auf RAO_Daten im Intranet!\n"
+            "Tumorboards konnten nicht geladen werden.\n\n"
+            "Bitte stellen Sie eine Verbindung zum Intranet her und laden Sie die Seite neu."
+        )
+        error_message.setFont(QFont("Helvetica", 14))
+        error_message.setStyleSheet("color: #ffffff; text-align: center; line-height: 1.4;")
+        error_message.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        error_message.setWordWrap(True)
+        error_layout.addWidget(error_message)
+
+        # Add the error frame to content
+        self.content_layout.addWidget(error_frame)
+        self.content_layout.addStretch()
+
+    def _clear_content_layout(self):
+        """Clear all widgets from the content layout"""
+        if self.content_layout is not None:
+            while self.content_layout.count():
+                child = self.content_layout.takeAt(0)
+                if child.widget():
+                    child.widget().deleteLater()
+
+    def refresh_data(self):
+        """Refresh tumorboard data - can be called manually"""
+        logging.info(f"Refreshing tumorboard data for: {self.tumorboard_name}")
+        self._populate_content()
+
+    def showEvent(self, event: QShowEvent):
+        """Override showEvent to refresh data whenever the page is shown"""
+        super().showEvent(event)
+        if event.type() == QShowEvent.Type.Show:
+            logging.info(f"SpecificTumorboardPage shown, refreshing data for: {self.tumorboard_name}")
+            self.refresh_data()
+            
+            # Show warning dialog if using fallback path (every time)
+            if self.using_fallback_path:
+                self._show_fallback_warning()
+
+    def _determine_tumorboard_path(self):
+        """
+        Determine the correct tumorboard path based on priority:
+        1. K:\\RAO_Projekte\\App\\tumorboards\\ (primary/intranet)
+        2. {home}\\tumorboards\\ (fallback/local)
+        3. None (error - no path available)
+        
+        Returns:
+            tuple: (Path object or None, bool indicating if using fallback)
+        """
+        # Primary path (Intranet)
+        primary_path = Path("K:/RAO_Projekte/App/tumorboards") / self.tumorboard_name
+        
+        # Fallback path (Local)
+        fallback_path = Path.home() / "tumorboards" / self.tumorboard_name
+        
+        logging.info(f"Checking primary path: {primary_path}")
+        
+        # Check if primary path exists and is accessible
+        try:
+            if primary_path.exists() and primary_path.is_dir():
+                logging.info("Primary path (Intranet) found and accessible")
+                self.tumorboard_base_path = Path("K:/RAO_Projekte/App/tumorboards")
+                return primary_path, False
+        except (OSError, PermissionError) as e:
+            logging.warning(f"Primary path not accessible: {e}")
+        
+        logging.info(f"Checking fallback path: {fallback_path}")
+        
+        # Check fallback path
+        try:
+            if fallback_path.exists() and fallback_path.is_dir():
+                logging.info("Fallback path (Local) found and accessible")
+                self.tumorboard_base_path = Path.home() / "tumorboards"
+                return fallback_path, True
+        except (OSError, PermissionError) as e:
+            logging.warning(f"Fallback path not accessible: {e}")
+        
+        # No valid path found
+        logging.error("No valid tumorboard path found")
+        self.tumorboard_base_path = None
+        return None, False
+
+    def _show_fallback_warning(self):
+        """Show warning dialog when using fallback path"""
+        msg = QMessageBox(self)
+        msg.setWindowTitle("Warnung - Fallback Datenquelle")
+        msg.setText(f"Achtung: RAO_Daten (K:\\) Laufwerk konnte nicht erreicht werden. Alternativ wurden die Daten aus {Path.home()}\\tumorboards geladen.")
+        msg.setIcon(QMessageBox.Icon.Warning)
+        msg.setStyleSheet("""
+            QMessageBox {
+                background-color: #19232D;
+                color: white;
+            }
+            QMessageBox QLabel {
+                color: white;
+                font-size: 14px;
+                padding: 10px;
+            }
+            QMessageBox QPushButton {
+                background-color: #3292ea;
+                color: white;
+                padding: 8px 20px;
+                border: none;
+                border-radius: 6px;
+                font-size: 13px;
+                font-weight: bold;
+                min-width: 80px;
+                min-height: 30px;
+            }
+            QMessageBox QPushButton:hover {
+                background-color: #4da2fa;
+            }
+            QMessageBox QPushButton:pressed {
+                background-color: #2a82da;
+            }
+        """)
+        msg.exec()
+
+
 
     def _scan_tumorboard_dates(self):
-        """Scan for tumorboard date folders and categorize them"""
-        tumorboard_path = Path.home() / "tumorboards" / self.tumorboard_name
+        """Scan for tumorboard date folders and categorize them using the new path logic"""
         current_dates = []
         past_dates = []
         today = datetime.date.today()
 
-        logging.info(f"Scanning tumorboard path: {tumorboard_path}")
+        # Determine the correct tumorboard path
+        tumorboard_path, is_fallback = self._determine_tumorboard_path()
+        
+        # Update fallback tracking for dialog warnings
+        self.using_fallback_path = is_fallback
 
-        if not tumorboard_path.exists():
-            logging.warning(f"Tumorboard path does not exist: {tumorboard_path}")
+        if tumorboard_path is None:
+            # No valid path found - return empty lists (error handling in _populate_content)
+            logging.error("No valid tumorboard path found")
             return current_dates, past_dates
+
+        logging.info(f"Scanning tumorboard path: {tumorboard_path} (fallback: {is_fallback})")
 
         try:
             for item in tumorboard_path.iterdir():
@@ -101,6 +274,8 @@ class SpecificTumorboardPage(QWidget):
 
         except Exception as e:
             logging.error(f"Error scanning tumorboard dates: {e}")
+            # Return empty lists (error handling in _populate_content)
+            return current_dates, past_dates
 
         # Sort dates
         current_dates.sort(key=lambda x: datetime.datetime.strptime(x, '%d.%m.%Y'))
@@ -193,6 +368,14 @@ class SpecificTumorboardPage(QWidget):
 
         return button
 
+    def get_tumorboard_base_path(self):
+        """Get the base path used for tumorboard data (K:\ or local)"""
+        return self.tumorboard_base_path
+    
+    def is_using_fallback_path(self):
+        """Check if currently using local fallback path"""
+        return self.using_fallback_path
+
     def open_excel_viewer(self, date_str):
         """Open Excel viewer for the selected date"""
         logging.info(f"Opening Excel viewer for {self.tumorboard_name} on {date_str}")
@@ -208,6 +391,6 @@ class SpecificTumorboardPage(QWidget):
             self.main_window.stacked_widget.setCurrentIndex(existing_page_index)
         else:
             logging.info("Creating new Excel viewer page.")
-            excel_page = ExcelViewerPage(self.main_window, self.tumorboard_name, date_str)
+            excel_page = ExcelViewerPage(self.main_window, self.tumorboard_name, date_str, self.tumorboard_base_path)
             new_index = self.main_window.stacked_widget.addWidget(excel_page)
             self.main_window.stacked_widget.setCurrentIndex(new_index) 

@@ -44,6 +44,9 @@ class DashboardDataExporter:
                 # ICD analysis data
                 icd_analysis_data = self._get_icd_analysis_data(conn)
                 
+                # Aufgebot data
+                aufgebot_data = self._get_aufgebot_data(conn)
+                
                 dashboard_data = {
                     'generated_at': datetime.now().isoformat(),
                     'key_metrics': key_metrics,
@@ -51,7 +54,8 @@ class DashboardDataExporter:
                     'temporal_data': temporal_data,
                     'radiotherapy_data': radiotherapy_data,
                     'study_enrollment_data': study_enrollment_data,
-                    'icd_data': icd_analysis_data
+                    'icd_data': icd_analysis_data,
+                    'aufgebot_data': aufgebot_data
                 }
                 
                 # Write JSON file
@@ -304,9 +308,152 @@ class DashboardDataExporter:
                 for row in by_tumorboard_results
             ]
         }
+    
+    def _get_aufgebot_data(self, conn):
+        """Get Aufgebot (call type) statistics"""
+        cursor = conn.cursor()
+        
+        # All patients with radiotherapy = "Ja" and aufgebot data
+        cursor.execute('''
+            SELECT 
+                CASE 
+                    WHEN aufgebot_type = '-' OR aufgebot_type IS NULL OR aufgebot_type = '' 
+                    THEN 'Nicht spezifiziert'
+                    ELSE aufgebot_type 
+                END as category,
+                COUNT(*) as count
+            FROM patients 
+            WHERE radiotherapy_indicated = 'Ja'
+            GROUP BY 
+                CASE 
+                    WHEN aufgebot_type = '-' OR aufgebot_type IS NULL OR aufgebot_type = '' 
+                    THEN 'Nicht spezifiziert'
+                    ELSE aufgebot_type 
+                END
+            ORDER BY count DESC
+        ''')
+        
+        all_results = cursor.fetchall()
+        
+        # Only patients with specified aufgebot type
+        cursor.execute('''
+            SELECT 
+                aufgebot_type as category,
+                COUNT(*) as count
+            FROM patients 
+            WHERE radiotherapy_indicated = 'Ja' 
+            AND aufgebot_type IS NOT NULL 
+            AND aufgebot_type NOT IN ('-', '')
+            GROUP BY aufgebot_type
+            ORDER BY 
+                CASE aufgebot_type
+                    WHEN 'Kat I' THEN 1
+                    WHEN 'Kat II' THEN 2
+                    WHEN 'Kat III' THEN 3
+                    ELSE 4
+                END
+        ''')
+        
+        specified_results = cursor.fetchall()
+        
+        # Aufgebot by tumorboard type
+        cursor.execute('''
+            SELECT 
+                e.name as tumorboard_type,
+                CASE 
+                    WHEN p.aufgebot_type = '-' OR p.aufgebot_type IS NULL OR p.aufgebot_type = '' 
+                    THEN 'Nicht spezifiziert'
+                    ELSE p.aufgebot_type 
+                END as category,
+                COUNT(*) as count
+            FROM patients p
+            JOIN tumorboard_sessions s ON p.session_id = s.id
+            JOIN tumorboard_entities e ON s.entity_id = e.id
+            WHERE p.radiotherapy_indicated = 'Ja'
+            GROUP BY e.name, 
+                CASE 
+                    WHEN p.aufgebot_type = '-' OR p.aufgebot_type IS NULL OR p.aufgebot_type = '' 
+                    THEN 'Nicht spezifiziert'
+                    ELSE p.aufgebot_type 
+                END
+            ORDER BY e.name, count DESC
+        ''')
+        
+        by_tumorboard_results = cursor.fetchall()
+        
+        return {
+            'all_patients': [
+                {'category': row[0], 'count': row[1]}
+                for row in all_results
+            ],
+            'specified_only': [
+                {'category': row[0], 'count': row[1]}
+                for row in specified_results
+            ],
+            'by_tumorboard': [
+                {
+                    'tumorboard_type': row[0],
+                    'category': row[1],
+                    'count': row[2]
+                }
+                for row in by_tumorboard_results
+            ]
+        }
 
 
 def generate_dashboard_data():
     """Generate dashboard data JSON file"""
     exporter = DashboardDataExporter()
-    return exporter.export_dashboard_data() 
+    return exporter.export_dashboard_data()
+
+
+def test_aufgebot_mapping():
+    """Test function to validate Aufgebot data mapping"""
+    try:
+        from .database_utils import TumorboardDatabase
+        
+        db = TumorboardDatabase()
+        
+        # Test the normalize function
+        test_values = [
+            "Kat I: In 1-3 Tagen ohne Konsil",
+            "Kat II: In 5-7 Tagen ohne Konsil", 
+            "Kat III: Nach Eingang des Konsils",
+            "Kat I",
+            "Kat II",
+            "Kat III",
+            "-",
+            "",
+            None,
+            "Invalid Value"
+        ]
+        
+        print("Testing Aufgebot normalization:")
+        for value in test_values:
+            normalized = db._normalize_aufgebot_type(value)
+            print(f"'{value}' -> '{normalized}'")
+        
+        # Test dashboard data export
+        exporter = DashboardDataExporter()
+        data = exporter.export_dashboard_data()
+        
+        if data:
+            import json
+            with open(data, 'r', encoding='utf-8') as f:
+                dashboard_data = json.load(f)
+            
+            print("\nAufgebot data in dashboard:")
+            if 'aufgebot_data' in dashboard_data:
+                print(json.dumps(dashboard_data['aufgebot_data'], indent=2, ensure_ascii=False))
+            else:
+                print("No aufgebot_data found in dashboard")
+        
+        return True
+        
+    except Exception as e:
+        print(f"Test failed: {e}")
+        return False
+
+
+if __name__ == "__main__":
+    test_aufgebot_mapping() 

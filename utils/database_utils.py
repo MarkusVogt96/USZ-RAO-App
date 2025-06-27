@@ -5,6 +5,7 @@ from pathlib import Path
 from datetime import datetime
 import os
 import re
+import shutil
 
 class TumorboardDatabase:
     """Central database for all tumorboard data"""
@@ -15,8 +16,8 @@ class TumorboardDatabase:
         else:
             self.db_path = Path(db_path)
         
-        # Ensure tumorboards directory exists
-        self.db_path.parent.mkdir(exist_ok=True)
+        # Ensure tumorboards and __SQLite_database directories exist
+        self.db_path.parent.mkdir(parents=True, exist_ok=True)
         
         self.init_database()
     
@@ -29,6 +30,36 @@ class TumorboardDatabase:
             logging.info("Database connections closed")
         except Exception as e:
             logging.warning(f"Error closing database connections: {e}")
+    
+    def create_database_backup(self):
+        """Create a timestamped backup of the database before modifications"""
+        try:
+            # Check if database file exists
+            if not self.db_path.exists():
+                logging.info("Database file does not exist yet, no backup needed")
+                return True
+            
+            # Create backup directory in the same location as the database
+            backup_dir = self.db_path.parent / "backup"
+            backup_dir.mkdir(exist_ok=True)
+            
+            # Generate timestamp for backup filename (format: yyyy-mm-dd_hhmm)
+            timestamp = datetime.now().strftime("%Y-%m-%d_%H%M")
+            backup_filename = f"{timestamp}_master_tumorboard.db"
+            backup_path = backup_dir / backup_filename
+            
+            # Close any open connections before backup
+            self.close_all_connections()
+            
+            # Copy database to backup location
+            shutil.copy2(self.db_path, backup_path)
+            
+            logging.info(f"Database backup created successfully: {backup_path}")
+            return True
+            
+        except Exception as e:
+            logging.error(f"Error creating database backup: {e}")
+            return False
     
     def init_database(self):
         """Initialize database with required tables"""
@@ -213,12 +244,18 @@ class TumorboardDatabase:
             logging.error(f"Error getting/creating entity {entity_name}: {e}")
             raise e
     
-    def import_collection_excel(self, tumorboard_name, collection_excel_path):
+    def import_collection_excel(self, tumorboard_name, collection_excel_path, create_backup=True):
         """Import data from a collection Excel file into the database"""
         try:
             if not Path(collection_excel_path).exists():
                 logging.error(f"Collection Excel file not found: {collection_excel_path}")
                 return False
+            
+            # Create backup before importing data (only if requested)
+            if create_backup:
+                backup_success = self.create_database_backup()
+                if not backup_success:
+                    logging.warning("Database backup failed, but continuing with import")
             
             # Get or create entity
             entity_id = self.get_or_create_entity(tumorboard_name)
@@ -331,7 +368,7 @@ class TumorboardDatabase:
                             'icd_code': raw_icd_code,
                             'icd_family': icd_family,  # New field for grouped analysis
                             'radiotherapy_indicated': self._clean_value(row.get('Radiotherapie indiziert', '')),
-                            'aufgebot_type': self._clean_value(row.get('Art des Aufgebots', '')),
+                            'aufgebot_type': self._normalize_aufgebot_type(row.get('Art des Aufgebots', '')),
                             'study_enrollment': self._clean_value(row.get('Vormerken für Studie', '')),
                             'remarks': self._clean_value(row.get('Bemerkung/Procedere', ''))
                         }
@@ -570,6 +607,28 @@ class TumorboardDatabase:
         except Exception as e:
             logging.error(f"Error updating session completion data: {e}")
             return False
+    
+    @staticmethod
+    def _normalize_aufgebot_type(value):
+        """Normalize aufgebot type to categorical values"""
+        if not value or str(value).strip() in ['-', '', 'nan']:
+            return None
+        
+        value_str = str(value).strip()
+        
+        # Map long descriptions to short categories
+        if "Kat I:" in value_str or "1-3 Tagen" in value_str:
+            return "Kat I"
+        elif "Kat II:" in value_str or "5-7 Tagen" in value_str:
+            return "Kat II"
+        elif "Kat III:" in value_str or "Nach Eingang des Konsils" in value_str:
+            return "Kat III"
+        elif value_str in ["Kat I", "Kat II", "Kat III"]:
+            return value_str
+        else:
+            # Log unknown values for debugging
+            logging.warning(f"Unknown aufgebot type value: {value_str}")
+            return value_str  # Return as-is for unknown values
 
 
 def sync_all_collection_files():
@@ -581,6 +640,11 @@ def sync_all_collection_files():
         if not tumorboards_dir.exists():
             logging.warning("Tumorboards directory not found")
             return False
+        
+        # Create backup before syncing all files
+        backup_success = db.create_database_backup()
+        if not backup_success:
+            logging.warning("Database backup failed, but continuing with sync")
         
         synced_count = 0
         
@@ -595,7 +659,7 @@ def sync_all_collection_files():
                 
                 if collection_file and collection_file.exists():
                     logging.info(f"Syncing collection file: {collection_file}")
-                    success = db.import_collection_excel(entity_dir.name, collection_file)
+                    success = db.import_collection_excel(entity_dir.name, collection_file, create_backup=False)
                     if success:
                         synced_count += 1
                     else:
