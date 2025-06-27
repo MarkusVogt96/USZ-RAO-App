@@ -679,7 +679,43 @@ if __name__ == '__main__':
             entered_key = dialog.get_key()
             if verify_license(PUBLIC_KEY_PEM, entered_key, required_month_str):
                 write_license_state(current_month_str, current_iso_year, current_iso_week); license_ok = True
-            else: QMessageBox.critical(None, "License Error", f"Invalid license key for {required_month_str}."); license_ok = False
+            else: 
+                # Create styled error message box for better visibility with dark theme
+                error_msg = QMessageBox()
+                error_msg.setWindowTitle("License Error")
+                error_msg.setText(f"Invalid license key for {required_month_str}.")
+                error_msg.setIcon(QMessageBox.Icon.Critical)
+                error_msg.setStandardButtons(QMessageBox.StandardButton.Ok)
+                error_msg.setStyleSheet("""
+                    QMessageBox {
+                        background-color: #19232D;
+                        color: white;
+                    }
+                    QMessageBox QLabel {
+                        color: white;
+                        font-size: 14px;
+                        padding: 10px;
+                    }
+                    QMessageBox QPushButton {
+                        background-color: #d32f2f;
+                        color: white;
+                        padding: 8px 20px;
+                        border: none;
+                        border-radius: 6px;
+                        font-size: 13px;
+                        font-weight: bold;
+                        min-width: 80px;
+                        min-height: 30px;
+                    }
+                    QMessageBox QPushButton:hover {
+                        background-color: #f44336;
+                    }
+                    QMessageBox QPushButton:pressed {
+                        background-color: #b71c1c;
+                    }
+                """)
+                error_msg.exec()
+                license_ok = False
         else: print(f"{APP_PREFIX}License dialog cancelled by user."); license_ok = False
     else: print(f"{APP_PREFIX}License check skipped for month {current_month_str} (already validated or not needed).")
 
