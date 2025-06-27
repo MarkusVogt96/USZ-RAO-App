@@ -27,7 +27,7 @@ script_definitions = [
     ("Physio (stat)", "physio.py"),
     ("Planungs-CT/MRI", "planungsbildgebung.py"),
     ("S-O-P Eintrag", "sop_station.py"),
-    # Add new scripts here with ("Tile Name", "filename.py")
+    ("Tumorboard Export", "createtumorboardpdf.py"),
 ]
 # ---------------------------------------------------------
 

@@ -10,6 +10,10 @@ import re
 import json
 import openpyxl
 from openpyxl import load_workbook
+import fitz  # PyMuPDF
+import io
+from PIL import Image
+import UNIVERSAL # Ihre eigene Modul-Datei
 
 
 # Get the absolute path of the directory containing the current script (patdata.py)
@@ -81,7 +85,7 @@ def userinput():
                 # Set the path to the tumorboard folder
                 global tb_folder
                 # Check if the network path exists
-                net_path = r"K:\RAO_Aerzte\Mitarbeiter\Vogt\USZ-RAO-App"
+                net_path = r"K:\RAO_Projekte\App"
                 if os.path.exists(net_path):
                     tb_folder = os.path.join(net_path, "tumorboards", tumorboard_auswahl)
                 else:
@@ -268,8 +272,12 @@ def pdfs_umbenennen(dated_folder):
             except Exception as e:
                 print(f"Fehler beim Auslesen von {filename}: {e}")
 
+
 def create_excel_file():
     import fitz  # PyMuPDF
+    import io
+    from PIL import Image
+    import UNIVERSAL # Eigene Modul-Datei
 
     # Regex patterns
     patient_num_re = re.compile(r"\b\d{5,10}\b")
@@ -289,58 +297,147 @@ def create_excel_file():
 
     for filename in pdf_files:
         pdf_path = os.path.join(dated_folder, filename)
+        
+        # Initialisiere die Variablen für jeden Patienten
+        patientennummer = name = geschlecht = geburtsdatum = ""
+        
+        # --- START: Überarbeiteter Extraktions-Block ---
+        
+        diagnose = ""
+        # Definiere den Ankertext, der für die Positionierung entscheidend ist
+        anchor_text = "Ergänzungen und neue Inhalte werden nicht automatisch in die Tumordokumentation zurückgeschrieben"
+        
         try:
+            # --- Extraktion der Stammdaten (Name, Nummer etc.) ---
+            # Dieser Teil bleibt gleich und nutzt die schnelle Text-Extraktion
             with fitz.open(pdf_path) as doc:
                 text = ""
                 for page in doc:
                     text += page.get_text()
             
-            # Extrahiere Daten
-            patientennummer = name = geschlecht = geburtsdatum = diagnose = ""
-            
-            # Suche nach "Patienteninformationen"
             idx_info = text.find("Patienteninformationen")
             if idx_info != -1:
                 after_info = text[idx_info + len("Patienteninformationen"):].lstrip()
-                # Patientennummer
                 match_num = patient_num_re.search(after_info)
                 if match_num:
                     patientennummer = match_num.group()
-                    # Name: Zeile direkt unter Patientennummer
                     lines = after_info[match_num.end():].lstrip().splitlines()
                     if lines:
                         name = lines[0].strip()
-                # Geschlecht und Geburtsdatum
                 match_geschlecht = geschlecht_geb_re.search(after_info)
                 if match_geschlecht:
                     geschlecht = match_geschlecht.group(1)
                     geburtsdatum = match_geschlecht.group(2)
 
-            # Diagnose extrahieren
-            idx_diag = text.lower().find("diagnose")
-            if idx_diag != -1:
-                diag_after = text[idx_diag + len("diagnose"):].lstrip()
-                diag_lines = diag_after.splitlines()
-                for line in diag_lines:
-                    line = line.strip()
-                    if line:
-                        diagnose = line
-                        break
-            
-            patient_data.append([patientennummer, name, geschlecht, geburtsdatum, diagnose])
-        except Exception as e:
-            print(f"Fehler beim Auslesen von {filename}: {e}")
-            patient_data.append(["", "", "", "", ""])
+            # --- Extraktion der DIAGNOSE (mit Fall-back-Logik) ---
 
-    # Excel-Template kopieren
-    template_path = os.path.join(user_home, "tumorboards", "__SQLite_database", "template.xlsx")
-    if not os.path.exists(template_path):
-        print(f"Excel-Template nicht gefunden: {template_path}")
-        return
+            # --- VERSUCH 1: Schnelle Text-Extraktion für Diagnose ---
+            print(f"\n[{os.path.basename(filename)}] Versuch 1: Schnelle Text-Extraktion der Diagnose...")
+            
+            idx_anchor = text.find(anchor_text)
+            if idx_anchor != -1:
+                text_after_anchor = text[idx_anchor + len(anchor_text):]
+                idx_diag_heading = text_after_anchor.lower().find("diagnose")
+                if idx_diag_heading != -1:
+                    text_after_heading = text_after_anchor[idx_diag_heading + len("diagnose"):].lstrip()
+                    lines = text_after_heading.splitlines()
+                    for line in lines:
+                        cleaned_line = line.strip()
+                        if cleaned_line:
+                            diagnose = cleaned_line
+                            break
+
+            # --- VALIDIERUNG durch Zählen der Buchstaben ---
+            # Entferne alle Nicht-Buchstaben und prüfe die Länge des Ergebnisses.
+            letter_count = len(re.sub(r'[^a-zA-Z]', '', str(diagnose)))
+
+            if letter_count >= 15: # Schwellenwert für eine "sinnvolle" Diagnose
+                print(f"[{os.path.basename(filename)}] Erfolg mit schneller Extraktion. Diagnose: '{diagnose}'")
+            else:
+                print(f"[{os.path.basename(filename)}] Schnelle Extraktion lieferte keine sinnvolle Diagnose ('{diagnose}'). Anzahl Buchstaben: {letter_count}.")
+                print(f"[{os.path.basename(filename)}] VERSUCH 2: Fall-back auf OCR...")
+                
+                # --- VERSUCH 2: Langsame OCR-Extraktion (Fall-back) ---
+                ocr_text = ""
+                with fitz.open(pdf_path) as doc:
+                    for page_num, page in enumerate(doc):
+                        pix = page.get_pixmap(dpi=300)
+                        pil_image = Image.open(io.BytesIO(pix.tobytes("png")))
+                        
+                        temp_image_path = os.path.join(dated_folder, f"temp_ocr_for_{os.path.basename(filename)}.png")
+                        pil_image.save(temp_image_path)
+
+                        ocr_result_page = UNIVERSAL.run_tesseract_ocr_deutsch(temp_image_path)
+                        
+                        os.remove(temp_image_path)
+
+                        if ocr_result_page:
+                            ocr_text += ocr_result_page + "\n"
+                
+                # Diagnose aus dem OCR-Text extrahieren
+                diagnose = "" # Reset
+                idx_anchor_ocr = ocr_text.find(anchor_text)
+                if idx_anchor_ocr != -1:
+                    text_after_anchor_ocr = ocr_text[idx_anchor_ocr + len(anchor_text):]
+                    idx_diag_heading_ocr = text_after_anchor_ocr.lower().find("diagnose")
+                    if idx_diag_heading_ocr != -1:
+                        text_after_heading_ocr = text_after_anchor_ocr[idx_diag_heading_ocr + len("diagnose"):].lstrip()
+                        lines_ocr = text_after_heading_ocr.splitlines()
+                        for line in lines_ocr:
+                            cleaned_line_ocr = line.strip().replace('e ', '• ')
+                            if cleaned_line_ocr:
+                                diagnose = cleaned_line_ocr
+                                break
+                
+                # --- FINALE VALIDIERUNG nach OCR ---
+                letter_count_ocr = len(re.sub(r'[^a-zA-Z]', '', str(diagnose)))
+                if letter_count_ocr >= 15:
+                    print(f"[{os.path.basename(filename)}] Erfolg mit OCR. Diagnose: '{diagnose}'")
+                else:
+                    print(f"[{os.path.basename(filename)}] FEHLER: Auch OCR lieferte keine sinnvolle Diagnose ('{diagnose}'). Anzahl Buchstaben: {letter_count_ocr}.")
+                    diagnose = "MANUELLE PRÜFUNG ERFORDERLICH"
+
+        except Exception as e:
+            print(f"[{os.path.basename(filename)}] Ein unerwarteter Fehler ist bei der Extraktion aufgetreten: {e}")
+            diagnose = "EXTRAKTIONSFEHLER"
+        
+        # --- ENDE: Ende des überarbeiteten Extraktions-Blocks ---
+
+        patient_data.append([patientennummer, name, geschlecht, geburtsdatum, diagnose])
+
+    # --- Excel-Template kopieren ---
+    
+    # 1. Definiere die beiden möglichen Pfade
+    net_template_path = r"K:\RAO_Projekte\App\tumorboards\__SQLite_database\template.xlsx"
+    local_fallback_template_path = os.path.join(user_home, "tumorboards", "__SQLite_database", "template.xlsx")
+    
+    template_path = None # Initialisiere den Pfad als None
+
+    # 2. Prüfe zuerst den Netzwerkpfad
+    print(f"Suche Template auf dem Netzwerkpfad: {net_template_path}")
+    if os.path.exists(net_template_path):
+        template_path = net_template_path
+        print("Netzwerk-Template gefunden. Verwende dieses.")
+    else:
+        # 3. Wenn der Netzwerkpfad nicht existiert, prüfe den lokalen Fallback-Pfad
+        print(f"Netzwerk-Template nicht gefunden. Prüfe lokalen Fallback-Pfad: {local_fallback_template_path}")
+        if os.path.exists(local_fallback_template_path):
+            template_path = local_fallback_template_path
+            print("Lokales Fallback-Template gefunden. Verwende dieses.")
+        else:
+            # 4. Wenn beide Pfade fehlschlagen, gib eine Fehlermeldung aus und beende
+            print("\nFEHLER: Excel-Template wurde WEDER auf dem Netzwerkpfad NOCH im lokalen Fallback-Verzeichnis gefunden.")
+            print(f"Geprüfter Netzwerkpfad: {net_template_path}")
+            print(f"Geprüfter lokaler Pfad:  {local_fallback_template_path}")
+            print("Skript kann nicht fortfahren. Bitte stellen Sie sicher, dass die template.xlsx an einem der beiden Orte verfügbar ist.")
+            return # Beendet die Funktion create_excel_file, da das Template fehlt
+    
+
+
     excel_dst = os.path.join(dated_folder, "template.xlsx")
     shutil.copy(template_path, excel_dst)
 
-    # Excel ausfüllen
+    # --- Excel ausfüllen ---
     wb = load_workbook(excel_dst)
     ws = wb.active
     for idx, (patnum, name, geschlecht, geburtsdatum, diagnose) in enumerate(patient_data, start=2):
@@ -349,17 +446,33 @@ def create_excel_file():
         ws[f"C{idx}"] = geschlecht
         ws[f"D{idx}"] = geburtsdatum
         ws[f"E{idx}"] = diagnose
+        
+    # --- Sammeln und Anzeigen der Patienten, die manuell geprüft werden müssen ---
+    manual_check_needed = []
+    for data_row in patient_data:
+        pat_num = data_row[0]
+        pat_name = data_row[1]
+        diag_text = data_row[4]
+        if "MANUELLE PRÜFUNG ERFORDERLICH" in diag_text or "EXTRAKTIONSFEHLER" in diag_text:
+            manual_check_needed.append(f"{pat_name} ({pat_num})")
 
-    # Zweite Umbenennung der PDFs basierend auf den extrahierten Namen
+    if manual_check_needed:
+        print("\n" + "="*60)
+        print("ACHTUNG: Bei folgenden Patienten konnte die Diagnose nicht automatisch extrahiert werden:")
+        for patient_info in manual_check_needed:
+            print(f"  -> {patient_info}")
+        print("Bitte überprüfen und korrigieren Sie diese Einträge manuell in der Excel-Datei.")
+        print("="*60 + "\n")
+
+
+    # --- Zweite Umbenennung der PDFs basierend auf den extrahierten Namen ---
     print("\nBenenne PDFs final um (Nachname - Patientennummer.pdf)...")
     for i, filename in enumerate(pdf_files):
         if i < len(patient_data):
             patnum, name, _, _, _ = patient_data[i]
             
-            # Extrahiere Nachname (das erste Wort des Namens)
             nachname = "Unbekannt"
             if name and name.strip():
-                # Nimmt das erste Wort (vor Komma oder Leerzeichen)
                 nachname = name.strip().split(',')[0].strip().split()[0]
 
             if patnum and nachname != "Unbekannt":
@@ -378,20 +491,20 @@ def create_excel_file():
             else:
                 print(f"Warnung: Kein Name oder Patientennummer für '{filename}', Umbenennung wird übersprungen.")
 
-    # Excel-Datei speichern und umbenennen
+    # --- Excel-Datei speichern und umbenennen ---
     date_str = datetime.now().strftime("%d.%m.%Y")
     excel_final = os.path.join(dated_folder, f"{date_str}.xlsx")
     wb.save(excel_final)
     print(f"\nExcel-Datei gespeichert als {excel_final}")
 
-    # Template-Datei im Zielordner löschen
+    # --- Template-Datei im Zielordner löschen ---
     try:
         os.remove(excel_dst)
         print(f"Template-Datei {excel_dst} wurde gelöscht.")
     except Exception as e:
         print(f"Fehler beim Löschen der Template-Datei: {e}")
 
-    return excel_final #für die ICD-Anreicherung
+    return excel_final # für die ICD-Anreicherung
 
 
 
@@ -436,12 +549,12 @@ def icd(excel_path):
             row_indices.append(row_index)
     
     if not diagnoses_list:
-        print("Keine Diagnosen in der Excel-Datei gefunden. Überspringe AI-Anfrage.")
+        print("Keine Diagnosen in der Excel-Datei gefunden. Überspringe req...")
         return
 
-    print(f"{len(diagnoses_list)} Diagnosen gefunden. Bereite einzelne AI-Anfrage vor...")
+    print(f"{len(diagnoses_list)} Diagnosen gefunden. Bereite einzelne req vor...")
 
-    # 2. Erstelle einen einzigen, gebündelten Prompt für die AI
+    # 2. Erstelle einen einzigen, gebündelten Prompt
     prompt = (
         f"Gegeben ist eine Python-Liste von medizinischen Diagnosen: {diagnoses_list}. "
         "Für JEDE Diagnose in dieser Liste, gib den wahrscheinlichsten deutschen ICD-10-GM-Code und die dazugehörige offizielle deutsche Beschreibung zurück. "
@@ -457,10 +570,10 @@ def icd(excel_path):
     )
 
     try:
-        # 3. Sende die gebündelte Anfrage an die AI
+        # 3. Sende die gebündelte Anfrage
         
         c = genai.Client(api_key=f"{k}")
-        print("Starte req...")
+        print("icd req...")
         response = c.models.generate_content(
             model="gemini-2.5-flash", contents=f"{prompt}"
         )
@@ -469,7 +582,7 @@ def icd(excel_path):
 
         # 4. Überprüfe die Antwort und schreibe die Ergebnisse zurück
         if isinstance(results_data, list) and len(results_data) == len(diagnoses_list):
-            print("Erfolgreiche Antwort erhalten. Schreibe Daten in Excel...")
+            print("icd req done...")
             for i, result in enumerate(results_data):
                 row = row_indices[i]
                 icd_code = result.get("icd_code", "N/A")
@@ -483,7 +596,7 @@ def icd(excel_path):
             print(f"\nICD-10-Anreicherung abgeschlossen. Datei '{excel_path}' wurde aktualisiert.")
 
         else:
-            print("\nFEHLER: Die AI-Antwort hatte ein unerwartetes Format oder eine falsche Anzahl von Ergebnissen.")
+            print("\nFEHLER: req hatte ein unerwartetes Format oder eine falsche Anzahl von Ergebnissen.")
             print(f"Erwartet: Liste mit {len(diagnoses_list)} Elementen. Erhalten: {type(results_data)} mit {len(results_data) if isinstance(results_data, list) else 'N/A'} Elementen.")
 
     except json.JSONDecodeError:
