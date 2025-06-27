@@ -174,7 +174,7 @@ entity_keywords = {
     'Mammakarzinom': ['mammakarzinom', 'mamma', 'brustkrebs', 'brust'],
     'Endometriumkarzinom': ['endometriumkarzinom', 'endometrium', 'corpuskarzinom', 'uterus', 'korpus'],
     'Cervixkarzinom': ['cervixkarzinom', 'cervix', 'zervix'],
-    'Vaginakarzinom': ['vaginakarzinom', 'vagina', 'scheidenkarzinom', 'scheide'],
+    'Vaginakarzinom': ['vaginakarzinom', 'vagina'],
     'Vulvakarzinom': ['vulvakarzinom', 'vulva'],
 
     # --- Andere Erkrankungen ---
