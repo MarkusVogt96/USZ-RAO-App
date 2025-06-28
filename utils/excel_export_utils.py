@@ -187,8 +187,8 @@ def export_patients_by_category(tumorboard_name, date_str, tumorboard_base_path=
         # Read the daily Excel data
         daily_df = pd.read_excel(daily_excel_path, engine='openpyxl')
         
-        # Ensure backoffice directory exists
-        backoffice_dir = Path("C:/Users/marku/tumorboards/_Backoffice")
+        # Ensure backoffice directory exists - use the same base path as the tumorboard
+        backoffice_dir = tumorboard_base_path / "_Backoffice"
         backoffice_dir.mkdir(parents=True, exist_ok=True)
         
         # Category mappings
