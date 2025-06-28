@@ -571,7 +571,8 @@ def icd(excel_path):
     prompt = (
         f"Gegeben ist eine Python-Liste von medizinischen Diagnosen: {diagnoses_list}. "
         "Für JEDE Diagnose in dieser Liste, gib den wahrscheinlichsten deutschen ICD-10-GM-Code und die dazugehörige offizielle deutsche Beschreibung zurück. "
-        "Für Tumore und tumorverdächtige Raumforderungen dürfen ausschliesslich C- und D-Diagnosen kodiert werden. Bei einem Verdacht auf ein Malignom kann bereits die entsprechende C-Diagnose verwendet werden (z.B. C34.1 hochsuspekte Raumforderung im Oberlappen), bei benignen Tumoren entsprechend die D-Diagnose."
+        "Für Tumore und tumorverdächtige Raumforderungen dürfen ausschliesslich C- und D-Diagnosen kodiert werden."
+        "Bei einem Verdacht auf ein Malignom kann bereits die entsprechende C-Diagnose verwendet werden (z.B. C34.1 hochsuspekte Raumforderung im Oberlappen), bei benignen Tumoren entsprechend die D-Diagnose. Die ausgewählten Codes sollen entsprechend der beschreibenden Lokalisation möglichst präzise sein."
         "Diagnosen, die keiner Tumorerkrankung entsprechen, dürfen durch ihren jeweiligen ICD-10-GM-Code kodiert werden."
         "Formatiere die gesamte Antwort als ein einziges JSON-Objekt, das eine Liste von Objekten ist. "
         "Die zurückgegebene Liste MUSS exakt die gleiche Anzahl an Elementen haben wie die Eingabeliste und die Reihenfolge beibehalten. "
