@@ -97,10 +97,14 @@ def userinput():
             print("Bitte eine gültige Zahl eingeben.")
 
 def open_tumorboard():
-
     pyautogui.press('f6') #öffnet Briefkasten
-    time.sleep(2)
+    if not UNIVERSAL.find_button("button_aufgaben_confirm.png", base_path=local_screenshots_dir, confidence=0.9, max_attempts=100): 
+        print("Fehler: Konnte button_aufgaben_confirm.png nicht finden. Briefkasten wurde nicht geöffnet. Beende Skript.")
+        sys.exit(1)
+    time.sleep(0.5)
+
     pyautogui.click(740, 120) #klickt auf Briefkasten
+
     while True:
         if UNIVERSAL.find_button(image_name="button_briefkasten_confirm.png", base_path=local_screenshots_dir, max_attempts=1, confidence=0.9): 
             print("button_briefkasten_confirm.png gefunden, break While loop.")
@@ -138,34 +142,33 @@ def open_tumorboard():
             f.write(f"Aktuell sind keine Patienten für das Tumorboard {tumorboard_auswahl} angemeldet.\n")
         return
 
-    if not UNIVERSAL.find_and_click_button_offset(image_name="button_erledigt_am.png", base_path=local_screenshots_dir, y_offset=30): print("Fehler: freier_bereich_Button nicht gefunden."); sys.exit()
-    time.sleep(2)
+    if not UNIVERSAL.find_and_click_button_offset(image_name="button_erledigt_am.png", base_path=local_screenshots_dir, y_offset=30): print("Fehler: freier_bereich_Button nicht gefunden."); return False
+    if not UNIVERSAL.find_button("button_zeile_unter_erledigt_markiert.png", base_path=local_screenshots_dir, confidence=0.95, max_attempts=80): 
+        print("Fehler: button_zeile_unter_erledigt_markiert.png nicht gefunden. Beende Skript."); return False
     pyautogui.hotkey('ctrl', 'a') #wählt alles aus
-    time.sleep(2)
+    if not UNIVERSAL.find_button("button_alle_markiert_confirm.png", base_path=local_screenshots_dir, confidence=0.95, max_attempts=80): 
+        print("Fehler: button_alle_markiert_confirm.png nicht gefunden. Beende Skript."); return False
 
 def tumorboard_nach_nachname_sortieren():
     if not UNIVERSAL.find_and_click_button_offset(image_name="button_erledigt_am.png", base_path=local_screenshots_dir, y_offset=30, rightclick=True):
         print("Konnte nicht unter Erledigt am rechtsklicken.")
         return False
     
-    time.sleep(1)
-    for _ in range(5):
-        pyautogui.press('down') #Auf Option sortieren klicken
-    pyautogui.press('enter') #Bestätigen
+    if not UNIVERSAL.find_and_click_button("button_sortieren.png", base_path=local_screenshots_dir, confidence=0.95, max_attempts=80): print("Fehler: Konnte button_sortieren.png nicht klicken."); return False
 
     UNIVERSAL.ctrl_tabs(2) #Wechselt in den Tab "Spalte 1"
     pyautogui.press('enter') #Bestätigen
     pyautogui.typewrite("pat") #pat schreiben
-    time.sleep(0.5)
+    time.sleep(0.3)
     pyautogui.press('enter') #wählt Patienten aus
-    time.sleep(0.5)
+    time.sleep(0.3)
 
     UNIVERSAL.ctrl_tabs(1)
     pyautogui.press('enter') #wählt Art der Sortierung aus
     pyautogui.typewrite("auf") #auf schreiben
     pyautogui.press('enter') #wählt aufsteigend aus
-    time.sleep(0.5)
-    if not UNIVERSAL.find_and_click_button("button_sortierung_ok.png", base_path=local_screenshots_dir, confidence=0.95): print("Fehler: Konnte Button_sortierung_ok.png nicht klicken."); sys.exit()
+    time.sleep(0.3)
+    if not UNIVERSAL.find_and_click_button("button_sortierung_ok.png", base_path=local_screenshots_dir, confidence=0.95): print("Fehler: Konnte Button_sortierung_ok.png nicht klicken."); return False
 
 
 def als_pdf_speichern():
@@ -173,24 +176,34 @@ def als_pdf_speichern():
         print("Konnte nicht unter Erledigt am rechtsklicken.")
         return False
     
-    time.sleep(1)
-    for _ in range(2):
-        pyautogui.press('down') 
-    pyautogui.press('enter') #Ausgewählte Aufträge drucken
-    time.sleep(2)
+    if not UNIVERSAL.find_and_click_button("button_aufgaben_drucken.png", base_path=local_screenshots_dir, confidence=0.95, max_attempts=80): print("Fehler: Konnte button_als_pdf_speichern.png nicht klicken."); return False
 
-    if not UNIVERSAL.find_and_click_button_offset("button_drucker.png", base_path=local_screenshots_dir, confidence=0.95, x_offset=170): print("Fehler: Konnte button_drucker.png nicht klicken."); sys.exit()
-    time.sleep(2)
-    if not UNIVERSAL.find_and_click_button_offset("button_name.png", base_path=local_screenshots_dir, confidence=0.95, x_offset=150): print("Fehler: Konnte button_name.png nicht klicken."); sys.exit()
-    if not UNIVERSAL.find_and_click_button("button_microsoft_print_to_pdf.png", base_path=local_screenshots_dir, confidence=0.95): print("Fehler: Konnte button_microsoft_print_to_pdf.png nicht klicken."); sys.exit()
-    time.sleep(2)
+    if not UNIVERSAL.find_and_click_button_offset("button_drucker.png", base_path=local_screenshots_dir, confidence=0.95, x_offset=170): print("Fehler: Konnte button_drucker.png nicht klicken."); return False
+    if not UNIVERSAL.find_button("button_druckeinrichtung_confirm.png", base_path=local_screenshots_dir, confidence=0.95, max_attempts=80): 
+        print("Fehler: button_druckeinrichtung_confirm.png nicht gefunden. Beende Skript."); return False
+
+    if not UNIVERSAL.find_and_click_button_offset("button_name.png", base_path=local_screenshots_dir, confidence=0.95, x_offset=150): print("Fehler: Konnte button_name.png nicht klicken."); return False
+    if not UNIVERSAL.find_and_click_button("button_microsoft_print_to_pdf.png", base_path=local_screenshots_dir, confidence=0.95): print("Fehler: Konnte button_microsoft_print_to_pdf.png nicht klicken."); return False
+    if not UNIVERSAL.find_button("button_print_to_pdf_confirm.png", base_path=local_screenshots_dir, confidence=0.95, max_attempts=80): 
+        print("Fehler: button_print_to_pdf_confirm.png nicht gefunden. Beende Skript."); return False
+    
+    time.sleep(0.4)
     pyautogui.press('enter') #Bestätigen
     time.sleep(2)
     pyautogui.press('enter') #Bestätigen
-
-
-    time.sleep(2)
-    if not UNIVERSAL.find_and_click_button("button_ja_rot.png", base_path=local_screenshots_dir, confidence=0.90, max_attempts=5): print("button_ja_rot.png wurde nicht gefunden, fahre fort.")
+    
+    # Try-Loop: Bis zu 80 Versuche, jeweils beide Optionen mit max_attempts=1 prüfen
+    for attempt in range(80):
+        if UNIVERSAL.find_and_click_button("button_ja_rot.png", base_path=local_screenshots_dir, confidence=0.90, max_attempts=1): 
+            print("button_ja_rot.png wurde gefunden. Break loop.")
+            break
+        if UNIVERSAL.find_button("button_druckausgabe_speichern_unter.png", base_path=local_screenshots_dir, confidence=0.90, max_attempts=1):
+            print("button_druckausgabe_speichern_unter.png wurde gefunden. Break loop.")
+            break
+        time.sleep(0.05)
+    else:
+        print("Fehler: Weder button_ja_rot.png noch button_druckausgabe_speichern_unter.png gefunden nach 80 Versuchen.")
+        return False
     
     # PDF-Speichern-Loop für alle Tumorboard-Anmeldungen
     #Export dir definieren
@@ -198,7 +211,7 @@ def als_pdf_speichern():
     clipboard.copy(tb_folder)
     pyautogui.hotkey('ctrl', 'v') #fügt den Text "Export" ein
     pyautogui.press('enter') #Bestätigen
-    time.sleep(0.5)
+    time.sleep(0.3)
 
     nummer = 1
     while UNIVERSAL.find_and_click_button(
@@ -558,8 +571,7 @@ def icd(excel_path):
     prompt = (
         f"Gegeben ist eine Python-Liste von medizinischen Diagnosen: {diagnoses_list}. "
         "Für JEDE Diagnose in dieser Liste, gib den wahrscheinlichsten deutschen ICD-10-GM-Code und die dazugehörige offizielle deutsche Beschreibung zurück. "
-        "Die Nutzung von Z-Diagnosen (Beobachtungen) ist dabei nicht erwünscht. Wenn ein unklare Raumforderung besteht, kann eine R-Diagnose verwendet werden."
-        "Bei konkretem Verdacht auf ein Malignom kann bereits die entsprechende C-Diagnose verwendet werden, bei benignen Tumoren entsprechend die D-Diagnose."
+        "Es dürfen ausschliesslich C- und D-Diagnosen kodiert werden. Bei einem Verdacht auf ein Malignom kann bereits die entsprechende C-Diagnose verwendet werden (z.B. C34.1 hochsuspekte Raumforderung im Oberlappen), bei benignen Tumoren entsprechend die D-Diagnose."
         "Formatiere die gesamte Antwort als ein einziges JSON-Objekt, das eine Liste von Objekten ist. "
         "Die zurückgegebene Liste MUSS exakt die gleiche Anzahl an Elementen haben wie die Eingabeliste und die Reihenfolge beibehalten. "
         "Jedes Objekt in der Liste muss die Schlüssel 'icd_code' und 'icd_beschreibung' enthalten. "
