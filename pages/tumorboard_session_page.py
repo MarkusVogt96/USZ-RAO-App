@@ -2326,7 +2326,10 @@ class TumorboardSessionPage(QWidget):
                 if not self.is_using_fallback_path:
                     try:
                         from utils.database_utils import TumorboardDatabase
-                        db = TumorboardDatabase()
+                        
+                        # Use correct database path based on tumorboard base path
+                        db_path = self.tumorboard_base_path / "__SQLite_database" / "master_tumorboard.db"
+                        db = TumorboardDatabase(db_path=db_path)
                         
                         # Use the previously determined finalization status
                         is_edit = not is_first_time_finalization

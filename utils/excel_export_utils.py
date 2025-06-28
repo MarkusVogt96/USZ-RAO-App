@@ -99,7 +99,7 @@ def export_tumorboard_to_collection(tumorboard_name, date_str, tumorboard_base_p
         # Skip database sync if using fallback path (not K: drive)
         if not skip_database_sync:
             try:
-                sync_collection_to_database(tumorboard_name, collection_file_path)
+                sync_collection_to_database(tumorboard_name, collection_file_path, tumorboard_base_path)
             except Exception as db_error:
                 logging.warning(f"Collection Excel export succeeded, but database sync failed: {db_error}")
                 # Don't fail the entire operation if database sync fails
@@ -113,10 +113,16 @@ def export_tumorboard_to_collection(tumorboard_name, date_str, tumorboard_base_p
         return False
 
 
-def sync_collection_to_database(tumorboard_name, collection_excel_path):
+def sync_collection_to_database(tumorboard_name, collection_excel_path, tumorboard_base_path=None):
     """Sync a specific collection Excel file to the central database"""
     try:
-        db = TumorboardDatabase()
+        # Determine correct database path based on tumorboard base path
+        if tumorboard_base_path is not None:
+            db_path = tumorboard_base_path / "__SQLite_database" / "master_tumorboard.db"
+        else:
+            db_path = None  # Use default user home path
+        
+        db = TumorboardDatabase(db_path=db_path)
         success = db.import_collection_excel(tumorboard_name, collection_excel_path, create_backup=True)
         
         if success:
