@@ -2316,34 +2316,39 @@ class TumorboardSessionPage(QWidget):
         
         # Export to collection Excel file
         try:
-            export_success = export_tumorboard_to_collection(self.tumorboard_name, self.date_str, self.tumorboard_base_path)
+            # Skip database sync if using fallback path (not K: drive)
+            skip_db_sync = self.is_using_fallback_path
+            export_success = export_tumorboard_to_collection(self.tumorboard_name, self.date_str, self.tumorboard_base_path, skip_database_sync=skip_db_sync)
             if export_success:
                 logging.info(f"Successfully exported {self.tumorboard_name} {self.date_str} to collection Excel")
                 
-                # Update database completion tracking
-                try:
-                    from utils.database_utils import TumorboardDatabase
-                    db = TumorboardDatabase()
-                    
-                    # Use the previously determined finalization status
-                    is_edit = not is_first_time_finalization
-                    
-                    # Update session completion data
-                    success = db.update_session_completion_data(
-                        self.tumorboard_name, 
-                        self.date_str, 
-                        finalized_by=user_name,
-                        is_edit=is_edit
-                    )
-                    
-                    if success:
-                        logging.info(f"Successfully updated session completion tracking for {self.tumorboard_name} {self.date_str}")
-                    else:
-                        logging.warning(f"Failed to update session completion tracking for {self.tumorboard_name} {self.date_str}")
+                # Update database completion tracking (only if NOT using fallback path)
+                if not self.is_using_fallback_path:
+                    try:
+                        from utils.database_utils import TumorboardDatabase
+                        db = TumorboardDatabase()
                         
-                except Exception as tracking_error:
-                    logging.error(f"Error updating session completion tracking: {tracking_error}")
-                    # Don't fail the entire operation if tracking fails
+                        # Use the previously determined finalization status
+                        is_edit = not is_first_time_finalization
+                        
+                        # Update session completion data
+                        success = db.update_session_completion_data(
+                            self.tumorboard_name, 
+                            self.date_str, 
+                            finalized_by=user_name,
+                            is_edit=is_edit
+                        )
+                        
+                        if success:
+                            logging.info(f"Successfully updated session completion tracking for {self.tumorboard_name} {self.date_str}")
+                        else:
+                            logging.warning(f"Failed to update session completion tracking for {self.tumorboard_name} {self.date_str}")
+                            
+                    except Exception as tracking_error:
+                        logging.error(f"Error updating session completion tracking: {tracking_error}")
+                        # Don't fail the entire operation if tracking fails
+                else:
+                    logging.info(f"Skipping database completion tracking for {self.tumorboard_name} {self.date_str} - using fallback path")
                 
                 # Export patients by category to backoffice Excel files (only on first finalization)
                 if is_first_time_finalization:

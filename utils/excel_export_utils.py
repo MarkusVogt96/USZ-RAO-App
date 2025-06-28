@@ -11,7 +11,7 @@ from .database_utils import TumorboardDatabase
 
 
 
-def export_tumorboard_to_collection(tumorboard_name, date_str, tumorboard_base_path=None):
+def export_tumorboard_to_collection(tumorboard_name, date_str, tumorboard_base_path=None, skip_database_sync=False):
     """Export a specific tumorboard session to the collection Excel file"""
     try:
         # Use provided base path or fallback to user home
@@ -96,11 +96,15 @@ def export_tumorboard_to_collection(tumorboard_name, date_str, tumorboard_base_p
         logging.info(f"Successfully exported {tumorboard_name} {date_str} to collection Excel")
         
         # After successful collection Excel export, sync to central database
-        try:
-            sync_collection_to_database(tumorboard_name, collection_file_path)
-        except Exception as db_error:
-            logging.warning(f"Collection Excel export succeeded, but database sync failed: {db_error}")
-            # Don't fail the entire operation if database sync fails
+        # Skip database sync if using fallback path (not K: drive)
+        if not skip_database_sync:
+            try:
+                sync_collection_to_database(tumorboard_name, collection_file_path)
+            except Exception as db_error:
+                logging.warning(f"Collection Excel export succeeded, but database sync failed: {db_error}")
+                # Don't fail the entire operation if database sync fails
+        else:
+            logging.info(f"Skipping database sync for {tumorboard_name} {date_str} - using fallback path")
         
         return True
         
