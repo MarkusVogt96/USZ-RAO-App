@@ -16,13 +16,24 @@ from utils.database_utils import TumorboardDatabase
 class DashboardDataExporter:
     """Export database data for interactive dashboard"""
     
-    def __init__(self):
-        self.db = TumorboardDatabase()
+    def __init__(self, tumorboard_base_path=None):
+        # Determine correct database path based on tumorboard base path
+        if tumorboard_base_path is not None:
+            db_path = tumorboard_base_path / "__SQLite_database" / "master_tumorboard.db"
+        else:
+            db_path = None  # Use default user home path
+        
+        self.db = TumorboardDatabase(db_path=db_path)
+        self.tumorboard_base_path = tumorboard_base_path
     
     def export_dashboard_data(self, output_path=None):
         """Export all data needed for dashboard as JSON"""
         if output_path is None:
-            output_path = Path.home() / "tumorboards" / "__SQLite_database" / "dashboard_data.json"
+            # Use tumorboard base path if available, otherwise fall back to user home
+            if self.tumorboard_base_path is not None:
+                output_path = self.tumorboard_base_path / "__SQLite_database" / "dashboard_data.json"
+            else:
+                output_path = Path.home() / "tumorboards" / "__SQLite_database" / "dashboard_data.json"
         
         try:
             with sqlite3.connect(self.db.db_path) as conn:
@@ -401,9 +412,18 @@ class DashboardDataExporter:
         }
 
 
-def generate_dashboard_data():
+def generate_dashboard_data(tumorboard_base_path=None):
     """Generate dashboard data JSON file"""
-    exporter = DashboardDataExporter()
+    # Determine correct tumorboard base path if not provided
+    if tumorboard_base_path is None:
+        # Try K: first, fall back to user home
+        k_path = Path("K:/RAO_Projekte/App/tumorboards")
+        if k_path.exists() and k_path.is_dir():
+            tumorboard_base_path = k_path
+        else:
+            tumorboard_base_path = Path.home() / "tumorboards"
+    
+    exporter = DashboardDataExporter(tumorboard_base_path)
     return exporter.export_dashboard_data()
 
 

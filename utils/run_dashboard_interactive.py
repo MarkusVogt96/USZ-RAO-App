@@ -42,9 +42,19 @@ def main():
         else:
             print("⚠️ Datenbank-Synchronisation fehlgeschlagen oder keine neuen Daten")
         
-        # Generate dashboard
+        # Generate dashboard  
         print("\n🎨 Generiere Dashboard HTML...")
-        dashboard_path = generate_complete_dashboard(interactive=True)
+        
+        # Determine correct tumorboard base path
+        k_path = Path("K:/RAO_Projekte/App/tumorboards")
+        if k_path.exists() and k_path.is_dir():
+            tumorboard_base_path = k_path
+            print(f"✅ Verwende K:-Pfad: {tumorboard_base_path}")
+        else:
+            tumorboard_base_path = Path.home() / "tumorboards"
+            print(f"⚠️ K:-Pfad nicht verfügbar, verwende Fallback: {tumorboard_base_path}")
+        
+        dashboard_path = generate_complete_dashboard(interactive=True, tumorboard_base_path=tumorboard_base_path)
         
         if dashboard_path and Path(dashboard_path).exists():
             print(f"✅ Dashboard erfolgreich generiert: {dashboard_path}")

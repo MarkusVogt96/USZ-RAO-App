@@ -6,13 +6,18 @@ from .dashboard_data_export import DashboardDataExporter
 class DashboardHTMLGenerator:
     """Generate complete HTML dashboard with embedded data"""
     
-    def __init__(self):
-        self.exporter = DashboardDataExporter()
+    def __init__(self, tumorboard_base_path=None):
+        self.tumorboard_base_path = tumorboard_base_path
+        self.exporter = DashboardDataExporter(tumorboard_base_path)
     
     def generate_complete_html(self, output_path=None, interactive=True):
         """Generate complete HTML file with embedded JSON data"""
         if output_path is None:
-            output_path = Path.home() / "tumorboards" / "__SQLite_database" / "dashboard" / "dashboard.html"
+            # Use tumorboard base path if available, otherwise fall back to user home
+            if self.tumorboard_base_path is not None:
+                output_path = self.tumorboard_base_path / "__SQLite_database" / "dashboard" / "dashboard.html"
+            else:
+                output_path = Path.home() / "tumorboards" / "__SQLite_database" / "dashboard" / "dashboard.html"
         
         try:
             # Get dashboard data
@@ -78,7 +83,10 @@ class DashboardHTMLGenerator:
         """Get dashboard data as dictionary"""
         try:
             # Export to temporary location and read back
-            temp_path = Path.home() / "tumorboards" / "__SQLite_database" / "temp_dashboard_data.json"
+            if self.tumorboard_base_path is not None:
+                temp_path = self.tumorboard_base_path / "__SQLite_database" / "temp_dashboard_data.json"
+            else:
+                temp_path = Path.home() / "tumorboards" / "__SQLite_database" / "temp_dashboard_data.json"
             export_path = self.exporter.export_dashboard_data(temp_path)
             
             if not export_path or not Path(export_path).exists():
@@ -97,7 +105,16 @@ class DashboardHTMLGenerator:
             return None
 
 
-def generate_complete_dashboard(interactive=True):
+def generate_complete_dashboard(interactive=True, tumorboard_base_path=None):
     """Generate complete dashboard HTML with embedded data"""
-    generator = DashboardHTMLGenerator()
+    # Determine correct tumorboard base path if not provided
+    if tumorboard_base_path is None:
+        # Try K: first, fall back to user home
+        k_path = Path("K:/RAO_Projekte/App/tumorboards")
+        if k_path.exists() and k_path.is_dir():
+            tumorboard_base_path = k_path
+        else:
+            tumorboard_base_path = Path.home() / "tumorboards"
+    
+    generator = DashboardHTMLGenerator(tumorboard_base_path)
     return generator.generate_complete_html(interactive=interactive) 

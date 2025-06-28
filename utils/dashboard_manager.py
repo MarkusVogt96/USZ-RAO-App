@@ -12,10 +12,21 @@ class DashboardManager(QWidget):
     
     data_updated = pyqtSignal()
     
-    def __init__(self, parent=None):
+    def __init__(self, parent=None, tumorboard_base_path=None):
         super().__init__(parent)
-        self.exporter = DashboardDataExporter()
-        self.dashboard_dir = Path.home() / "tumorboards" / "__SQLite_database" / "dashboard"
+        
+        # Determine correct tumorboard base path
+        if tumorboard_base_path is None:
+            # Try K: first, fall back to user home
+            k_path = Path("K:/RAO_Projekte/App/tumorboards")
+            if k_path.exists() and k_path.is_dir():
+                tumorboard_base_path = k_path
+            else:
+                tumorboard_base_path = Path.home() / "tumorboards"
+        
+        self.tumorboard_base_path = tumorboard_base_path
+        self.exporter = DashboardDataExporter(tumorboard_base_path)
+        self.dashboard_dir = tumorboard_base_path / "__SQLite_database" / "dashboard"
         self.data_file = self.dashboard_dir / "dashboard_data.json"
         self.html_file = self.dashboard_dir / "dashboard.html"
         
@@ -193,7 +204,7 @@ class DashboardManager(QWidget):
 class DashboardWindow(QWidget):
     """Standalone dashboard window"""
     
-    def __init__(self):
+    def __init__(self, tumorboard_base_path=None):
         super().__init__()
         self.setWindowTitle("🏥 Tumorboard Analytics Dashboard")
         self.setGeometry(100, 100, 1400, 900)
@@ -204,8 +215,8 @@ class DashboardWindow(QWidget):
         
         layout = QVBoxLayout(self)
         
-        # Add dashboard manager
-        self.dashboard_manager = DashboardManager(self)
+        # Add dashboard manager with correct base path
+        self.dashboard_manager = DashboardManager(self, tumorboard_base_path)
         layout.addWidget(self.dashboard_manager)
         
         # Initial data refresh
@@ -231,12 +242,21 @@ class DashboardWindow(QWidget):
         QApplication.quit()
 
 
-def create_dashboard_window():
+def create_dashboard_window(tumorboard_base_path=None):
     """Create and return a dashboard window"""
-    return DashboardWindow()
+    return DashboardWindow(tumorboard_base_path)
 
 
-def export_dashboard_data():
+def export_dashboard_data(tumorboard_base_path=None):
     """Standalone function to export dashboard data"""
-    exporter = DashboardDataExporter()
+    # Determine correct tumorboard base path if not provided
+    if tumorboard_base_path is None:
+        # Try K: first, fall back to user home
+        k_path = Path("K:/RAO_Projekte/App/tumorboards")
+        if k_path.exists() and k_path.is_dir():
+            tumorboard_base_path = k_path
+        else:
+            tumorboard_base_path = Path.home() / "tumorboards"
+    
+    exporter = DashboardDataExporter(tumorboard_base_path)
     return exporter.export_dashboard_data() 
