@@ -10,8 +10,21 @@ from .database_utils import TumorboardDatabase
 class TumorboardAnalyzer:
     """Data analysis tool for tumorboard database"""
     
-    def __init__(self):
-        self.db = TumorboardDatabase()
+    def __init__(self, tumorboard_base_path=None):
+        # Determine correct tumorboard base path if not provided
+        if tumorboard_base_path is None:
+            # Try K: first, fall back to user home
+            k_path = Path("K:/RAO_Projekte/App/tumorboards")
+            if k_path.exists() and k_path.is_dir():
+                tumorboard_base_path = k_path
+            else:
+                tumorboard_base_path = Path.home() / "tumorboards"
+        
+        self.tumorboard_base_path = tumorboard_base_path
+        
+        # Initialize database with correct path
+        db_path = tumorboard_base_path / "__SQLite_database" / "master_tumorboard.db"
+        self.db = TumorboardDatabase(db_path=db_path)
     
     def get_patient_statistics(self):
         """Get comprehensive patient statistics"""
@@ -189,7 +202,7 @@ class TumorboardAnalyzer:
         """Export a comprehensive analysis report to Excel"""
         if output_path is None:
             timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-            output_path = Path.home() / "tumorboards" / f"tumorboard_analysis_report_{timestamp}.xlsx"
+            output_path = self.tumorboard_base_path / f"tumorboard_analysis_report_{timestamp}.xlsx"
         
         try:
             # Get all analysis data
@@ -278,7 +291,7 @@ class TumorboardAnalyzer:
     def create_visualization_report(self, output_dir=None):
         """Create visualization charts and save as images"""
         if output_dir is None:
-            output_dir = Path.home() / "tumorboards" / "__SQLite_database" / "analysis_charts"
+            output_dir = self.tumorboard_base_path / "__SQLite_database" / "analysis_charts"
         
         output_dir = Path(output_dir)
         output_dir.mkdir(exist_ok=True)
@@ -339,10 +352,10 @@ class TumorboardAnalyzer:
             return None
 
 
-def generate_full_analysis_report():
+def generate_full_analysis_report(tumorboard_base_path=None):
     """Generate a complete analysis report with all data and visualizations"""
     try:
-        analyzer = TumorboardAnalyzer()
+        analyzer = TumorboardAnalyzer(tumorboard_base_path)
         
         # Generate Excel report
         excel_report = analyzer.export_comprehensive_report()

@@ -631,11 +631,22 @@ class TumorboardDatabase:
             return value_str  # Return as-is for unknown values
 
 
-def sync_all_collection_files():
+def sync_all_collection_files(tumorboard_base_path=None):
     """Sync all collection Excel files to the central database"""
     try:
-        db = TumorboardDatabase()
-        tumorboards_dir = Path.home() / "tumorboards"
+        # Determine correct tumorboard base path if not provided
+        if tumorboard_base_path is None:
+            # Try K: first, fall back to user home
+            k_path = Path("K:/RAO_Projekte/App/tumorboards")
+            if k_path.exists() and k_path.is_dir():
+                tumorboard_base_path = k_path
+            else:
+                tumorboard_base_path = Path.home() / "tumorboards"
+        
+        # Initialize database with correct path
+        db_path = tumorboard_base_path / "__SQLite_database" / "master_tumorboard.db"
+        db = TumorboardDatabase(db_path=db_path)
+        tumorboards_dir = tumorboard_base_path
         
         if not tumorboards_dir.exists():
             logging.warning("Tumorboards directory not found")

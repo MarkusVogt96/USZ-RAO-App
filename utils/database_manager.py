@@ -109,7 +109,7 @@ def show_statistics():
     """Display database statistics"""
     try:
         print("Lade Datenbankstatistiken...")
-        db = TumorboardDatabase()
+        db = TumorboardDatabase(db_path=DATABASE_PATH)
         stats = db.get_statistics()
         
         if stats:
@@ -137,7 +137,7 @@ def create_analysis_report():
         print("Erstelle vollständigen Analysebericht...")
         print("Dies kann einige Minuten dauern...")
         
-        results = generate_full_analysis_report()
+        results = generate_full_analysis_report(tumorboard_base_path=TUMORBOARD_BASE_PATH)
         
         if results['success']:
             print("✓ Analysebericht erfolgreich erstellt")
@@ -157,7 +157,7 @@ def export_database():
     """Export database to Excel"""
     try:
         print("Exportiere Datenbank zu Excel...")
-        db = TumorboardDatabase()
+        db = TumorboardDatabase(db_path=DATABASE_PATH)
         export_path = db.export_to_excel()
         
         if export_path:
@@ -172,7 +172,7 @@ def backup_database():
     """Create database backup"""
     try:
         print("Erstelle Datenbank-Backup...")
-        db = TumorboardDatabase()
+        db = TumorboardDatabase(db_path=DATABASE_PATH)
         
         from datetime import datetime
         import shutil
@@ -199,7 +199,7 @@ def reset_database():
         confirmation = input("\nGeben Sie 'RESET' ein, um fortzufahren: ")
         
         if confirmation == "RESET":
-            db = TumorboardDatabase()
+            db = TumorboardDatabase(db_path=DATABASE_PATH)
             db_path = db.db_path
             
             # Close all database connections
@@ -227,7 +227,7 @@ def reset_database():
                     return
             
             # Reinitialize
-            new_db = TumorboardDatabase()
+            new_db = TumorboardDatabase(db_path=DATABASE_PATH)
             print("✓ Neue leere Datenbank erstellt")
             
         else:
@@ -239,6 +239,15 @@ def reset_database():
 def main():
     """Main program loop"""
     print("Tumorboard Database Manager gestartet")
+    
+    # Show path information and warning if using fallback
+    if "K:" in str(TUMORBOARD_BASE_PATH):
+        print(f"✅ Verwende K:-Intranet Database: {DATABASE_PATH}")
+    else:
+        print(f"⚠️  WARNUNG: K:-Laufwerk nicht verfügbar!")
+        print(f"⚠️  Verwende lokalen Fallback-Pfad: {DATABASE_PATH}")
+        print(f"⚠️  Daten werden NICHT mit dem Server synchronisiert!")
+        input("\nDrücken Sie Enter, um trotzdem fortzufahren...")
     
     while True:
         show_menu()
