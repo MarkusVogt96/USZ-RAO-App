@@ -1086,7 +1086,7 @@ class TumorboardSessionPage(QWidget):
     def create_patient_list_column(self, main_layout):
         """Create the left patient list column"""
         patient_frame = QFrame()
-        patient_frame.setFixedWidth(200)  # Made narrower for more PDF space
+        patient_frame.setFixedWidth(213)  # Made narrower for more PDF space
         patient_frame.setStyleSheet("""
             QFrame {
                 background-color: #1a2633;
