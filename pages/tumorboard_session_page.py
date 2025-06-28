@@ -11,6 +11,8 @@ from pathlib import Path
 import pandas as pd
 from datetime import datetime
 from utils.excel_export_utils import export_tumorboard_to_collection
+import json
+import os
 
 class NoScrollComboBox(QComboBox):
     """Custom QComboBox that ignores wheel events when not focused"""
@@ -1068,7 +1070,7 @@ class TumorboardSessionPage(QWidget):
     def setup_ui(self):
         # Main layout - horizontal with three sections
         main_layout = QHBoxLayout()
-        main_layout.setContentsMargins(10, 10, 10, 10)
+        main_layout.setContentsMargins(10, 0, 10, 10)
         main_layout.setSpacing(15)
         self.setLayout(main_layout)
 
@@ -1084,7 +1086,7 @@ class TumorboardSessionPage(QWidget):
     def create_patient_list_column(self, main_layout):
         """Create the left patient list column"""
         patient_frame = QFrame()
-        patient_frame.setFixedWidth(230)  # Made slightly narrower
+        patient_frame.setFixedWidth(200)  # Made narrower for more PDF space
         patient_frame.setStyleSheet("""
             QFrame {
                 background-color: #1a2633;
@@ -1107,7 +1109,7 @@ class TumorboardSessionPage(QWidget):
         # Add new patient button
         self.add_patient_button = QPushButton("Neuen Patienten\nanlegen")
         self.add_patient_button.setFixedHeight(50)
-        self.add_patient_button.setFixedWidth(193)
+        self.add_patient_button.setFixedWidth(180)
         self.add_patient_button.setCursor(Qt.CursorShape.PointingHandCursor)
         self.add_patient_button.setStyleSheet("""
             QPushButton {
@@ -1134,11 +1136,11 @@ class TumorboardSessionPage(QWidget):
         # Delete current patient button
         self.delete_patient_button = QPushButton("Markierten Patienten\nlöschen")
         self.delete_patient_button.setFixedHeight(50)
-        self.delete_patient_button.setFixedWidth(193)
+        self.delete_patient_button.setFixedWidth(180)
         self.delete_patient_button.setCursor(Qt.CursorShape.PointingHandCursor)
         self.delete_patient_button.setStyleSheet("""
             QPushButton {
-                background-color: #DC143C;
+                background-color: #880000;
                 color: white;
                 border: none;
                 border-radius: 4px;
@@ -1251,7 +1253,7 @@ class TumorboardSessionPage(QWidget):
         data_layout.addWidget(header_label)
         
         # Patient info section with FIXED HEIGHT -
-        PATIENT_INFO_HEIGHT = 160  
+        PATIENT_INFO_HEIGHT = 150  # Adjusted for combined birth date/age and ICD in one line each
         patient_info_container = QFrame()
         patient_info_container.setFixedHeight(PATIENT_INFO_HEIGHT)
         self.create_patient_info_section_fixed_height(patient_info_container)
@@ -1283,7 +1285,7 @@ class TumorboardSessionPage(QWidget):
                 background-color: #232F3B;
                 border: none;
                 border-radius: 0px;
-                padding: 4px;
+                padding: 1px;
             }
         """)
         
@@ -1301,15 +1303,41 @@ class TumorboardSessionPage(QWidget):
         self.birth_date_data_label.setStyleSheet("color: white; font-size: 14px; border: none; margin: 0px;")
         info_layout.addWidget(self.birth_date_data_label)
         
-        self.age_data_label = QLabel("Alter: -")
-        self.age_data_label.setStyleSheet("color: white; font-size: 14px; border: none; margin: 0px;")
-        info_layout.addWidget(self.age_data_label)
-        
         # Diagnose-Label und Text kombiniert in einem Label für bessere Formatierung
         self.diagnosis_data_label = QLabel("<b>Diagnose:</b> -")
         self.diagnosis_data_label.setStyleSheet("color: white; font-size: 14px; border: none; margin: 0px; margin-top: 0px;")
         self.diagnosis_data_label.setWordWrap(True)
         info_layout.addWidget(self.diagnosis_data_label)
+        
+        # ICD-Code mit Beschreibung in einer Zeile
+        self.icd_code_data_label = QLabel("<b>ICD:</b> -")
+        self.icd_code_data_label.setStyleSheet("color: white; font-size: 14px; border: none; margin: 0px;")
+        self.icd_code_data_label.setWordWrap(True)
+        info_layout.addWidget(self.icd_code_data_label)
+        
+        # Edit ICD Code Button
+        self.edit_icd_button = QPushButton("Edit ICD Code")
+        self.edit_icd_button.setFixedHeight(25)
+        self.edit_icd_button.setStyleSheet("""
+            QPushButton {
+                background-color: #114473;
+                color: white;
+                border: none;
+                border-radius: 4px;
+                font-size: 12px;
+                font-weight: bold;
+                padding: 3px 8px;
+                margin-top: 5px;
+            }
+            QPushButton:hover {
+                background-color: #1a5a9e;
+            }
+            QPushButton:pressed {
+                background-color: #0d3659;
+            }
+        """)
+        self.edit_icd_button.clicked.connect(self.open_icd_editor)
+        info_layout.addWidget(self.edit_icd_button)
         
         # Add stretch to fill remaining space if content is smaller than max_height
         info_layout.addStretch()
@@ -1700,7 +1728,7 @@ class TumorboardSessionPage(QWidget):
             
             button = QPushButton(button_text)
             button.setFixedHeight(40)
-            button.setFixedWidth(180)  # Fixed width to ensure proper rounding
+            button.setFixedWidth(170)  # Adjusted for narrower column
             button.setCursor(Qt.CursorShape.PointingHandCursor)
             
             # Set button style based on state
@@ -1790,10 +1818,27 @@ class TumorboardSessionPage(QWidget):
         # Update patient info display - most in one line, only diagnosis separate
         # Use HTML formatting to have bold labels and normal values
         self.name_data_label.setText(self.format_label_with_value("Name:", patient['name']))
-        self.birth_date_data_label.setText(self.format_label_with_value("Geburtsdatum:", patient['birth_date']))
-        self.age_data_label.setText(self.format_label_with_value("Alter:", patient['age']))
+        # Combine birth date and age in one line
+        birth_date = patient['birth_date']
+        age = patient['age']
+        if birth_date != '-' and age != '-':
+            self.birth_date_data_label.setText(f"<b>Geburtsdatum:</b> {birth_date} ({age})")
+        else:
+            self.birth_date_data_label.setText(f"<b>Geburtsdatum:</b> {birth_date}")
         # Diagnosis now uses the combined label with HTML formatting
         self.diagnosis_data_label.setText(f"<b>Diagnose:</b> {patient['diagnosis']}")
+        
+        # Set ICD-Code and description in one line
+        icd_code = patient.get('icd_code', '-')
+        if icd_code and icd_code != '-':
+            # Get ICD description
+            icd_description = get_icd_description_from_database(icd_code)
+            if icd_description != '-' and not icd_description.startswith('ICD-Code:'):
+                self.icd_code_data_label.setText(f"<b>ICD:</b> {icd_code} ({icd_description})")
+            else:
+                self.icd_code_data_label.setText(f"<b>ICD:</b> {icd_code}")
+        else:
+            self.icd_code_data_label.setText("<b>ICD:</b> -")
         
         # Load form data from Excel (not from cached patient data) to ensure proper reset
         excel_data = self.get_current_excel_data_for_patient(patient_index)
@@ -2778,8 +2823,8 @@ class TumorboardSessionPage(QWidget):
         """Clear patient information display when no patients are available"""
         self.name_data_label.setText("Name: -")
         self.birth_date_data_label.setText("Geburtsdatum: -")
-        self.age_data_label.setText("Alter: -")
         self.diagnosis_data_label.setText("<b>Diagnose:</b> -")
+        self.icd_code_data_label.setText("<b>ICD:</b> -")
         
         # Clear form fields
         self.radiotherapy_combo.setCurrentText("-")
@@ -3106,6 +3151,258 @@ class TumorboardSessionPage(QWidget):
             logging.error(f"Error ensuring temp file exists: {e}")
             return False
 
+    def open_icd_editor(self):
+        """Open the ICD code editor dialog"""
+        print("DEBUG: open_icd_editor called")
+        
+        if not self.patients_data or self.current_patient_index >= len(self.patients_data):
+            print("DEBUG: No patient selected, showing warning")
+            QMessageBox.warning(self, "Kein Patient", "Bitte wählen Sie zuerst einen Patienten aus.")
+            return
+        
+        current_patient = self.patients_data[self.current_patient_index]
+        current_icd_code = current_patient.get('icd_code', '-')
+        print(f"DEBUG: Current patient: {current_patient['name']}, ICD: {current_icd_code}")
+        
+        # Open the ICD editor dialog
+        print("DEBUG: Creating ICDEditorDialog...")
+        try:
+            dialog = ICDEditorDialog(current_icd_code, self)
+            print("DEBUG: ICDEditorDialog created successfully")
+            
+            print("DEBUG: Executing dialog...")
+            result = dialog.exec()
+            print(f"DEBUG: Dialog execution completed with result: {result}")
+            
+            if result == QDialog.DialogCode.Accepted:
+                print("DEBUG: Dialog accepted, getting selected ICD...")
+                # Get the selected ICD code and description
+                new_icd_code, new_description = dialog.get_selected_icd()
+                print(f"DEBUG: Selected ICD: {new_icd_code}, Description: {new_description}")
+                
+                if new_icd_code and new_icd_code != current_icd_code:
+                    print("DEBUG: ICD code changed, updating patient data...")
+                    # Update patient data
+                    current_patient['icd_code'] = new_icd_code
+                    
+                    # Update the ICD display in the patient info section
+                    if new_description:
+                        self.icd_code_data_label.setText(f"<b>ICD:</b> {new_icd_code} ({new_description})")
+                    else:
+                        self.icd_code_data_label.setText(f"<b>ICD:</b> {new_icd_code}")
+                    
+                    # Mark as having unsaved changes
+                    self.mark_unsaved_changes()
+                    
+                    # Save the change to the temporary Excel file
+                    try:
+                        self.save_icd_change_to_excel(current_patient['index'], new_icd_code)
+                        logging.info(f"Updated ICD code for patient {current_patient['name']} to {new_icd_code}")
+                        print(f"DEBUG: ICD change saved successfully")
+                    except Exception as e:
+                        print(f"ERROR: Error saving ICD change to Excel: {e}")
+                        logging.error(f"Error saving ICD change to Excel: {e}")
+                        QMessageBox.warning(self, "Speicherfehler", 
+                                          f"Fehler beim Speichern der ICD-Änderung: {e}")
+                else:
+                    print("DEBUG: No ICD code change detected")
+            else:
+                print("DEBUG: Dialog was cancelled or rejected")
+        except Exception as e:
+            print(f"ERROR: Exception in open_icd_editor: {e}")
+            import traceback
+            print(f"ERROR: Traceback: {traceback.format_exc()}")
+
+    def save_icd_change_to_excel(self, patient_row_index, new_icd_code):
+        """Save ICD code change to the temporary Excel file"""
+        # Ensure temp file exists for editing
+        if not self.ensure_temp_file_exists():
+            raise Exception("Temporäre Datei konnte nicht erstellt werden")
+        
+        # Use temporary Excel file
+        excel_path = self.temp_excel_path
+        
+        try:
+            # Read current Excel file
+            df = pd.read_excel(excel_path, engine='openpyxl')
+            
+            # Find the correct ICD column name (check multiple possibilities)
+            icd_column = None
+            possible_icd_columns = ['ICD-10', 'ICD-Code', 'ICD Code', 'ICD10']
+            for col in possible_icd_columns:
+                if col in df.columns:
+                    icd_column = col
+                    break
+            
+            # If no ICD column found, use 'ICD-10' as default
+            if icd_column is None:
+                icd_column = 'ICD-10'
+                logging.warning(f"No ICD column found, using default: {icd_column}")
+            
+            # Update the ICD code in the specified row
+            df.at[patient_row_index, icd_column] = new_icd_code
+            
+            # Save back to Excel
+            df.to_excel(excel_path, index=False, engine='openpyxl')
+            
+            logging.info(f"Successfully updated ICD code in Excel file at row {patient_row_index}")
+            
+        except Exception as e:
+            logging.error(f"Error saving ICD change to Excel: {e}")
+            raise e
+
+    @staticmethod
+    def get_icd_description(icd_code):
+        """Get German description for ICD-10 code"""
+        if not icd_code or str(icd_code).strip() in ['-', '', 'nan']:
+            return '-'
+        
+        icd_code = str(icd_code).strip().upper()
+        
+        # Dictionary of common oncological ICD-10 codes and their German descriptions
+        icd_descriptions = {
+            # Maligne Neubildungen des Kopfes und Halses
+            'C00': 'Bösartige Neubildung der Lippe',
+            'C01': 'Bösartige Neubildung des Zungengrundes',
+            'C02': 'Bösartige Neubildung sonstiger und nicht näher bezeichneter Teile der Zunge',
+            'C03': 'Bösartige Neubildung des Zahnfleisches',
+            'C04': 'Bösartige Neubildung des Mundbodens',
+            'C05': 'Bösartige Neubildung des Gaumens',
+            'C06': 'Bösartige Neubildung sonstiger und nicht näher bezeichneter Teile des Mundes',
+            'C07': 'Bösartige Neubildung der Parotis',
+            'C08': 'Bösartige Neubildung sonstiger und nicht näher bezeichneter großer Speicheldrüsen',
+            'C09': 'Bösartige Neubildung der Tonsille',
+            'C10': 'Bösartige Neubildung des Oropharynx',
+            'C11': 'Bösartige Neubildung des Nasopharynx',
+            'C12': 'Bösartige Neubildung des Sinus piriformis',
+            'C13': 'Bösartige Neubildung des Hypopharynx',
+            'C14': 'Bösartige Neubildung sonstiger und schlecht bezeichneter Lokalisationen der Lippe, Mundhöhle und des Pharynx',
+            'C15': 'Bösartige Neubildung des Ösophagus',
+            'C16': 'Bösartige Neubildung des Magens',
+            'C17': 'Bösartige Neubildung des Dünndarms',
+            'C18': 'Bösartige Neubildung des Kolons',
+            'C19': 'Bösartige Neubildung am Rektosigmoid-Übergang',
+            'C20': 'Bösartige Neubildung des Rektums',
+            'C21': 'Bösartige Neubildung des Anus und des Analkanals',
+            'C22': 'Bösartige Neubildung der Leber und der intrahepatischen Gallengänge',
+            'C23': 'Bösartige Neubildung der Gallenblase',
+            'C24': 'Bösartige Neubildung sonstiger und nicht näher bezeichneter Teile der Gallenwege',
+            'C25': 'Bösartige Neubildung des Pankreas',
+            'C26': 'Bösartige Neubildung sonstiger und schlecht bezeichneter Verdauungsorgane',
+            'C30': 'Bösartige Neubildung der Nasenhöhle und des Mittelohrs',
+            'C31': 'Bösartige Neubildung der Nasennebenhöhlen',
+            'C32': 'Bösartige Neubildung des Larynx',
+            'C33': 'Bösartige Neubildung der Trachea',
+            'C34': 'Bösartige Neubildung der Bronchien und der Lunge',
+            'C37': 'Bösartige Neubildung des Thymus',
+            'C38': 'Bösartige Neubildung des Herzens, Mediastinums und der Pleura',
+            'C39': 'Bösartige Neubildung sonstiger und schlecht bezeichneter Lokalisationen des Atmungssystems',
+            'C40': 'Bösartige Neubildung des Knochens und des Gelenkknorpels der Extremitäten',
+            'C41': 'Bösartige Neubildung des Knochens und des Gelenkknorpels sonstiger und nicht näher bezeichneter Lokalisationen',
+            'C43': 'Bösartiges Melanom der Haut',
+            'C44': 'Sonstige bösartige Neubildungen der Haut',
+            'C45': 'Mesotheliom',
+            'C46': 'Kaposi-Sarkom',
+            'C47': 'Bösartige Neubildung der peripheren Nerven und des autonomen Nervensystems',
+            'C48': 'Bösartige Neubildung des Retroperitoneums und des Peritoneums',
+            'C49': 'Bösartige Neubildung sonstigen Bindegewebes und anderer Weichteilgewebe',
+            'C50': 'Bösartige Neubildung der Brustdrüse [Mamma]',
+            'C53': 'Bösartige Neubildung der Cervix uteri',
+            'C54': 'Bösartige Neubildung des Corpus uteri',
+            'C55': 'Bösartige Neubildung des Uterus, Teil nicht näher bezeichnet',
+            'C56': 'Bösartige Neubildung des Ovars',
+            'C57': 'Bösartige Neubildung sonstiger und nicht näher bezeichneter weiblicher Genitalorgane',
+            'C58': 'Bösartige Neubildung der Plazenta',
+            'C60': 'Bösartige Neubildung des Penis',
+            'C61': 'Bösartige Neubildung der Prostata',
+            'C62': 'Bösartige Neubildung des Hodens',
+            'C63': 'Bösartige Neubildung sonstiger und nicht näher bezeichneter männlicher Genitalorgane',
+            'C64': 'Bösartige Neubildung der Niere, ausgenommen Nierenbecken',
+            'C65': 'Bösartige Neubildung des Nierenbeckens',
+            'C66': 'Bösartige Neubildung des Ureters',
+            'C67': 'Bösartige Neubildung der Harnblase',
+            'C68': 'Bösartige Neubildung sonstiger und nicht näher bezeichneter Harnorgane',
+            'C69': 'Bösartige Neubildung des Auges und der Augenanhangsgebilde',
+            'C70': 'Bösartige Neubildung der Meningen',
+            'C71': 'Bösartige Neubildung des Gehirns',
+            'C72': 'Bösartige Neubildung des Rückenmarks, der Hirnnerven und anderer Teile des Zentralnervensystems',
+            'C73': 'Bösartige Neubildung der Schilddrüse',
+            'C74': 'Bösartige Neubildung der Nebenniere',
+            'C75': 'Bösartige Neubildung sonstiger endokriner Drüsen und verwandter Strukturen',
+            'C76': 'Bösartige Neubildung sonstiger und schlecht bezeichneter Lokalisationen',
+            'C77': 'Sekundäre und nicht näher bezeichnete bösartige Neubildung der Lymphknoten',
+            'C78': 'Sekundäre bösartige Neubildung der Atmungs- und Verdauungsorgane',
+            'C79': 'Sekundäre bösartige Neubildung an sonstigen und nicht näher bezeichneten Lokalisationen',
+            'C80': 'Bösartige Neubildung ohne Angabe der Lokalisation',
+            'C81': 'Hodgkin-Lymphom',
+            'C82': 'Follikuläres Lymphom',
+            'C83': 'Nicht-follikuläres Lymphom',
+            'C84': 'Reifzellige T/NK-Zell-Lymphome',
+            'C85': 'Sonstige und nicht näher bezeichnete Typen des Non-Hodgkin-Lymphoms',
+            'C86': 'Sonstige spezifizierte T/NK-Zell-Lymphome',
+            'C88': 'Bösartige immunproliferative Krankheiten',
+            'C90': 'Plasmozytom und bösartige Plasmazellneubildungen',
+            'C91': 'Lymphatische Leukämie',
+            'C92': 'Myeloische Leukämie',
+            'C93': 'Monozytenleukämie',
+            'C94': 'Sonstige Leukämien näher bezeichneten Zelltyps',
+            'C95': 'Leukämie nicht näher bezeichneten Zelltyps',
+            'C96': 'Sonstige und nicht näher bezeichnete bösartige Neubildungen des lymphatischen, blutbildenden und verwandten Gewebes',
+            'C97': 'Bösartige Neubildungen als Primärtumoren an mehreren Lokalisationen',
+            # Benigne Neubildungen
+            'D10': 'Gutartige Neubildung des Mundes und des Pharynx',
+            'D11': 'Gutartige Neubildung der großen Speicheldrüsen',
+            'D12': 'Gutartige Neubildung des Kolons, Rektums, Anus und Analkanals',
+            'D13': 'Gutartige Neubildung sonstiger und schlecht definierter Teile des Verdauungssystems',
+            'D14': 'Gutartige Neubildung des Mittelohrs und des Atmungssystems',
+            'D15': 'Gutartige Neubildung sonstiger und nicht näher bezeichneter intrathorakaler Organe',
+            'D16': 'Gutartige Neubildung des Knochens und des Gelenkknorpels',
+            'D17': 'Gutartige Lipomatöse Neubildung',
+            'D18': 'Hämangiom und Lymphangiom jeder Lokalisation',
+            'D19': 'Gutartige Neubildung des Mesothel-Gewebes',
+            'D20': 'Gutartige Neubildung des Weichteilgewebes des Retroperitoneums und des Peritoneums',
+            'D21': 'Sonstige gutartige Neubildungen des Bindegewebes und anderer Weichteilgewebe',
+            'D22': 'Melanozytärer Nävus',
+            'D23': 'Sonstige gutartige Neubildungen der Haut',
+            'D24': 'Gutartige Neubildung der Brustdrüse [Mamma]',
+            'D25': 'Leiomyom des Uterus',
+            'D26': 'Sonstige gutartige Neubildungen des Uterus',
+            'D27': 'Gutartige Neubildung des Ovars',
+            'D28': 'Gutartige Neubildung sonstiger und nicht näher bezeichneter weiblicher Genitalorgane',
+            'D29': 'Gutartige Neubildung der männlichen Genitalorgane',
+            'D30': 'Gutartige Neubildung der Harnorgane',
+            'D31': 'Gutartige Neubildung des Auges und der Augenanhangsgebilde',
+            'D32': 'Gutartige Neubildung der Meningen',
+            'D33': 'Gutartige Neubildung des Gehirns und anderer Teile des Zentralnervensystems',
+            'D34': 'Gutartige Neubildung der Schilddrüse',
+            'D35': 'Gutartige Neubildung sonstiger und nicht näher bezeichneter endokriner Drüsen',
+            'D36': 'Gutartige Neubildung an sonstigen und nicht näher bezeichneten Lokalisationen',
+            'D37': 'Neubildung unsicheren oder unbekannten Verhaltens der Mundhöhle und der Verdauungsorgane',
+            'D38': 'Neubildung unsicheren oder unbekannten Verhaltens des Mittelohrs und der Atmungs- und intrathorakalen Organe',
+            'D39': 'Neubildung unsicheren oder unbekannten Verhaltens der weiblichen Genitalorgane',
+            'D40': 'Neubildung unsicheren oder unbekannten Verhaltens der männlichen Genitalorgane',
+            'D41': 'Neubildung unsicheren oder unbekannten Verhaltens der Harnorgane',
+            'D42': 'Neubildung unsicheren oder unbekannten Verhaltens der Meningen',
+            'D43': 'Neubildung unsicheren oder unbekannten Verhaltens des Gehirns und des Zentralnervensystems',
+            'D44': 'Neubildung unsicheren oder unbekannten Verhaltens der endokrinen Drüsen',
+            'D45': 'Polycythaemia vera',
+            'D46': 'Myelodysplastische Syndrome',
+            'D47': 'Sonstige Neubildungen unsicheren oder unbekannten Verhaltens des lymphatischen, blutbildenden und verwandten Gewebes',
+            'D48': 'Neubildung unsicheren oder unbekannten Verhaltens an sonstigen und nicht näher bezeichneten Lokalisationen'
+        }
+        
+        # Try exact match first
+        if icd_code in icd_descriptions:
+            return icd_descriptions[icd_code]
+        
+        # Try to match first 3 characters (main category)
+        main_code = icd_code[:3]
+        if main_code in icd_descriptions:
+            return icd_descriptions[main_code]
+        
+        # If no match found, return the code itself
+        return f"ICD-Code: {icd_code}"
+
     @staticmethod
     def normalize_aufgebot_type(value):
         """Normalize aufgebot type to categorical values for database consistency"""
@@ -3125,6 +3422,593 @@ class TumorboardSessionPage(QWidget):
             return value_str
         else:
             return value_str  # Return as-is for unknown values
+
+# ICD Database Helper Functions
+def load_icd_database():
+    """Load ICD database from JSON file"""
+    print("DEBUG: Starting to load ICD database...")
+    try:
+        # Get the path to the JSON file in utils folder
+        current_dir = os.path.dirname(os.path.abspath(__file__))
+        parent_dir = os.path.dirname(current_dir)
+        json_path = os.path.join(parent_dir, 'utils', 'icd_database.json')
+        
+        print(f"DEBUG: Looking for JSON file at: {json_path}")
+        print(f"DEBUG: JSON file exists: {os.path.exists(json_path)}")
+        
+        with open(json_path, 'r', encoding='utf-8') as f:
+            data = json.load(f)
+            print(f"DEBUG: Successfully loaded ICD database with {len(data)} entries")
+            return data
+    except Exception as e:
+        print(f"ERROR: Failed to load ICD database: {e}")
+        logging.error(f"Error loading ICD database: {e}")
+        return {}
+
+def search_by_code(search_term):
+    """Search ICD codes by code pattern (prefix matching)"""
+    print(f"DEBUG: search_by_code called with term: '{search_term}'")
+    try:
+        icd_database = load_icd_database()
+        if not icd_database:
+            print("ERROR: ICD database is empty or failed to load")
+            logging.warning("ICD database is empty or failed to load")
+            return []
+            
+        search_term = search_term.upper().strip()
+        print(f"DEBUG: Normalized search term: '{search_term}'")
+        results = []
+        
+        for code, description in icd_database.items():
+            if search_term in code:  # Contains search (not just prefix)
+                results.append((code, description))
+        
+        print(f"DEBUG: Found {len(results)} results before sorting/limiting")
+        final_results = sorted(results)[:50]  # Limit to 50 results
+        print(f"DEBUG: Returning {len(final_results)} results")
+        return final_results
+    except Exception as e:
+        print(f"ERROR: Exception in search_by_code: {e}")
+        import traceback
+        print(f"ERROR: Traceback: {traceback.format_exc()}")
+        logging.error(f"Error in search_by_code: {e}")
+        return []
+
+def search_by_description(search_term):
+    """Search ICD codes by description (case-insensitive substring matching)"""
+    try:
+        icd_database = load_icd_database()
+        if not icd_database:
+            logging.warning("ICD database is empty or failed to load")
+            return []
+            
+        search_term = search_term.lower().strip()
+        results = []
+        
+        for code, description in icd_database.items():
+            if search_term in description.lower():
+                results.append((code, description))
+        
+        return sorted(results)[:50]  # Limit to 50 results
+    except Exception as e:
+        logging.error(f"Error in search_by_description: {e}")
+        return []
+
+def get_icd_description_from_database(icd_code):
+    """Get German description for ICD-10 code from JSON database"""
+    try:
+        if not icd_code or str(icd_code).strip() in ['-', '', 'nan']:
+            return '-'
+        
+        icd_database = load_icd_database()
+        if not icd_database:
+            logging.warning("ICD database is empty or failed to load")
+            return f"ICD-Code: {icd_code}"
+            
+        icd_code = str(icd_code).strip().upper()
+        
+        # Try exact match first
+        if icd_code in icd_database:
+            return icd_database[icd_code]
+        
+        # Try to match first 3 characters (main category)
+        main_code = icd_code[:3]
+        if main_code in icd_database:
+            return icd_database[main_code]
+        
+        # If no match found, return the code itself
+        return f"ICD-Code: {icd_code}"
+    except Exception as e:
+        logging.error(f"Error in get_icd_description_from_database: {e}")
+        return f"ICD-Code: {icd_code}"
+
+
+class ICDEditorDialog(QDialog):
+    """Dialog for searching and editing ICD codes"""
+    
+    def __init__(self, current_icd_code="", parent=None):
+        print(f"DEBUG: ICDEditorDialog.__init__ called with ICD: '{current_icd_code}'")
+        try:
+            super().__init__(parent)
+            print("DEBUG: Dialog parent class initialized")
+            
+            self.setWindowTitle("ICD-Code bearbeiten")
+            self.setModal(True)
+            self.setFixedSize(800, 600)
+            print("DEBUG: Dialog window properties set")
+            
+            self.current_icd_code = current_icd_code
+            self.selected_icd_code = current_icd_code
+            self.selected_description = ""
+            print("DEBUG: Dialog instance variables initialized")
+            
+            # Get current description
+            if current_icd_code and current_icd_code != '-':
+                print("DEBUG: Getting description for current ICD code...")
+                self.selected_description = get_icd_description_from_database(current_icd_code)
+                print(f"DEBUG: Got description: '{self.selected_description}'")
+            
+            print("DEBUG: Calling setup_ui...")
+            self.setup_ui()
+            print("DEBUG: ICDEditorDialog initialization completed successfully")
+        except Exception as e:
+            print(f"ERROR: Exception in ICDEditorDialog.__init__: {e}")
+            import traceback
+            print(f"ERROR: Traceback: {traceback.format_exc()}")
+            raise
+        
+    def setup_ui(self):
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(20, 20, 20, 20)
+        layout.setSpacing(15)
+        
+        # Top section: Current ICD display only
+        top_section = QVBoxLayout()
+        
+        # Current ICD display
+        current_label = QLabel("Aktueller ICD-Code:")
+        current_label.setFont(QFont("Helvetica", 12, QFont.Weight.Bold))
+        current_label.setStyleSheet("color: white;")
+        top_section.addWidget(current_label)
+        
+        self.current_display = QLabel()
+        self.update_current_display()
+        self.current_display.setStyleSheet("""
+            background-color: #2a3642;
+            color: white;
+            padding: 10px;
+            border-radius: 4px;
+            font-size: 14px;
+        """)
+        self.current_display.setWordWrap(True)
+        self.current_display.setMinimumHeight(60)
+        top_section.addWidget(self.current_display)
+        
+        layout.addLayout(top_section)
+        
+        # Search section
+        search_section = QHBoxLayout()
+        
+        # Code search
+        code_search_layout = QVBoxLayout()
+        code_search_label = QLabel("Nach ICD-Code suchen:")
+        code_search_label.setFont(QFont("Helvetica", 11, QFont.Weight.Bold))
+        code_search_label.setStyleSheet("color: white;")
+        code_search_layout.addWidget(code_search_label)
+        
+        self.code_search_input = QLineEdit()
+        self.code_search_input.setPlaceholderText("z.B. C34 oder C34.9")
+        self.code_search_input.setStyleSheet("""
+            QLineEdit {
+                background-color: #2a3642;
+                color: white;
+                border: 1px solid #425061;
+                border-radius: 4px;
+                padding: 8px;
+                font-size: 14px;
+            }
+            QLineEdit:focus {
+                border-color: #3292ea;
+            }
+        """)
+        # Prevent Enter from being passed to dialog and ensure it only triggers search
+        self.code_search_input.returnPressed.connect(self.search_by_code)
+        code_search_layout.addWidget(self.code_search_input)
+        
+        search_section.addLayout(code_search_layout)
+        
+        # Description search
+        desc_search_layout = QVBoxLayout()
+        desc_search_label = QLabel("Nach Beschreibung suchen:")
+        desc_search_label.setFont(QFont("Helvetica", 11, QFont.Weight.Bold))
+        desc_search_label.setStyleSheet("color: white;")
+        desc_search_layout.addWidget(desc_search_label)
+        
+        self.desc_search_input = QLineEdit()
+        self.desc_search_input.setPlaceholderText("z.B. Lunge oder Neubildung")
+        self.desc_search_input.setStyleSheet("""
+            QLineEdit {
+                background-color: #2a3642;
+                color: white;
+                border: 1px solid #425061;
+                border-radius: 4px;
+                padding: 8px;
+                font-size: 14px;
+            }
+            QLineEdit:focus {
+                border-color: #3292ea;
+            }
+        """)
+        # Prevent Enter from being passed to dialog and ensure it only triggers search
+        self.desc_search_input.returnPressed.connect(self.search_by_description)
+        desc_search_layout.addWidget(self.desc_search_input)
+        
+        search_section.addLayout(desc_search_layout)
+        
+        layout.addLayout(search_section)
+        
+        # Results section
+        results_label = QLabel("Suchergebnisse:")
+        results_label.setFont(QFont("Helvetica", 11, QFont.Weight.Bold))
+        results_label.setStyleSheet("color: white; margin-top: 10px;")
+        layout.addWidget(results_label)
+        
+        # Scrollable results area
+        self.results_scroll = QScrollArea()
+        self.results_scroll.setWidgetResizable(True)
+        self.results_scroll.setStyleSheet("""
+            QScrollArea {
+                background-color: #1a2633;
+                border: 1px solid #425061;
+                border-radius: 4px;
+            }
+            QScrollBar:vertical {
+                width: 12px;
+                background-color: #2a3642;
+            }
+            QScrollBar::handle:vertical {
+                background-color: #425061;
+                border-radius: 6px;
+            }
+        """)
+        
+        self.results_widget = QWidget()
+        self.results_layout = QVBoxLayout(self.results_widget)
+        self.results_layout.setContentsMargins(10, 10, 10, 10)
+        self.results_layout.setSpacing(5)
+        
+        # Initial message
+        self.show_initial_message()
+        
+        self.results_scroll.setWidget(self.results_widget)
+        layout.addWidget(self.results_scroll)
+        
+        # Bottom button section
+        button_layout = QHBoxLayout()
+        button_layout.setSpacing(15)
+        
+        # Left stretch to center the buttons
+        button_layout.addStretch()
+        
+        # Save button (center-left)
+        self.save_button = QPushButton("Neue Auswahl speichern")
+        self.save_button.setFixedHeight(40)
+        self.save_button.setFixedWidth(180)
+        self.save_button.setAutoDefault(False)  # Prevent default button behavior
+        self.save_button.setDefault(False)  # Prevent default button behavior
+        self.save_button.setStyleSheet("""
+            QPushButton {
+                background-color: #2E8B57;
+                color: white;
+                border: none;
+                border-radius: 6px;
+                font-weight: bold;
+                font-size: 13px;
+            }
+            QPushButton:hover {
+                background-color: #3CB371;
+            }
+            QPushButton:pressed {
+                background-color: #228B22;
+            }
+        """)
+        self.save_button.clicked.connect(self.save_selection)
+        button_layout.addWidget(self.save_button)
+        
+        # Close button (center-right)
+        close_button = QPushButton("Schließen")
+        close_button.setFixedHeight(40)
+        close_button.setFixedWidth(120)
+        close_button.setAutoDefault(False)  # Prevent default button behavior
+        close_button.setDefault(False)  # Prevent default button behavior
+        close_button.setStyleSheet("""
+            QPushButton {
+                background-color: #666666;
+                color: white;
+                border: none;
+                border-radius: 6px;
+                font-weight: bold;
+                font-size: 13px;
+            }
+            QPushButton:hover {
+                background-color: #777777;
+            }
+        """)
+        close_button.clicked.connect(self.reject)
+        button_layout.addWidget(close_button)
+        
+        # Right stretch to center the buttons
+        button_layout.addStretch()
+        
+        layout.addLayout(button_layout)
+        
+        # Apply dark theme
+        self.setStyleSheet("""
+            QDialog {
+                background-color: #1a2633;
+                color: white;
+            }
+        """)
+    
+    def update_current_display(self):
+        """Update the current ICD code display"""
+        if self.selected_icd_code and self.selected_icd_code != '-':
+            if self.selected_description:
+                display_text = f"{self.selected_icd_code} - {self.selected_description}"
+            else:
+                display_text = f"{self.selected_icd_code}"
+        else:
+            display_text = "Kein ICD-Code ausgewählt"
+        
+        self.current_display.setText(display_text)
+    
+    def show_initial_message(self):
+        """Show initial message in results area"""
+        print("DEBUG: show_initial_message called")
+        
+        # Clear existing results
+        try:
+            print("DEBUG: Clearing existing results for initial message...")
+            for i in reversed(range(self.results_layout.count())):
+                item = self.results_layout.itemAt(i)
+                if item is not None:
+                    widget = item.widget()
+                    if widget is not None:
+                        widget.setParent(None)
+                    else:
+                        # Handle spacer items
+                        self.results_layout.removeItem(item)
+            print("DEBUG: Layout cleared for initial message successfully")
+        except Exception as e:
+            print(f"ERROR: Error clearing initial message layout: {e}")
+            logging.error(f"Error clearing initial message layout: {e}")
+        
+        try:
+            print("DEBUG: Creating initial message label...")
+            message_label = QLabel("Geben Sie mindestens 2 Zeichen in eines der Suchfelder ein und drücken Sie Enter.")
+            message_label.setStyleSheet("color: #888888; font-style: italic; padding: 20px;")
+            message_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            self.results_layout.addWidget(message_label)
+            self.results_layout.addStretch()
+            print("DEBUG: Initial message label created and added successfully")
+        except Exception as e:
+            print(f"ERROR: Error creating initial message label: {e}")
+            import traceback
+            print(f"ERROR: Traceback: {traceback.format_exc()}")
+    
+    def search_by_code(self):
+        """Search for ICD codes by code pattern"""
+        print("DEBUG: Dialog search_by_code method called")
+        try:
+            search_term = self.code_search_input.text().strip()
+            print(f"DEBUG: Search term from input field: '{search_term}'")
+            
+            if len(search_term) < 2:
+                print("DEBUG: Search term too short, showing message")
+                self.show_message("Bitte geben Sie mindestens 2 Zeichen ein.")
+                return
+            
+            print("DEBUG: Calling global search_by_code function...")
+            results = search_by_code(search_term)
+            print(f"DEBUG: Got {len(results)} results from search function")
+            
+            print("DEBUG: Calling display_results...")
+            self.display_results(results, f"Suchergebnisse für Code '{search_term}':")
+            print("DEBUG: display_results completed successfully")
+        except Exception as e:
+            print(f"ERROR: Exception in dialog search_by_code: {e}")
+            import traceback
+            print(f"ERROR: Traceback: {traceback.format_exc()}")
+            logging.error(f"Error during code search: {e}")
+            self.show_message(f"Fehler bei der Code-Suche: {str(e)}")
+    
+    def search_by_description(self):
+        """Search for ICD codes by description"""
+        try:
+            search_term = self.desc_search_input.text().strip()
+            
+            if len(search_term) < 2:
+                self.show_message("Bitte geben Sie mindestens 2 Zeichen ein.")
+                return
+            
+            results = search_by_description(search_term)
+            self.display_results(results, f"Suchergebnisse für Beschreibung '{search_term}':")
+        except Exception as e:
+            logging.error(f"Error during description search: {e}")
+            self.show_message(f"Fehler bei der Beschreibungssuche: {str(e)}")
+    
+    def display_results(self, results, title):
+        """Display search results"""
+        print(f"DEBUG: display_results called with {len(results)} results, title: '{title}'")
+        
+        # Clear existing results
+        try:
+            print("DEBUG: Clearing existing results layout...")
+            for i in reversed(range(self.results_layout.count())):
+                item = self.results_layout.itemAt(i)
+                if item is not None:
+                    widget = item.widget()
+                    if widget is not None:
+                        widget.setParent(None)
+                    else:
+                        # Handle spacer items
+                        self.results_layout.removeItem(item)
+            print("DEBUG: Layout cleared successfully")
+        except Exception as e:
+            print(f"ERROR: Error clearing results layout: {e}")
+            logging.error(f"Error clearing results layout: {e}")
+        
+        if not results:
+            print("DEBUG: No results, showing 'no results' message")
+            self.show_message("Keine Treffer gefunden.")
+            return
+        
+        print("DEBUG: Creating title label...")
+        # Title
+        try:
+            title_label = QLabel(title)
+            title_label.setFont(QFont("Helvetica", 10, QFont.Weight.Bold))
+            title_label.setStyleSheet("color: #4FC3F7; margin-bottom: 10px;")
+            self.results_layout.addWidget(title_label)
+            print("DEBUG: Title label added successfully")
+        except Exception as e:
+            print(f"ERROR: Error creating title label: {e}")
+            return
+        
+        # Results
+        print(f"DEBUG: Creating {len(results)} result buttons...")
+        try:
+            for i, (code, description) in enumerate(results):
+                print(f"DEBUG: Creating button {i+1}/{len(results)}: {code}")
+                result_button = QPushButton(f"{code} - {description}")
+                result_button.setAutoDefault(False)  # Prevent default button behavior
+                result_button.setStyleSheet("""
+                    QPushButton {
+                        background-color: #2a3642;
+                        color: white;
+                        border: 1px solid #425061;
+                        border-radius: 4px;
+                        padding: 8px;
+                        text-align: left;
+                        font-size: 13px;
+                    }
+                    QPushButton:hover {
+                        background-color: #3a4652;
+                        border-color: #3292ea;
+                    }
+                    QPushButton:pressed {
+                        background-color: #1a2633;
+                    }
+                """)
+                result_button.clicked.connect(lambda checked, c=code, d=description: self.select_result(c, d))
+                self.results_layout.addWidget(result_button)
+                print(f"DEBUG: Button {i+1} added successfully")
+            print("DEBUG: All result buttons created successfully")
+        except Exception as e:
+            print(f"ERROR: Error creating result buttons: {e}")
+            import traceback
+            print(f"ERROR: Traceback: {traceback.format_exc()}")
+            return
+        
+        if len(results) >= 50:
+            print("DEBUG: Adding info label for 50+ results...")
+            try:
+                info_label = QLabel("Nur die ersten 50 Treffer werden angezeigt. Verfeinern Sie Ihre Suche für spezifischere Ergebnisse.")
+                info_label.setStyleSheet("color: #FFA500; font-style: italic; margin-top: 10px; font-size: 12px;")
+                info_label.setWordWrap(True)
+                self.results_layout.addWidget(info_label)
+                print("DEBUG: Info label added successfully")
+            except Exception as e:
+                print(f"ERROR: Error adding info label: {e}")
+        
+        print("DEBUG: Adding stretch to layout...")
+        try:
+            self.results_layout.addStretch()
+            print("DEBUG: display_results completed successfully")
+        except Exception as e:
+            print(f"ERROR: Error adding stretch: {e}")
+    
+    def show_message(self, message):
+        """Show a message in the results area"""
+        print(f"DEBUG: show_message called with message: '{message}'")
+        
+        # Clear existing results
+        try:
+            print("DEBUG: Clearing existing results for message...")
+            for i in reversed(range(self.results_layout.count())):
+                item = self.results_layout.itemAt(i)
+                if item is not None:
+                    widget = item.widget()
+                    if widget is not None:
+                        widget.setParent(None)
+                    else:
+                        # Handle spacer items
+                        self.results_layout.removeItem(item)
+            print("DEBUG: Layout cleared for message successfully")
+        except Exception as e:
+            print(f"ERROR: Error clearing message layout: {e}")
+            logging.error(f"Error clearing message layout: {e}")
+        
+        try:
+            print("DEBUG: Creating message label...")
+            message_label = QLabel(message)
+            message_label.setStyleSheet("color: #FFA500; font-style: italic; padding: 20px;")
+            message_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            self.results_layout.addWidget(message_label)
+            self.results_layout.addStretch()
+            print("DEBUG: Message label created and added successfully")
+        except Exception as e:
+            print(f"ERROR: Error creating message label: {e}")
+            import traceback
+            print(f"ERROR: Traceback: {traceback.format_exc()}")
+    
+    def select_result(self, code, description):
+        """Select a result from the search"""
+        self.selected_icd_code = code
+        self.selected_description = description
+        self.update_current_display()
+        
+        # Clear search fields
+        self.code_search_input.clear()
+        self.desc_search_input.clear()
+        
+        # Show confirmation message
+        self.show_message(f"ICD-Code {code} ausgewählt. Klicken Sie 'Neue Auswahl speichern' um zu übernehmen.")
+    
+    def save_selection(self):
+        """Save the selected ICD code"""
+        if self.selected_icd_code and self.selected_icd_code != '-':
+            self.accept()
+        else:
+            msg_box = QMessageBox(self)
+            msg_box.setWindowTitle("Keine Auswahl")
+            msg_box.setText("Bitte wählen Sie zuerst einen ICD-Code aus der Trefferliste aus.")
+            msg_box.setStyleSheet("""
+                QMessageBox {
+                    background-color: #1a2633;
+                    color: white;
+                }
+                QMessageBox QLabel {
+                    color: white;
+                }
+                QPushButton {
+                    background-color: #114473;
+                    color: white;
+                    border: none;
+                    border-radius: 4px;
+                    padding: 8px 16px;
+                    font-weight: bold;
+                }
+                QPushButton:hover {
+                    background-color: #1a5a9e;
+                }
+            """)
+            msg_box.exec()
+    
+    def get_selected_icd(self):
+        """Get the selected ICD code and description"""
+        return self.selected_icd_code, self.selected_description
+
 
 class TeamsPriorityDialog(QDialog):
     """Dialog for teams priority selection"""
