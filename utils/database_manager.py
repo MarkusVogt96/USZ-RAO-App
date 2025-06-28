@@ -15,12 +15,30 @@ from utils.database_utils import TumorboardDatabase, sync_all_collection_files
 from utils.data_analysis_utils import generate_full_analysis_report
 import logging
 
-# Setup logging
+def get_tumorboard_base_path():
+    """Determine the correct tumorboard base path, prioritizing K: drive"""
+    k_path = Path("K:/RAO_Projekte/App/tumorboards")
+    if k_path.exists() and k_path.is_dir():
+        return k_path
+    else:
+        # Fall back to user home only if K: is not available
+        return Path.home() / "tumorboards"
+
+def get_database_path():
+    """Get the correct database path"""
+    base_path = get_tumorboard_base_path()
+    return base_path / "__SQLite_database" / "master_tumorboard.db"
+
+# Determine correct paths
+TUMORBOARD_BASE_PATH = get_tumorboard_base_path()
+DATABASE_PATH = get_database_path()
+
+# Setup logging with correct path
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(levelname)s - %(message)s',
     handlers=[
-        logging.FileHandler(Path.home() / "tumorboards" / "__SQLite_database" / "database_manager.log"),
+        logging.FileHandler(TUMORBOARD_BASE_PATH / "__SQLite_database" / "database_manager.log"),
         logging.StreamHandler()
     ]
 )
@@ -30,6 +48,14 @@ def show_menu():
     print("\n" + "="*60)
     print("           TUMORBOARD DATABASE MANAGER")
     print("="*60)
+    
+    # Show which path is being used
+    if "K:" in str(TUMORBOARD_BASE_PATH):
+        print(f"🗄️  Database-Pfad: {DATABASE_PATH} (K:-Intranet)")
+    else:
+        print(f"⚠️  Database-Pfad: {DATABASE_PATH} (Lokaler Fallback)")
+    print("="*60)
+    
     print("1. Datenbank initialisieren/überprüfen")
     print("2. Alle Sammel-Excel-Dateien zur Datenbank synchronisieren")
     print("3. Datenbankstatistiken anzeigen")
@@ -44,7 +70,7 @@ def init_database():
     """Initialize or check database"""
     try:
         print("Initialisiere Datenbank...")
-        db = TumorboardDatabase()
+        db = TumorboardDatabase(db_path=DATABASE_PATH)
         stats = db.get_statistics()
         
         if stats:
@@ -62,12 +88,12 @@ def sync_all_collections():
     """Sync all collection Excel files to database"""
     try:
         print("Synchronisiere alle Sammel-Excel-Dateien...")
-        success = sync_all_collection_files()
+        success = sync_all_collection_files(tumorboard_base_path=TUMORBOARD_BASE_PATH)
         
         if success:
             print("✓ Synchronisation erfolgreich abgeschlossen")
             # Show updated statistics
-            db = TumorboardDatabase()
+            db = TumorboardDatabase(db_path=DATABASE_PATH)
             stats = db.get_statistics()
             if stats:
                 print(f"  - Tumorboard-Typen: {stats['total_entities']}")
