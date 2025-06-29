@@ -643,19 +643,19 @@
             try {
                 // Use embedded data instead of fetch
                 dashboardData = {
-  "generated_at": "2025-06-26T22:12:22.773946",
+  "generated_at": "2025-06-29T14:06:52.574660",
   "key_metrics": {
     "tumorboard_types": 1,
     "total_sessions": 1,
-    "unique_patients": 8,
-    "total_cases": 8
+    "unique_patients": 22,
+    "total_cases": 22
   },
   "tumorboard_stats": [
     {
-      "name": "Thorax",
+      "name": "Neuro",
       "sessions": 1,
-      "unique_patients": 8,
-      "total_cases": 8
+      "unique_patients": 22,
+      "total_cases": 22
     }
   ],
   "temporal_data": {
@@ -663,8 +663,8 @@
       {
         "month": "2025-06",
         "sessions": 1,
-        "unique_patients": 8,
-        "total_cases": 8
+        "unique_patients": 22,
+        "total_cases": 22
       }
     ],
     "weekly": []
@@ -672,114 +672,153 @@
   "radiotherapy_data": {
     "all_patients": [
       {
+        "status": "Nicht besprochen",
+        "count": 19
+      },
+      {
         "status": "Ja",
-        "count": 8
+        "count": 3
       }
     ],
     "discussed_only": [
       {
         "status": "Ja",
-        "count": 8
+        "count": 3
       }
     ]
   },
   "study_enrollment_data": [
     {
+      "status": "-",
+      "count": 19
+    },
+    {
       "status": "nicht qualifiziert",
-      "count": 3
+      "count": 2
     },
     {
-      "status": "FLASH",
-      "count": 3
-    },
-    {
-      "status": "ReCare",
-      "count": 1
-    },
-    {
-      "status": "MAGELLAN",
+      "status": "CHESS",
       "count": 1
     }
   ],
   "icd_data": {
     "top_codes": [
       {
-        "icd_family": "C40",
-        "description": "Bösartige Neubildung des Knochens und des Gelenkknorpels der Extremitäten",
-        "total_cases": 2,
-        "unique_patients": 2
+        "icd_family": "C71",
+        "description": "Bösartige Neubildung des Gehirns",
+        "total_cases": 8,
+        "unique_patients": 8
       },
       {
-        "icd_family": "C49",
-        "description": "Bösartige Neubildung sonstiger Bindegewebe- und Weichgewebearten",
-        "total_cases": 2,
-        "unique_patients": 2
+        "icd_family": "D32",
+        "description": "Gutartige Neubildung der Meningen",
+        "total_cases": 5,
+        "unique_patients": 5
       },
       {
-        "icd_family": "C41",
-        "description": "Bösartige Neubildung des Knochens und des Gelenkknorpels sonstiger und nicht näher bezeichneter Lokalisationen",
+        "icd_family": "C79",
+        "description": "Sekundäre bösartige Neubildung sonstiger und nicht näher bezeichneter Lokalisationen",
+        "total_cases": 3,
+        "unique_patients": 3
+      },
+      {
+        "icd_family": "C70",
+        "description": "Bösartige Neubildung der Meningen",
         "total_cases": 1,
         "unique_patients": 1
       },
       {
-        "icd_family": "D37",
-        "description": "Neubildung unsicheren oder unbekannten Verhaltens der Mundhöhle und der Verdauungsorgane",
+        "icd_family": "D33",
+        "description": "Gutartige Neubildung des Gehirns und sonstiger Teile des Zentralnervensystems",
         "total_cases": 1,
         "unique_patients": 1
       },
       {
-        "icd_family": "D38",
-        "description": "Neubildung unsicheren oder unbekannten Verhaltens des Mittelohrs und der Atmungs- und intrathorakalen Organe",
+        "icd_family": "D43",
+        "description": "Neubildung unsicheren oder unbekannten Verhaltens des Gehirns und des Zentralnervensystems",
         "total_cases": 1,
         "unique_patients": 1
       },
       {
-        "icd_family": "D48",
-        "description": "Neubildung unsicheren oder unbekannten Verhaltens sonstiger und nicht näher bezeichneter Lokalisationen",
+        "icd_family": "G35",
+        "description": "Unbekannt (G35)",
+        "total_cases": 1,
+        "unique_patients": 1
+      },
+      {
+        "icd_family": "G91",
+        "description": "Unbekannt (G91)",
+        "total_cases": 1,
+        "unique_patients": 1
+      },
+      {
+        "icd_family": "G93",
+        "description": "Unbekannt (G93)",
         "total_cases": 1,
         "unique_patients": 1
       }
     ],
     "by_tumorboard": [
       {
-        "tumorboard_type": "Thorax",
-        "icd_family": "C49",
-        "description": "Bösartige Neubildung sonstiger Bindegewebe- und Weichgewebearten",
-        "total_cases": 2,
-        "unique_patients": 2
+        "tumorboard_type": "Neuro",
+        "icd_family": "C71",
+        "description": "Bösartige Neubildung des Gehirns",
+        "total_cases": 8,
+        "unique_patients": 8
       },
       {
-        "tumorboard_type": "Thorax",
-        "icd_family": "C40",
-        "description": "Bösartige Neubildung des Knochens und des Gelenkknorpels der Extremitäten",
-        "total_cases": 2,
-        "unique_patients": 2
+        "tumorboard_type": "Neuro",
+        "icd_family": "D32",
+        "description": "Gutartige Neubildung der Meningen",
+        "total_cases": 5,
+        "unique_patients": 5
       },
       {
-        "tumorboard_type": "Thorax",
-        "icd_family": "D48",
-        "description": "Neubildung unsicheren oder unbekannten Verhaltens sonstiger und nicht näher bezeichneter Lokalisationen",
+        "tumorboard_type": "Neuro",
+        "icd_family": "C79",
+        "description": "Sekundäre bösartige Neubildung sonstiger und nicht näher bezeichneter Lokalisationen",
+        "total_cases": 3,
+        "unique_patients": 3
+      },
+      {
+        "tumorboard_type": "Neuro",
+        "icd_family": "G93",
+        "description": "Unbekannt (G93)",
         "total_cases": 1,
         "unique_patients": 1
       },
       {
-        "tumorboard_type": "Thorax",
-        "icd_family": "D38",
-        "description": "Neubildung unsicheren oder unbekannten Verhaltens des Mittelohrs und der Atmungs- und intrathorakalen Organe",
+        "tumorboard_type": "Neuro",
+        "icd_family": "G91",
+        "description": "Unbekannt (G91)",
         "total_cases": 1,
         "unique_patients": 1
       },
       {
-        "tumorboard_type": "Thorax",
-        "icd_family": "D37",
-        "description": "Neubildung unsicheren oder unbekannten Verhaltens der Mundhöhle und der Verdauungsorgane",
+        "tumorboard_type": "Neuro",
+        "icd_family": "G35",
+        "description": "Unbekannt (G35)",
         "total_cases": 1,
         "unique_patients": 1
       },
       {
-        "tumorboard_type": "Thorax",
-        "icd_family": "C41",
-        "description": "Bösartige Neubildung des Knochens und des Gelenkknorpels sonstiger und nicht näher bezeichneter Lokalisationen",
+        "tumorboard_type": "Neuro",
+        "icd_family": "D43",
+        "description": "Neubildung unsicheren oder unbekannten Verhaltens des Gehirns und des Zentralnervensystems",
+        "total_cases": 1,
+        "unique_patients": 1
+      },
+      {
+        "tumorboard_type": "Neuro",
+        "icd_family": "D33",
+        "description": "Gutartige Neubildung des Gehirns und sonstiger Teile des Zentralnervensystems",
+        "total_cases": 1,
+        "unique_patients": 1
+      },
+      {
+        "tumorboard_type": "Neuro",
+        "icd_family": "C70",
+        "description": "Bösartige Neubildung der Meningen",
         "total_cases": 1,
         "unique_patients": 1
       }
@@ -788,26 +827,26 @@
   "aufgebot_data": {
     "all_patients": [
       {
+        "category": "Kat III",
+        "count": 1
+      },
+      {
         "category": "Kat II",
-        "count": 5
+        "count": 1
       },
       {
         "category": "Kat I",
-        "count": 2
-      },
-      {
-        "category": "Kat III",
         "count": 1
       }
     ],
     "specified_only": [
       {
         "category": "Kat I",
-        "count": 2
+        "count": 1
       },
       {
         "category": "Kat II",
-        "count": 5
+        "count": 1
       },
       {
         "category": "Kat III",
@@ -816,18 +855,18 @@
     ],
     "by_tumorboard": [
       {
-        "tumorboard_type": "Thorax",
-        "category": "Kat II",
-        "count": 5
-      },
-      {
-        "tumorboard_type": "Thorax",
-        "category": "Kat I",
-        "count": 2
-      },
-      {
-        "tumorboard_type": "Thorax",
+        "tumorboard_type": "Neuro",
         "category": "Kat III",
+        "count": 1
+      },
+      {
+        "tumorboard_type": "Neuro",
+        "category": "Kat II",
+        "count": 1
+      },
+      {
+        "tumorboard_type": "Neuro",
+        "category": "Kat I",
         "count": 1
       }
     ]

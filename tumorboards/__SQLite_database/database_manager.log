@@ -153,3 +153,7 @@
 2025-06-15 14:48:13,587 - INFO - Database exported to Excel: C:\Users\marku\tumorboards\__SQLite_database\master_database_export_20250615_144813.xlsx
 2025-06-15 14:56:09,089 - INFO - Database initialized successfully: C:\Users\marku\tumorboards\__SQLite_database\master_tumorboard.db
 2025-06-15 14:56:09,127 - INFO - Database exported to Excel: C:\Users\marku\tumorboards\__SQLite_database\master_database_export_20250615_145609.xlsx
+2025-06-28 18:29:34,744 - INFO - Database initialized successfully: K:\RAO_Projekte\App\tumorboards\__SQLite_database\master_tumorboard.db
+2025-06-29 12:51:10,330 - INFO - Database initialized successfully: K:\RAO_Projekte\App\tumorboards\__SQLite_database\master_tumorboard.db
+2025-06-29 13:12:03,898 - INFO - Database initialized successfully: K:\RAO_Projekte\App\tumorboards\__SQLite_database\master_tumorboard.db
+2025-06-29 14:07:02,108 - INFO - Database initialized successfully: K:\RAO_Projekte\App\tumorboards\__SQLite_database\master_tumorboard.db
