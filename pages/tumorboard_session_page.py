@@ -3202,16 +3202,16 @@ class TumorboardSessionPage(QWidget):
                     # Mark as having unsaved changes
                     self.mark_unsaved_changes()
                     
-                    # Save the change to the temporary Excel file
-                    try:
-                        self.save_icd_change_to_excel(current_patient['index'], new_icd_code)
-                        logging.info(f"Updated ICD code for patient {current_patient['name']} to {new_icd_code}")
-                        print(f"DEBUG: ICD change saved successfully")
-                    except Exception as e:
-                        print(f"ERROR: Error saving ICD change to Excel: {e}")
-                        logging.error(f"Error saving ICD change to Excel: {e}")
-                        QMessageBox.warning(self, "Speicherfehler", 
-                                          f"Fehler beim Speichern der ICD-Änderung: {e}")
+                                    # Save the change to the temporary Excel file
+                try:
+                    self.save_icd_change_to_excel(current_patient['index'], new_icd_code, new_description)
+                    logging.info(f"Updated ICD code for patient {current_patient['name']} to {new_icd_code}")
+                    print(f"DEBUG: ICD change saved successfully")
+                except Exception as e:
+                    print(f"ERROR: Error saving ICD change to Excel: {e}")
+                    logging.error(f"Error saving ICD change to Excel: {e}")
+                    QMessageBox.warning(self, "Speicherfehler", 
+                                      f"Fehler beim Speichern der ICD-Änderung: {e}")
                 else:
                     print("DEBUG: No ICD code change detected")
             else:
@@ -3221,8 +3221,8 @@ class TumorboardSessionPage(QWidget):
             import traceback
             print(f"ERROR: Traceback: {traceback.format_exc()}")
 
-    def save_icd_change_to_excel(self, patient_row_index, new_icd_code):
-        """Save ICD code change to the temporary Excel file"""
+    def save_icd_change_to_excel(self, patient_row_index, new_icd_code, new_description=None):
+        """Save ICD code change and description to the temporary Excel file"""
         # Ensure temp file exists for editing
         if not self.ensure_temp_file_exists():
             raise Exception("Temporäre Datei konnte nicht erstellt werden")
@@ -3249,6 +3249,33 @@ class TumorboardSessionPage(QWidget):
             
             # Update the ICD code in the specified row
             df.at[patient_row_index, icd_column] = new_icd_code
+            
+            # Find and update ICD description column if it exists and we have a new description
+            if new_description and new_description not in ['-', '']:
+                # Look for possible description column names
+                description_column = None
+                possible_description_columns = [
+                    'ICD-Beschreibung', 'ICD Beschreibung', 'ICD-10 Beschreibung', 
+                    'ICD-10-Beschreibung', 'ICD Code Beschreibung', 'ICD Diagnosis',
+                    'Diagnosis', 'ICD Text', 'ICD-Text'
+                ]
+                
+                for col in possible_description_columns:
+                    if col in df.columns:
+                        description_column = col
+                        break
+                
+                # If description column found, update it
+                if description_column:
+                    # Clean the description (remove "ICD-Code: " prefix if present)
+                    clean_description = new_description
+                    if clean_description.startswith('ICD-Code: '):
+                        clean_description = clean_description[10:]  # Remove "ICD-Code: " prefix
+                    
+                    df.at[patient_row_index, description_column] = clean_description
+                    logging.info(f"Updated ICD description in column '{description_column}' with: {clean_description}")
+                else:
+                    logging.warning("No ICD description column found in Excel file")
             
             # Save back to Excel
             df.to_excel(excel_path, index=False, engine='openpyxl')
