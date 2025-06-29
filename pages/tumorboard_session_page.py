@@ -3353,13 +3353,11 @@ class TumorboardSessionPage(QWidget):
                     # Check if it's a permission error (file locked)
                     if "Permission" in str(e) or "PermissionError" in str(e) or "gesperrt" in str(e):
                         error_text = ("Die ICD-Änderung konnte nicht gespeichert werden.\n\n"
-                                    "Die Excel-Datei ist wahrscheinlich in einem anderen Programm geöffnet.\n"
+                                    "Die Excel-Datei ist in einem anderen Programm geöffnet. "
                                     "Bitte schließen Sie alle Excel-Anwendungen und versuchen Sie es erneut.\n\n"
-                                    "Die Anzeige wurde NICHT geändert, da das Speichern fehlgeschlagen ist.\n\n"
                                     f"Technischer Fehler: {str(e)}")
                     else:
                         error_text = (f"Fehler beim Speichern der ICD-Änderung:\n\n{str(e)}\n\n"
-                                    "Die Anzeige wurde NICHT geändert, da das Speichern fehlgeschlagen ist.\n\n"
                                     "Bitte versuchen Sie es erneut oder wenden Sie sich an den Administrator.")
                     
                     error_msg.setText(error_text)
