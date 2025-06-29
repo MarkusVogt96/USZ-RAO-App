@@ -883,6 +883,13 @@ class TumorboardSessionPage(QWidget):
                 logging.error(f"Source Excel file not found: {self.source_excel_path}")
                 return False
             
+            # Check if source file is accessible for reading
+            is_accessible, access_error = self.check_excel_file_access(self.source_excel_path)
+            if not is_accessible:
+                logging.error(f"Source Excel file not accessible for copying: {access_error}")
+                self.show_excel_locked_error("Temporäre Session-Datei erstellen", self.source_excel_path)
+                return False
+            
             # Delete existing temp file if it exists
             if self.temp_excel_path and self.temp_excel_path.exists():
                 try:
@@ -909,16 +916,18 @@ class TumorboardSessionPage(QWidget):
                 import shutil
                 import time
                 
-                # Check if source file is accessible (not locked by another process)
-                try:
-                    # Try to open the source file briefly to check if it's locked
-                    with open(self.source_excel_path, 'r+b') as f:
-                        pass
-                except PermissionError as pe:
-                    raise Exception(f"Quelldatei ist gesperrt oder wird von einem anderen Programm verwendet: {self.source_excel_path}. Fehler: {pe}")
-                except FileNotFoundError:
-                    # File doesn't exist yet, that's okay
-                    pass
+                # Check if source file is accessible using our improved method
+                is_accessible, access_error = self.check_excel_file_access(self.source_excel_path)
+                if not is_accessible:
+                    logging.error(f"Source file not accessible for copying: {access_error}")
+                    
+                    # Get lock information for better error message
+                    lock_info = self.get_file_lock_info(self.source_excel_path)
+                    detailed_error = f"Quelldatei ist gesperrt: {self.source_excel_path}\n\n{access_error}"
+                    if lock_info and "Fehler" not in lock_info and "nicht verfügbar" not in lock_info:
+                        detailed_error += f"\nDatei wird verwendet von: {lock_info}"
+                    
+                    raise Exception(detailed_error)
                 
                 # Attempt the copy with retry logic
                 max_retries = 3
@@ -2565,6 +2574,13 @@ class TumorboardSessionPage(QWidget):
         # Use temporary Excel file during session, source file only during finalization
         excel_path = self.temp_excel_path if self.temp_excel_path and self.temp_excel_path.exists() else self.source_excel_path
         
+        # Check if file is accessible before attempting to save
+        is_accessible, access_error = self.check_excel_file_access(excel_path)
+        if not is_accessible:
+            logging.error(f"Excel file not accessible for writing: {access_error}")
+            self.show_excel_locked_error("Patientendaten speichern", excel_path)
+            raise Exception(f"Excel-Datei ist gesperrt: {access_error}")
+        
         # Read current Excel file
         df = pd.read_excel(excel_path, engine='openpyxl')
         
@@ -2807,6 +2823,13 @@ class TumorboardSessionPage(QWidget):
         # Use temporary Excel file during session
         excel_path = self.temp_excel_path if self.temp_excel_path and self.temp_excel_path.exists() else self.source_excel_path
         
+        # Check if file is accessible before attempting to save
+        is_accessible, access_error = self.check_excel_file_access(excel_path)
+        if not is_accessible:
+            logging.error(f"Excel file not accessible for deleting patient: {access_error}")
+            self.show_excel_locked_error("Patienten löschen", excel_path)
+            raise Exception(f"Excel-Datei ist gesperrt: {access_error}")
+        
         try:
             # Read current Excel file
             df = pd.read_excel(excel_path, engine='openpyxl')
@@ -2999,6 +3022,13 @@ class TumorboardSessionPage(QWidget):
         # Use temporary Excel file during session
         excel_path = self.temp_excel_path if self.temp_excel_path and self.temp_excel_path.exists() else self.source_excel_path
         
+        # Check if file is accessible before attempting to save
+        is_accessible, access_error = self.check_excel_file_access(excel_path)
+        if not is_accessible:
+            logging.error(f"Excel file not accessible for adding patient: {access_error}")
+            self.show_excel_locked_error("Neuen Patienten hinzufügen", excel_path)
+            raise Exception(f"Excel-Datei ist gesperrt: {access_error}")
+        
         try:
             # Read current Excel file
             df = pd.read_excel(excel_path, engine='openpyxl')
@@ -3135,6 +3165,100 @@ class TumorboardSessionPage(QWidget):
                 patient['studie'] == "-" and
                 patient['bemerkung'] == "-")
 
+    def check_excel_file_access(self, file_path):
+        """Check if Excel file is accessible for writing"""
+        try:
+            # Try to open the file for reading and writing
+            with open(file_path, 'r+b') as f:
+                pass
+            return True, None
+        except PermissionError as e:
+            return False, f"Berechtigung verweigert: {str(e)}"
+        except FileNotFoundError:
+            return True, None  # File doesn't exist yet, that's okay
+        except Exception as e:
+            return False, f"Datei-Zugriffsfehler: {str(e)}"
+
+    def get_file_lock_info(self, file_path):
+        """Get basic information about file locking (simplified version without external dependencies)"""
+        try:
+            import os
+            import platform
+            
+            # Basic check - just try to detect if it's likely Excel
+            if platform.system() == "Windows":
+                # Simple heuristic: if file access fails, it's likely Excel on Windows
+                try:
+                    # Try a quick read test
+                    with open(file_path, 'rb') as f:
+                        f.read(1)
+                    return "Datei scheint zugänglich zu sein"
+                except PermissionError:
+                    return "Wahrscheinlich Microsoft Excel oder ähnliches Office-Programm"
+                except Exception as e:
+                    return f"Datei-Zugriffsproblem: {str(e)}"
+            else:
+                return "Prozessinfo auf diesem System nicht verfügbar"
+                
+        except Exception as e:
+            return f"Fehler bei der Dateierkennung: {str(e)}"
+
+    def show_excel_locked_error(self, operation_type="Speichern", file_path=None):
+        """Show a comprehensive error dialog when Excel file is locked"""
+        error_msg = QMessageBox(self)
+        error_msg.setWindowTitle("Datei gesperrt")
+        error_msg.setIcon(QMessageBox.Icon.Critical)
+        
+        # Try to get lock information
+        lock_info = None
+        if file_path:
+            lock_info = self.get_file_lock_info(file_path)
+        
+        # Create comprehensive error message
+        error_text = f"{operation_type} nicht möglich!\n\n"
+        error_text += "Die Excel-Datei ist von einem anderen Programm geöffnet.\n"
+        error_text += "Bitte schließen Sie alle Excel-Anwendungen und versuchen Sie es erneut.\n\n"
+        
+        if lock_info and "Fehler" not in lock_info and "nicht verfügbar" not in lock_info:
+            error_text += f"Datei wird verwendet von: {lock_info}\n\n"
+        
+        error_text += "Häufige Lösungen:\n"
+        error_text += "• Schließen Sie Microsoft Excel vollständig\n"
+        error_text += "• Überprüfen Sie den Task-Manager auf Excel-Prozesse\n"
+        error_text += "• Starten Sie die Anwendung neu, falls das Problem weiterhin besteht"
+        
+        if file_path:
+            error_text += f"\n\nDatei: {file_path}"
+        
+        error_msg.setText(error_text)
+        error_msg.setStandardButtons(QMessageBox.StandardButton.Ok)
+        error_msg.setStyleSheet("""
+            QMessageBox {
+                background-color: #1a2633;
+                color: white;
+                min-width: 500px;
+            }
+            QMessageBox QLabel {
+                color: white;
+                font-size: 14px;
+                padding: 15px;
+                min-width: 450px;
+            }
+            QPushButton {
+                background-color: #114473;
+                color: white;
+                border: none;
+                border-radius: 4px;
+                padding: 8px 16px;
+                font-weight: bold;
+                min-width: 80px;
+            }
+            QPushButton:hover {
+                background-color: #1a5a9e;
+            }
+        """)
+        error_msg.exec()
+
     def ensure_temp_file_exists(self):
         """Ensure temporary file exists for editing, create if necessary"""
         try:
@@ -3188,9 +3312,19 @@ class TumorboardSessionPage(QWidget):
                 new_icd_code, new_description = dialog.get_selected_icd()
                 print(f"DEBUG: Selected ICD: {new_icd_code}, Description: {new_description}")
                 
-                if new_icd_code and new_icd_code != current_icd_code:
-                    print("DEBUG: ICD code changed, updating patient data...")
-                    # Update patient data
+            if new_icd_code and new_icd_code != current_icd_code:
+                print("DEBUG: ICD code changed, attempting to save first...")
+                
+                # FIRST: Try to save to Excel file
+                try:
+                    self.save_icd_change_to_excel(current_patient['index'], new_icd_code, new_description)
+                    logging.info(f"Successfully saved ICD code change for patient {current_patient['name']} to {new_icd_code}")
+                    print(f"DEBUG: ICD change saved successfully to Excel")
+                    
+                    # ONLY IF SAVE WAS SUCCESSFUL: Update patient data and UI
+                    print("DEBUG: Save successful, now updating patient data and UI...")
+                    
+                    # Update patient data in memory
                     current_patient['icd_code'] = new_icd_code
                     
                     # Update the ICD display in the patient info section
@@ -3202,16 +3336,60 @@ class TumorboardSessionPage(QWidget):
                     # Mark as having unsaved changes
                     self.mark_unsaved_changes()
                     
-                                    # Save the change to the temporary Excel file
-                try:
-                    self.save_icd_change_to_excel(current_patient['index'], new_icd_code, new_description)
-                    logging.info(f"Updated ICD code for patient {current_patient['name']} to {new_icd_code}")
-                    print(f"DEBUG: ICD change saved successfully")
+                    print(f"DEBUG: UI and patient data updated successfully")
+                    
                 except Exception as e:
                     print(f"ERROR: Error saving ICD change to Excel: {e}")
                     logging.error(f"Error saving ICD change to Excel: {e}")
-                    QMessageBox.warning(self, "Speicherfehler", 
-                                      f"Fehler beim Speichern der ICD-Änderung: {e}")
+                    
+                    # DO NOT UPDATE UI OR PATIENT DATA - keep old values
+                    print("DEBUG: Save failed, keeping old ICD code and UI unchanged")
+                    
+                    # Create a proper error dialog that's readable
+                    error_msg = QMessageBox(self)
+                    error_msg.setWindowTitle("Speicherfehler")
+                    error_msg.setIcon(QMessageBox.Icon.Critical)
+                    
+                    # Check if it's a permission error (file locked)
+                    if "Permission" in str(e) or "PermissionError" in str(e) or "gesperrt" in str(e):
+                        error_text = ("Die ICD-Änderung konnte nicht gespeichert werden.\n\n"
+                                    "Die Excel-Datei ist wahrscheinlich in einem anderen Programm geöffnet.\n"
+                                    "Bitte schließen Sie alle Excel-Anwendungen und versuchen Sie es erneut.\n\n"
+                                    "Die Anzeige wurde NICHT geändert, da das Speichern fehlgeschlagen ist.\n\n"
+                                    f"Technischer Fehler: {str(e)}")
+                    else:
+                        error_text = (f"Fehler beim Speichern der ICD-Änderung:\n\n{str(e)}\n\n"
+                                    "Die Anzeige wurde NICHT geändert, da das Speichern fehlgeschlagen ist.\n\n"
+                                    "Bitte versuchen Sie es erneut oder wenden Sie sich an den Administrator.")
+                    
+                    error_msg.setText(error_text)
+                    error_msg.setStandardButtons(QMessageBox.StandardButton.Ok)
+                    error_msg.setStyleSheet("""
+                        QMessageBox {
+                            background-color: #1a2633;
+                            color: white;
+                            min-width: 450px;
+                        }
+                        QMessageBox QLabel {
+                            color: white;
+                            font-size: 14px;
+                            padding: 10px;
+                            min-width: 400px;
+                        }
+                        QPushButton {
+                            background-color: #114473;
+                            color: white;
+                            border: none;
+                            border-radius: 4px;
+                            padding: 8px 16px;
+                            font-weight: bold;
+                            min-width: 80px;
+                        }
+                        QPushButton:hover {
+                            background-color: #1a5a9e;
+                        }
+                    """)
+                    error_msg.exec()
                 else:
                     print("DEBUG: No ICD code change detected")
             else:
@@ -3229,6 +3407,13 @@ class TumorboardSessionPage(QWidget):
         
         # Use temporary Excel file
         excel_path = self.temp_excel_path
+        
+        # Check if file is accessible before attempting to save
+        is_accessible, access_error = self.check_excel_file_access(excel_path)
+        if not is_accessible:
+            logging.error(f"Excel file not accessible for ICD change: {access_error}")
+            self.show_excel_locked_error("ICD-Code ändern", excel_path)
+            raise Exception(f"Excel-Datei ist gesperrt: {access_error}")
         
         try:
             # Read current Excel file
@@ -3252,18 +3437,35 @@ class TumorboardSessionPage(QWidget):
             
             # Find and update ICD description column if it exists and we have a new description
             if new_description and new_description not in ['-', '']:
-                # Look for possible description column names
+                # Log all available columns for debugging
+                logging.info(f"All available columns in Excel: {list(df.columns)}")
+                
+                # Look for possible description column names (expanded list)
                 description_column = None
                 possible_description_columns = [
-                    'ICD-Beschreibung', 'ICD Beschreibung', 'ICD-10 Beschreibung', 
-                    'ICD-10-Beschreibung', 'ICD Code Beschreibung', 'ICD Diagnosis',
-                    'Diagnosis', 'ICD Text', 'ICD-Text'
+                    'Beschreibung ICD-10', 'Beschreibung ICD10', 'ICD-10 Beschreibung', 'ICD10 Beschreibung',
+                    'ICD-Beschreibung', 'ICD Beschreibung', 'ICD-10-Beschreibung', 
+                    'ICD Code Beschreibung', 'ICD Diagnosis', 'Diagnosis', 'ICD Text', 'ICD-Text',
+                    'Description', 'Beschreibung', 'ICD Description', 'ICD-Description'
                 ]
                 
+                # First try exact matches
                 for col in possible_description_columns:
                     if col in df.columns:
                         description_column = col
+                        logging.info(f"Found exact match for ICD description column: '{col}'")
                         break
+                
+                # If no exact match, try partial matches (case-insensitive)
+                if not description_column:
+                    for col in df.columns:
+                        col_lower = str(col).lower()
+                        if ('beschreibung' in col_lower and 'icd' in col_lower) or \
+                           ('description' in col_lower and 'icd' in col_lower) or \
+                           ('icd' in col_lower and ('text' in col_lower or 'diagnosis' in col_lower)):
+                            description_column = col
+                            logging.info(f"Found partial match for ICD description column: '{col}'")
+                            break
                 
                 # If description column found, update it
                 if description_column:
@@ -3272,10 +3474,11 @@ class TumorboardSessionPage(QWidget):
                     if clean_description.startswith('ICD-Code: '):
                         clean_description = clean_description[10:]  # Remove "ICD-Code: " prefix
                     
+                    logging.info(f"Updating ICD description in column '{description_column}' from '{df.at[patient_row_index, description_column]}' to '{clean_description}'")
                     df.at[patient_row_index, description_column] = clean_description
-                    logging.info(f"Updated ICD description in column '{description_column}' with: {clean_description}")
+                    logging.info(f"Successfully updated ICD description in column '{description_column}' with: {clean_description}")
                 else:
-                    logging.warning("No ICD description column found in Excel file")
+                    logging.warning(f"No ICD description column found in Excel file. Available columns: {list(df.columns)}")
             
             # Save back to Excel
             df.to_excel(excel_path, index=False, engine='openpyxl')
