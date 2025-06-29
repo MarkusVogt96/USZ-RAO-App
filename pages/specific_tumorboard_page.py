@@ -71,14 +71,15 @@ class SpecificTumorboardPage(QWidget):
         # Clear existing content
         self._clear_content_layout()
 
-        # Get tumorboard dates
-        current_dates, past_dates = self._scan_tumorboard_dates()
+        # Get tumorboard dates and path accessibility info
+        current_dates, past_dates, path_accessible = self._scan_tumorboard_dates()
 
-        # If no data was found, show appropriate message
-        if not current_dates and not past_dates:
+        # If path is not accessible, show access error
+        if not path_accessible:
             self._show_no_data_content()
             return
 
+        # Always create sections, even if no dates found (they will show "Keine Tumorboards gefunden.")
         # Current/Future Tumorboards Section
         current_section = self._create_section("Aktuelle Tumorboards", current_dates, is_current=True)
         self.content_layout.addWidget(current_section)
@@ -157,15 +158,15 @@ class SpecificTumorboardPage(QWidget):
     def _determine_tumorboard_path(self):
         """
         Determine the correct tumorboard path based on priority:
-        1. K:\\RAO_Projekte\\App\\tumorboards\\ (primary/intranet)
+        1. K:\\RAO-Projekte\\App\\tumorboards\\ (primary/intranet)
         2. {home}\\tumorboards\\ (fallback/local)
         3. None (error - no path available)
         
         Returns:
             tuple: (Path object or None, bool indicating if using fallback)
         """
-        # Primary path (Intranet)
-        primary_path = Path("K:/RAO_Projekte/App/tumorboards") / self.tumorboard_name
+        # Primary path (Intranet) - corrected path with hyphen
+        primary_path = Path("K:/RAO-Projekte/App/tumorboards") / self.tumorboard_name
         
         # Fallback path (Local)
         fallback_path = Path.home() / "tumorboards" / self.tumorboard_name
@@ -176,7 +177,7 @@ class SpecificTumorboardPage(QWidget):
         try:
             if primary_path.exists() and primary_path.is_dir():
                 logging.info("Primary path (Intranet) found and accessible")
-                self.tumorboard_base_path = Path("K:/RAO_Projekte/App/tumorboards")
+                self.tumorboard_base_path = Path("K:/RAO-Projekte/App/tumorboards")
                 return primary_path, False
         except (OSError, PermissionError) as e:
             logging.warning(f"Primary path not accessible: {e}")
@@ -233,8 +234,6 @@ class SpecificTumorboardPage(QWidget):
         """)
         msg.exec()
 
-
-
     def _scan_tumorboard_dates(self):
         """Scan for tumorboard date folders and categorize them using the new path logic"""
         current_dates = []
@@ -248,9 +247,9 @@ class SpecificTumorboardPage(QWidget):
         self.using_fallback_path = is_fallback
 
         if tumorboard_path is None:
-            # No valid path found - return empty lists (error handling in _populate_content)
+            # No valid path found - return empty lists and indicate path not accessible
             logging.error("No valid tumorboard path found")
-            return current_dates, past_dates
+            return current_dates, past_dates, False
 
         logging.info(f"Scanning tumorboard path: {tumorboard_path} (fallback: {is_fallback})")
 
@@ -274,15 +273,16 @@ class SpecificTumorboardPage(QWidget):
 
         except Exception as e:
             logging.error(f"Error scanning tumorboard dates: {e}")
-            # Return empty lists (error handling in _populate_content)
-            return current_dates, past_dates
+            # Return empty lists and indicate path not accessible
+            return current_dates, past_dates, False
 
         # Sort dates
         current_dates.sort(key=lambda x: datetime.datetime.strptime(x, '%d.%m.%Y'))
         past_dates.sort(key=lambda x: datetime.datetime.strptime(x, '%d.%m.%Y'), reverse=True)
 
         logging.info(f"Found {len(current_dates)} current and {len(past_dates)} past tumorboard dates")
-        return current_dates, past_dates
+        # Return dates and indicate path is accessible
+        return current_dates, past_dates, True
 
     def _create_section(self, section_title, dates, is_current=True):
         """Create a section with title and date buttons"""

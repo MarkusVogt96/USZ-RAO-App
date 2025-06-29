@@ -17,7 +17,7 @@ import logging
 
 def get_tumorboard_base_path():
     """Determine the correct tumorboard base path, prioritizing K: drive"""
-    k_path = Path("K:/RAO_Projekte/App/tumorboards")
+    k_path = Path("K:/RAO-Projekte/App/tumorboards")
     if k_path.exists() and k_path.is_dir():
         return k_path
     else:

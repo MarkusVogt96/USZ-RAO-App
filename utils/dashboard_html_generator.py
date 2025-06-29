@@ -110,7 +110,7 @@ def generate_complete_dashboard(interactive=True, tumorboard_base_path=None):
     # Determine correct tumorboard base path if not provided
     if tumorboard_base_path is None:
         # Try K: first, fall back to user home
-        k_path = Path("K:/RAO_Projekte/App/tumorboards")
+        k_path = Path("K:/RAO-Projekte/App/tumorboards")
         if k_path.exists() and k_path.is_dir():
             tumorboard_base_path = k_path
         else:
