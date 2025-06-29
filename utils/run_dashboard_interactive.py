@@ -46,7 +46,7 @@ def main():
         print("\n🎨 Generiere Dashboard HTML...")
         
         # Determine correct tumorboard base path
-        k_path = Path("K:/RAO-Projekte/App/tumorboards")
+        k_path = Path("K:/RAO_Projekte/App/tumorboards")
         if k_path.exists() and k_path.is_dir():
             tumorboard_base_path = k_path
             print(f"✅ Verwende K:-Pfad: {tumorboard_base_path}")

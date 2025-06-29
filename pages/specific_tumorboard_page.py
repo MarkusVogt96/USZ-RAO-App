@@ -158,15 +158,15 @@ class SpecificTumorboardPage(QWidget):
     def _determine_tumorboard_path(self):
         """
         Determine the correct tumorboard path based on priority:
-        1. K:\\RAO-Projekte\\App\\tumorboards\\ (primary/intranet)
+        1. K:\\RAO_Projekte\\App\\tumorboards\\ (primary/intranet)
         2. {home}\\tumorboards\\ (fallback/local)
         3. None (error - no path available)
         
         Returns:
             tuple: (Path object or None, bool indicating if using fallback)
         """
-        # Primary path (Intranet) - corrected path with hyphen
-        primary_path = Path("K:/RAO-Projekte/App/tumorboards") / self.tumorboard_name
+        # Primary path (Intranet)
+        primary_path = Path("K:/RAO_Projekte/App/tumorboards") / self.tumorboard_name
         
         # Fallback path (Local)
         fallback_path = Path.home() / "tumorboards" / self.tumorboard_name
@@ -177,7 +177,7 @@ class SpecificTumorboardPage(QWidget):
         try:
             if primary_path.exists() and primary_path.is_dir():
                 logging.info("Primary path (Intranet) found and accessible")
-                self.tumorboard_base_path = Path("K:/RAO-Projekte/App/tumorboards")
+                self.tumorboard_base_path = Path("K:/RAO_Projekte/App/tumorboards")
                 return primary_path, False
         except (OSError, PermissionError) as e:
             logging.warning(f"Primary path not accessible: {e}")
