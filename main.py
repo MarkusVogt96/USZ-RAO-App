@@ -179,7 +179,7 @@ class TumorGuideApp(QMainWindow):
         self.stacked_widget = QStackedWidget(); self.content_layout.addWidget(self.stacked_widget)
         self.main_layout.addWidget(content_widget); self.setCentralWidget(main_widget)
         self.tumor_group_page = TumorGroupPage(self); self.stacked_widget.addWidget(self.tumor_group_page)
-        self.kisim_page = None; self.cmd_scripts_page = None; self.tumorboards_page = None; self.developer_area_page = None
+        self.kisim_page = None; self.cmd_scripts_page = None; self.tumorboards_page = None; self.backoffice_page = None; self.developer_area_page = None
         self.stacked_widget.currentChanged.connect(self.update_breadcrumb)
         self.stacked_widget.currentChanged.connect(self.handle_page_change)
         
@@ -382,7 +382,7 @@ class TumorGuideApp(QMainWindow):
         else:logo_label.setText("USZ")
         dept_label=QLabel("Department of Radiation Oncology");dept_label.setFont(QFont("Helvetica",11,QFont.Weight.Bold));dept_label.setStyleSheet("color: #00BFFF; padding: 0; margin: 0; background: transparent;");dept_label.setWordWrap(True);logo_layout.addWidget(logo_label,0,Qt.AlignmentFlag.AlignLeft);logo_layout.addWidget(dept_label,0,Qt.AlignmentFlag.AlignLeft);menu_layout.addWidget(logo_container);separator=QFrame();separator.setFrameShape(QFrame.Shape.HLine);separator.setStyleSheet("background-color: #2a3642; min-height: 1px; max-height: 1px;");menu_layout.addWidget(separator);menu_layout.addSpacing(20)
         self.active_menu_style="QPushButton { background-color: #3292ea; color: white; font-weight: bold; font-size: 16px; text-align: left; padding-left: 15px; border: none; } QPushButton:hover { background-color: #4da2fa; }";self.inactive_menu_style="QPushButton { background-color: transparent; color: white; font-size: 15px; text-align: left; padding-left: 15px; border: none; border-bottom: 1px solid #2a3642; } QPushButton:hover { background-color: #2a3642; }"
-        menu_items=["Tumor navigator","Tumorboards", "KISIM Scripts","Placeholder","Developer Area"]
+        menu_items=["Tumor navigator","Tumorboards", "KISIM Scripts","Backoffice","Developer Area"]
         for i,item_text in enumerate(menu_items):
             menu_button=QPushButton(item_text);menu_button.setCursor(Qt.CursorShape.PointingHandCursor);menu_button.setFixedHeight(60)
             if i==0:menu_button.setStyleSheet(self.active_menu_style);menu_button.clicked.connect(self.go_home)
@@ -390,6 +390,7 @@ class TumorGuideApp(QMainWindow):
                 menu_button.setStyleSheet(self.inactive_menu_style)
                 if item_text=="KISIM Scripts":menu_button.clicked.connect(self.open_kisim_page)
                 elif item_text=="Tumorboards":menu_button.clicked.connect(self.open_tumorboards_page)
+                elif item_text=="Backoffice":menu_button.clicked.connect(self.open_backoffice_page)
                 elif item_text=="Developer Area":menu_button.clicked.connect(self.open_developer_area_page)
             self.menu_buttons[item_text]=menu_button;menu_layout.addWidget(menu_button)
         menu_layout.addStretch();return menu_frame
@@ -445,6 +446,22 @@ class TumorGuideApp(QMainWindow):
         elif isinstance(current_widget,ExcelViewerPage):add_separator();add_button("Tumorboards",TumorboardsPage);add_separator();add_button(getattr(current_widget,'tumorboard_name','Tumorboard'),SpecificTumorboardPage,entity_name=getattr(current_widget,'tumorboard_name','Tumorboard'));add_separator();add_label(getattr(current_widget,'date_str','Datum'))
         elif isinstance(current_widget,TumorboardSessionPage):add_separator();add_button("Tumorboards",TumorboardsPage);add_separator();add_button(getattr(current_widget,'tumorboard_name','Tumorboard'),SpecificTumorboardPage,entity_name=getattr(current_widget,'tumorboard_name','Tumorboard'));add_separator();add_button(getattr(current_widget,'date_str','Datum'),ExcelViewerPage,entity_name=f"{getattr(current_widget,'tumorboard_name','Tumorboard')}_{getattr(current_widget,'date_str','Datum')}");add_separator();add_label("Session")
         elif isinstance(current_widget,KisimPage):add_separator();add_label("KISIM Scripts")
+        elif current_widget.__class__.__name__ == "BackofficePage":add_separator();add_label("Backoffice")
+        elif current_widget.__class__.__name__ == "BackofficeTumorboardsPage":
+            # Import BackofficePage for breadcrumb button
+            try:
+                from pages.backoffice_page import BackofficePage
+                add_separator();add_button("Backoffice",BackofficePage);add_separator();add_label("Abgeschlossene Tumorboards")
+            except ImportError:
+                add_separator();add_label("Backoffice");add_separator();add_label("Abgeschlossene Tumorboards")
+        elif current_widget.__class__.__name__ == "ExcelViewerBackofficePage":
+            # Import BackofficePage and BackofficeTumorboardsPage for breadcrumb buttons
+            try:
+                from pages.backoffice_page import BackofficePage
+                from pages.backoffice_tumorboards_page import BackofficeTumorboardsPage
+                add_separator();add_button("Backoffice",BackofficePage);add_separator();add_button("Abgeschlossene Tumorboards",BackofficeTumorboardsPage);add_separator();add_label(f"{getattr(current_widget,'tumorboard_name','Tumorboard')} - {getattr(current_widget,'date_str','Datum')}")
+            except ImportError:
+                add_separator();add_label("Backoffice");add_separator();add_label("Abgeschlossene Tumorboards");add_separator();add_label(f"{getattr(current_widget,'tumorboard_name','Tumorboard')} - {getattr(current_widget,'date_str','Datum')}")
         elif current_widget.__class__.__name__ == "DeveloperAreaPage":add_separator();add_label("Developer Area")
         elif isinstance(current_widget,CmdScriptsPage):
             # Check if we came from Developer Area by looking at the script being run
@@ -519,6 +536,20 @@ class TumorGuideApp(QMainWindow):
         self._update_active_menu("Tumorboards")
         print(f"{APP_PREFIX}Navigated to Tumorboards page.")
     
+    def open_backoffice_page(self):        
+        if not self.check_tumorboard_session_before_navigation():
+            return  # User cancelled navigation
+            
+        if self.backoffice_page is None:
+            print(f"{APP_PREFIX}Creating BackofficePage instance.")
+            from pages.backoffice_page import BackofficePage
+            self.backoffice_page=BackofficePage(self)
+            self.stacked_widget.addWidget(self.backoffice_page)
+        
+        self.stacked_widget.setCurrentWidget(self.backoffice_page)
+        self._update_active_menu("Backoffice")
+        print(f"{APP_PREFIX}Navigated to Backoffice page.")
+
     def open_developer_area_page(self):        
         if not self.check_tumorboard_session_before_navigation():
             return  # User cancelled navigation
