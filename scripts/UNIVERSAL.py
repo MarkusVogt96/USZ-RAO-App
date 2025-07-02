@@ -2164,194 +2164,54 @@ def rt_konzept_oeffnen():
     function_name = "rt_konzept_oeffnen"
     logging.info(f"--- Starting {function_name} ---")
     print(f"\n--- Start {function_name}() ---")
-    try:
-        # Make imports local if not already loaded
-        logging.debug(f"[{function_name}] Importing required modules (clipboard, pyautogui)...")
-        clipboard = importlib.import_module("clipboard") if "clipboard" not in sys.modules else sys.modules["clipboard"]
-        pyautogui = importlib.import_module("pyautogui") if "pyautogui" not in sys.modules else sys.modules["pyautogui"]
-        logging.debug(f"[{function_name}] Modules imported successfully.")
+    # Make imports local if not already loaded
+    logging.debug(f"[{function_name}] Importing required modules (clipboard, pyautogui)...")
+    clipboard = importlib.import_module("clipboard") if "clipboard" not in sys.modules else sys.modules["clipboard"]
+    pyautogui = importlib.import_module("pyautogui") if "pyautogui" not in sys.modules else sys.modules["pyautogui"]
+    logging.debug(f"[{function_name}] Modules imported successfully.")
 
-        # Define paths using os.path.join and screenshots_dir
-        berichte_path = os.path.join(screenshots_dir, 'UNIVERSAL', 'bereich_berichte')
-        button_rtkonzept_confirm_path = os.path.join(berichte_path, 'button_rtkonzept_confirm.png')
-        button_rtkonzept_doppelt_path = os.path.join(berichte_path, 'button_rtkonzept_doppelt_ohne_blau.png')
-        logging.debug(f"[{function_name}] Path for confirm button: {button_rtkonzept_confirm_path}")
-        logging.debug(f"[{function_name}] Path for double-click button: {button_rtkonzept_doppelt_path}")
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    berichte_path = os.path.join(script_dir, "screenshots pyautogui", "UNIVERSAL", "bereich_berichte")
 
 
-        # --- Navigation und Texteingabe ---
-        logging.info(f"[{function_name}] Navigating to 'Berichte' area...")
-        if not navigiere_bereich_berichte(): print('Navigation in Bereich Berichte nach 100 Versuchen fehlgeschlagen. Bitte sicherstellen, dass KISIM im Vollbildmodus auf dem Hauptbildschirmoffen ist und erneut versuchen. Programm abgebrochen.'); sys.exit()
-        bereich_berichte_click_in_OE() 
-        for _ in range(4):
-            pyautogui.hotkey('ctrl', 'tab') #in Name
-            time.sleep(0.1) # Kleine Pause hinzufügen
-        rt_konzept = "rt-konzept"
-        clipboard.copy(rt_konzept)
-        time.sleep(0.3) # Pause vor dem Einfügen
-        print("Paste rt-konzept...)")
-        pyautogui.hotkey('ctrl', 'v')
-        time.sleep(0.5) # Pause nach dem Einfügen
+    # --- Navigation und Texteingabe ---
+    if not navigiere_bereich_berichte(): print('Navigation in Bereich Berichte nach 100 Versuchen fehlgeschlagen. Bitte sicherstellen, dass KISIM im Vollbildmodus auf dem Hauptbildschirmoffen ist und erneut versuchen. Programm abgebrochen.'); sys.exit()
+    bereich_berichte_click_in_OE() 
+    for _ in range(4):
+        pyautogui.hotkey('ctrl', 'tab') #in Name
+        time.sleep(0.1) # Kleine Pause hinzufügen
+    rt_konzept = "rt-konzept"
+    clipboard.copy(rt_konzept)
+    time.sleep(0.3) # Pause vor dem Einfügen
+    print("Paste rt-konzept...)")
+    pyautogui.hotkey('ctrl', 'v')
+    time.sleep(0.5) # Pause nach dem Einfügen
 
-        # --- button_rtkonzept_confirm finden mit Timeout ---
-        logging.info(f"[{function_name}] Searching for confirm (button_rtkonzept_confirm.png)...")
-        button_confirm_found = False
-        confirm_location = None
-        for attempt_confirm in range(200):
-            try:
-                # Use defined path variable
-                confirm_location = pyautogui.locateOnScreen(os.path.join(berichte_path, "button_rtkonzept_confirm.png"), confidence=0.95)
-                if confirm_location is not None:
-                    print(f'button_rtkonzept_confirm.png gefunden (Attempt {attempt_confirm + 1}/200)')
-                    button_confirm_found = True
-                    break
-                else:
-                    confirm_location = pyautogui.locateOnScreen(os.path.join(berichte_path, "button_rtkonzept_confirm_2.png"), confidence=0.95)
-                    if confirm_location is not None:
-                        print(f'button_rtkonzept_confirm_2.png gefunden (Attempt {attempt_confirm + 1}/200)')
-                    button_confirm_found = True
-                    break # Exit confirm loop
+    find_button("button_rtkonzept_confirm.png", base_path=berichte_path, max_attempts=100, interval=0.1, confidence=0.90)
+                
 
-            except pyautogui.ImageNotFoundException:
-                # Diese Exception wird von locateOnScreen geworfen, wenn nichts gefunden wird.
-                # Loggen ist hier nicht nötig, da der Loop weitergeht.
-                pass
-            except Exception as e: # Catch other potential pyautogui errors
-                logging.error(f'[{function_name}] Error finding confirm button (Attempt {attempt_confirm + 1}/30): {e}', exc_info=True)
-                print(f'Error finding button_rtkonzept_confirm.png (Attempt {attempt_confirm + 1}/30): {e}')
-                # Continue to next attempt after delay
+    time.sleep(0.3)
 
-            # Log only periodically or on the last attempt if not found
-            if not button_confirm_found and (attempt_confirm % 5 == 4 or attempt_confirm == 29):
-                 logging.debug(f'[{function_name}] Confirm button NOT found (Attempt {attempt_confirm + 1}/30)')
-                 print(f'button_rtkonzept_confirm.png not found (Attempt {attempt_confirm + 1}/30), path: {button_rtkonzept_confirm_path}')
+    if not find_button("button_rtkonzept_doppelt.png", base_path=berichte_path, max_attempts=20, interval=0.05, confidence=0.95):
+        print("button_rtkonzept_doppelt.png nicht gefunden, setze Zeitraum unbestimmt.png")
+        if not find_and_click_button_offset("button_zeitraum_pfeil.png", base_path=berichte_path, max_attempts=20, interval=0.05, confidence=0.90, x_offset=-45):
+            print("button_zeitraum_pfeil.png nicht gefunden")
+            return False
+        if not find_and_click_button("button_unbestimmt.png", base_path=berichte_path, max_attempts=100, interval=0.05, confidence=0.90):
+            print("button_unbestimmt.png nicht gefunden")
+            return False
 
-            # Wait before next attempt if not found
-            time.sleep(0.1)
+    if not find_and_click_button_offset("button_rtkonzept_doppelt.png", base_path=berichte_path, max_attempts=20, interval=0.05, confidence=0.95, clicks=2, y_offset=5):
+        print("button_rtkonzept_doppelt.png nicht gefunden; offset Klick fehlgeschlagen")
+        return False
 
-        if not button_confirm_found:
-            logging.warning(f'[{function_name}] Confirm button ({os.path.basename(button_rtkonzept_confirm_path)}) NOT FOUND after 30 attempts.')
-            print(f'button_rtkonzept_confirm.png ({button_rtkonzept_confirm_path}) not found after 30 attempts.')
-            logging.info(f"--- {function_name} finished: Returning False (Confirm button not found) ---")
-            return False # Return False if confirm button not found
-
-        time.sleep(0.3)
-
-        if not find_button("button_rtkonzept_doppelt_ohne_blau.png", base_path=berichte_path, max_attempts=5, interval=0.05, confidence=0.95):
-            print("button_rtkonzept_doppelt_ohne_blau.png nicht gefunden, versuche button_rtkonzept_doppelt_2.png")
-            if not find_button("button_rtkonzept_doppelt_2.png", base_path=berichte_path, max_attempts=5, interval=0.05, confidence=0.95):
-                print("button_rtkonzept_doppelt_2.png nicht gefunden, ändere Zeitraum auf unbestimmt")
-                if not find_and_click_button_offset("button_zeitraum_pfeil.png", base_path=berichte_path, max_attempts=20, interval=0.05, confidence=0.90, x_offset=-45):
-                    print("button_zeitraum_pfeil.png nicht gefunden")
-                    return False
-                if not find_and_click_button("button_unbestimmt.png", base_path=berichte_path, max_attempts=100, interval=0.05, confidence=0.90):
-                    print("button_unbestimmt.png nicht gefunden")
-                    return False
-
-
-
-        # --- button_rtkonzept_doppelt anklicken mit Timeout ---
-        logging.info(f"[{function_name}] Searching for double button ({os.path.basename(button_rtkonzept_doppelt_path)})...")
-        button_doppelt_clicked = False
-
-        button_doppelt_clicked = False
-        for attempt_double in range(50):
-            try:
-                # Versuche, mit 'right' evtl. störende Markierung zu entfernen
-                pyautogui.press('right')
-
-                # Suche beide Varianten des Buttons, robust gegen Fehler
-                button_rtkonzept_doppelt = None
-                button_rtkonzept_doppelt_found = False
-
-                # Versuche zuerst die "ohne blau"-Variante
-                try:
-                    button_rtkonzept_doppelt = pyautogui.locateOnScreen(
-                        os.path.join(berichte_path, "button_rtkonzept_doppelt_ohne_blau.png"), confidence=0.9)
-                    if button_rtkonzept_doppelt is not None:
-                        print(f'button_rtkonzept_doppelt_ohne_blau.png gefunden (Attempt {attempt_double + 1}/50)')
-                        button_rtkonzept_doppelt_found = True
-                except Exception as e:
-                    logging.warning(f"[{function_name}] Fehler bei Suche nach button_rtkonzept_doppelt_ohne_blau.png: {e}")
-
-                # Falls nicht gefunden, versuche die zweite Variante
-                if not button_rtkonzept_doppelt_found:
-                    try:
-                        button_rtkonzept_doppelt = pyautogui.locateOnScreen(
-                            os.path.join(berichte_path, "button_rtkonzept_doppelt_2.png"), confidence=0.9)
-                        if button_rtkonzept_doppelt is not None:
-                            print(f'button_rtkonzept_doppelt_2.png gefunden (Attempt {attempt_double + 1}/50)')
-                            button_rtkonzept_doppelt_found = True
-                    except Exception as e:
-                        logging.warning(f"[{function_name}] Fehler bei Suche nach button_rtkonzept_doppelt_2.png: {e}")
-
-                if button_rtkonzept_doppelt_found and button_rtkonzept_doppelt is not None:
-                    logging.info(f"[{function_name}] Double-click button FOUND at {button_rtkonzept_doppelt} (Attempt {attempt_double + 1}/50)")
-                    print(f'button_rtkonzept_doppelt.png gefunden (Attempt {attempt_double + 1}/50)')
-                    # Berechnung der Zielkoordinaten mit Fallback
-                    try:
-                        target_x = button_rtkonzept_doppelt.left + button_rtkonzept_doppelt.width // 2
-                        target_y = button_rtkonzept_doppelt.top + (5 * button_rtkonzept_doppelt.height) // 6
-                    except Exception as e:
-                        logging.error(f"[{function_name}] Fehler bei Koordinatenberechnung: {e}")
-                        # Fallback: center() verwenden
-                        try:
-                            center = pyautogui.center(button_rtkonzept_doppelt)
-                            target_x, target_y = center.x, center.y
-                        except Exception as e2:
-                            logging.error(f"[{function_name}] center() Fallback fehlgeschlagen: {e2}")
-                            continue  # Nächster Versuch
-
-                    logging.info(f"[{function_name}] Calculated double-click target: ({target_x}, {target_y})")
-                    time.sleep(0.3)  # Kürzere Pause, UI schneller reagieren lassen
-
-                    # Führe Doppelklick aus, robust gegen Fehler
-                    try:
-                        pyautogui.doubleClick(x=target_x, y=target_y)
-                        logging.info(f"[{function_name}] Double-click performed.")
-                        print(f'Doppelklick ausgeführt')
-                        button_doppelt_clicked = True
-                        break
-                    except Exception as e:
-                        logging.error(f"[{function_name}] Fehler beim Doppelklick: {e}")
-                        print(f"Fehler beim Ausführen des Doppelklicks: {e}")
-                        continue  # Nächster Versuch
-
-                else:
-                    print(f"Button rtkonzept doppelt nicht gefunden (Attempt {attempt_double + 1}/50), versuche erneut.")
-                    # Kein break, weiter versuchen
-
-            except Exception as e:
-                logging.error(f'[{function_name}] Unerwarteter Fehler in double-click loop (Attempt {attempt_double + 1}/50): {e}', exc_info=True)
-                print(f'Unerwarteter Fehler in double-click loop (Attempt {attempt_double + 1}/50): {e}')
-
-            # Logge regelmäßig, falls Button nicht gefunden wurde
-            if not button_doppelt_clicked and (attempt_double % 5 == 4 or attempt_double == 49):
-                logging.debug(f'[{function_name}] Double-click button NOT found (Attempt {attempt_double + 1}/50)')
-                print(f'button_rtkonzept_doppelt.png not found (Attempt {attempt_double + 1}/50), path: {button_rtkonzept_doppelt_path}')
-
-            time.sleep(0.1)
-
-        if not button_doppelt_clicked:
-            logging.warning(f'[{function_name}] Double-click button ({os.path.basename(button_rtkonzept_doppelt_path)}) not found or clicked after 30 attempts.')
-            print(f'button_rtkonzept_doppelt.png ({button_rtkonzept_doppelt_path}) not found or clicked after 30 attempts.')
-            logging.info(f"--- {function_name} finished: Returning False (Double-click button not found/clicked) ---")
-            return False # Return False if double button not found/clicked
-
-        if not find_and_click_button("button_rtkonzept_offen_confirm.png", base_path=berichte_path, max_attempts=100, interval=0.05, confidence=0.95): print("button_rtkonzept_offen_confirm.png nicht gefunden"); return False
-
-        # If both buttons were processed successfully
-        logging.info(f"--- {function_name} finished successfully: Returning True ---")
-        print(f"--- {function_name}() erfolgreich abgeschlossen. ---")
+    if not find_button("button_rtkonzept_offen_confirm.png", base_path=berichte_path, max_attempts=150, interval=0.05, confidence=0.90):
+        print("button_rtkonzept_offen_confirm.png nicht gefunden, Fehler beim Öffnen des RT-Konzepts")
+        return False
+    else:
+        print("RT-Konzept erfolgreich geöffnet.")
         return True
 
-    except Exception as e:
-        # Catch any other unexpected error during the main execution flow
-        logging.error(f"[{function_name}] An unexpected error occurred: {e}", exc_info=True)
-        print(f"An unexpected error occurred in rt_konzept_oeffnen: {e}")
-        traceback.print_exc() # Print traceback to console as well
-        logging.info(f"--- {function_name} finished with error: Returning False ---")
-        return False # Return False if any other part fails
 
 ###################################
 ###################################
