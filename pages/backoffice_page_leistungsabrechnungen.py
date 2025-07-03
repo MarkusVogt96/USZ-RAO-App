@@ -1194,7 +1194,8 @@ class BackofficePageLeistungsabrechnungen(QWidget):
             excel_viewer_page = ExcelViewerBackofficePage(
                 self.main_window,
                 tumorboard_data['tumorboard'],
-                tumorboard_data['datum']
+                tumorboard_data['datum'],
+                source_page="leistungsabrechnungen"  # Indicate this came from billing page
             )
             
             # Add the page to the stacked widget and navigate to it

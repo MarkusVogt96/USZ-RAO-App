@@ -10,12 +10,13 @@ import pandas as pd
 
 
 class ExcelViewerBackofficePage(QWidget):
-    def __init__(self, main_window, tumorboard_name, date_str):
+    def __init__(self, main_window, tumorboard_name, date_str, source_page=None):
         super().__init__()
         logging.info(f"Initializing ExcelViewerBackofficePage for: {tumorboard_name} on {date_str}")
         self.main_window = main_window
         self.tumorboard_name = tumorboard_name
         self.date_str = date_str
+        self.source_page = source_page  # Track which page this was opened from
         
         # Store the tumorboard base path (K: drive for backoffice)
         #self.tumorboard_base_path = Path("K:/RAO_Projekte/App/tumorboards")

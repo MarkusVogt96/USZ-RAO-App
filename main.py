@@ -473,13 +473,25 @@ class TumorGuideApp(QMainWindow):
             except ImportError:
                 add_separator();add_label("Backoffice");add_separator();add_label("Abgeschlossene Tumorboards")
         elif current_widget.__class__.__name__ == "ExcelViewerBackofficePage":
-            # Import BackofficePage and BackofficeTumorboardsPage for breadcrumb buttons
-            try:
-                from pages.backoffice_page import BackofficePage
-                from pages.backoffice_tumorboards_page import BackofficeTumorboardsPage
-                add_separator();add_button("Backoffice",BackofficePage);add_separator();add_button("Abgeschlossene Tumorboards",BackofficeTumorboardsPage);add_separator();add_label(f"{getattr(current_widget,'tumorboard_name','Tumorboard')} - {getattr(current_widget,'date_str','Datum')}")
-            except ImportError:
-                add_separator();add_label("Backoffice");add_separator();add_label("Abgeschlossene Tumorboards");add_separator();add_label(f"{getattr(current_widget,'tumorboard_name','Tumorboard')} - {getattr(current_widget,'date_str','Datum')}")
+            # Check if this came from the billing (leistungsabrechnungen) page
+            source_page = getattr(current_widget, 'source_page', None)
+            
+            if source_page == "leistungsabrechnungen":
+                # Import BackofficePage and BackofficePageLeistungsabrechnungen for breadcrumb buttons
+                try:
+                    from pages.backoffice_page import BackofficePage
+                    from pages.backoffice_page_leistungsabrechnungen import BackofficePageLeistungsabrechnungen
+                    add_separator();add_button("Backoffice",BackofficePage);add_separator();add_button("Leistungsabrechnungen Tumorboards",BackofficePageLeistungsabrechnungen);add_separator();add_label(f"{getattr(current_widget,'tumorboard_name','Tumorboard')} - {getattr(current_widget,'date_str','Datum')}")
+                except ImportError:
+                    add_separator();add_label("Backoffice");add_separator();add_label("Leistungsabrechnungen Tumorboards");add_separator();add_label(f"{getattr(current_widget,'tumorboard_name','Tumorboard')} - {getattr(current_widget,'date_str','Datum')}")
+            else:
+                # Default behavior - came from regular tumorboards page
+                try:
+                    from pages.backoffice_page import BackofficePage
+                    from pages.backoffice_tumorboards_page import BackofficeTumorboardsPage
+                    add_separator();add_button("Backoffice",BackofficePage);add_separator();add_button("Abgeschlossene Tumorboards",BackofficeTumorboardsPage);add_separator();add_label(f"{getattr(current_widget,'tumorboard_name','Tumorboard')} - {getattr(current_widget,'date_str','Datum')}")
+                except ImportError:
+                    add_separator();add_label("Backoffice");add_separator();add_label("Abgeschlossene Tumorboards");add_separator();add_label(f"{getattr(current_widget,'tumorboard_name','Tumorboard')} - {getattr(current_widget,'date_str','Datum')}")
         elif current_widget.__class__.__name__ == "DeveloperAreaPage":add_separator();add_label("Developer Area")
         elif isinstance(current_widget,CmdScriptsPage):
             # Check if we came from Developer Area by looking at the script being run
