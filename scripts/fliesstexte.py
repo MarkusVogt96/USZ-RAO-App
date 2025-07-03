@@ -2,6 +2,18 @@
 print("Lade Modul fliesstexte.py...")
 import UNIVERSAL
 import datetime
+import indikationen_mapping
+
+
+print("Erstelle Indikationen-Mapping für Fließtexte...")
+try:
+    INDICATIONS_MAP = indikationen_mapping.create_indication_mapping()
+    print("Indikationen-Mapping erfolgreich erstellt.")
+except Exception as e:
+    print(f"FEHLER beim Erstellen des Indikationen-Mappings: {e}")
+    INDICATIONS_MAP = {} # Im Fehlerfall ein leeres Dict verwenden, um Abstürze zu vermeiden.
+
+
 
 # --- Hilfsfunktion für Glossary-Zugriff (lokal in diesem Modul) ---
 def _get_from_glossary(glossary, key, default=""):
@@ -470,12 +482,39 @@ def define_berrao_texte(bericht_typ, entity, patdata, glossary):
     if bericht_typ == "e":
         print("Definiere Texte für Berrao Erstkonsultation (Typ e)...")
 
+        # --- BEGINN NEUE LOGIK FÜR INDIKATIONSTEXT ---
+        
+        # 1. Bestimme den zu verwendenden ICD-Code gemäß der festgelegten Priorität.
+        icd_code_to_use = None
+        if secondary_icd_code and secondary_icd_code.strip():
+            icd_code_to_use = secondary_icd_code
+            print(f"INFO: Verwende 'secondary_icd_code' für Indikationssuche: {icd_code_to_use}")
+        elif icd_code and icd_code.strip():
+            icd_code_to_use = icd_code
+            print(f"INFO: Verwende primären 'icd_code' für Indikationssuche: {icd_code_to_use}")
+        else:
+            print("WARNUNG: Kein ICD-Code in patdata für die Indikationssuche gefunden.")
+
+        # 2. Rufe den Indikationstext aus dem Mapping ab.
+        fliesstext_indikation = ""  # Standardwert ist ein leerer String.
+        if icd_code_to_use:
+            # Ruft die Funktion aus dem importierten Modul auf
+            retrieved_text = indikationen_mapping.get_indication_text(icd_code_to_use, INDICATIONS_MAP)
+            
+            # Wandelt das Ergebnis 'None' in einen leeren String um, falls nichts gefunden wird.
+            fliesstext_indikation = retrieved_text or ""
+            if fliesstext_indikation:
+                 print(f"INFO: Indikationstext für {icd_code_to_use} erfolgreich gefunden. \n\n\nGefundener Text:\n{fliesstext_indikation}")
+            else:
+                 print(f"\n\n\nINFO: Kein spezifischer Indikationstext für {icd_code_to_use} gefunden. Feld bleibt leer.")
+        # --- ENDE LOGIK FÜR INDIKATIONSTEXT ---
+
         texte["fliesstext_wir_berichten"] = f"Wir berichten Ihnen über oben {g('genannte_akkusativ', 'genannten/genannte')} {g('patient_akkusativ','Patienten/in')}, {g('artikel_akkusativ_klein','den/die')} wir am {heute} zur Erstkonsultation gesehen haben."
         texte["fliesstext_onkologischer_krankheitsverlauf"] = (f"{g('herrfrau','Herr/Frau')} {nachname} ist {g('ein_nominativ','ein/eine')} {alter}-{g('jährig_nominativ','jährige/r')} {g('patient_nominativ','Patient/in')} mit {tumor} (Erstdiagnose _____ )."
                                                       f"\n\n[BISHERIGER VERLAUF]"
                                                       f"\n\n{g('artikel_nominativ_gross','Der/Die')} {alter}-jährige {g('patient_nominativ','Patient/in')} wird uns nun zur Evaluation einer potenziellen Radiotherapie in unsere ambulante Sprechstunde zugewiesen.")
         texte["fliesstext_aktueller_onkologischer_status"] = (f" ")
-        texte["fliesstext_indikation"] = (f" ")
+        texte["fliesstext_indikation"] = fliesstext_indikation
         texte["fliesstext_anamnese"] = (f"{g('herrfrau','Herr/Frau')} {nachname} stellte sich planmässig zur heutigen Erstkonsultation vor, um mit uns im Sinne eines shared decision-making "
                                f"etwaig indizierte radioonkologische Therapieoptionen im Rahmen der onkologischen Grunderkrankung bei {tumor} zu evaluieren.\n\n- ")
         texte["fliesstext_allgemeinstatus"] = (f"{alter}-{g('jährig_nominativ','jährige/r')} {g('patient_nominativ','Patient/in')} in {beschreibung_ecog.get(ecog, "____")} Allgemeinzustand (ECOG {ecog}) und normalem Ernährungszustand. "
@@ -499,10 +538,38 @@ def define_berrao_texte(bericht_typ, entity, patdata, glossary):
     elif bericht_typ == "a":
         print("Definiere Texte für Berrao Abschlusskontrolle (Typ a)...")
 
+        # --- BEGINN NEUE LOGIK FÜR INDIKATIONSTEXT ---
+        # Dieser Block kann später für andere Berichtstypen (z.B. 'e') wiederverwendet werden.
+        
+        # 1. Bestimme den zu verwendenden ICD-Code gemäß der festgelegten Priorität.
+        icd_code_to_use = None
+        if secondary_icd_code and secondary_icd_code.strip():
+            icd_code_to_use = secondary_icd_code
+            print(f"INFO: Verwende 'secondary_icd_code' für Indikationssuche: {icd_code_to_use}")
+        elif icd_code and icd_code.strip():
+            icd_code_to_use = icd_code
+            print(f"INFO: Verwende primären 'icd_code' für Indikationssuche: {icd_code_to_use}")
+        else:
+            print("WARNUNG: Kein ICD-Code in patdata für die Indikationssuche gefunden.")
+
+        # 2. Rufe den Indikationstext aus dem Mapping ab.
+        fliesstext_indikation = ""  # Standardwert ist ein leerer String.
+        if icd_code_to_use:
+            # Ruft die Funktion aus dem importierten Modul auf
+            retrieved_text = indikationen_mapping.get_indication_text(icd_code_to_use, INDICATIONS_MAP)
+            
+            # Wandelt das Ergebnis 'None' in einen leeren String um, falls nichts gefunden wird.
+            fliesstext_indikation = retrieved_text or ""
+            if fliesstext_indikation:
+                 print(f"INFO: Indikationstext für {icd_code_to_use} erfolgreich gefunden. \n\n\nGefundener Text:\n{fliesstext_indikation}")
+            else:
+                 print(f"\n\n\nINFO: Kein spezifischer Indikationstext für {icd_code_to_use} gefunden. Feld bleibt leer.")
+        # --- ENDE LOGIK FÜR INDIKATIONSTEXT ---
+
         texte["fliesstext_wir_berichten"] = f"Wir berichten Ihnen über oben {g('genannte_akkusativ', 'genannten/genannte')} {g('patient_akkusativ','Patienten/in')}, {g('artikel_akkusativ_klein','den/die')} wir am {heute} zur Abschlusskontrolle konsultiert haben."
         texte["fliesstext_onkologischer_krankheitsverlauf"] = (f" ")
         texte["fliesstext_aktueller_onkologischer_status"] = (f"Kürzlicher Abschluss ({datum_letzte_rt or '__.__.2025'}) der bei zugrundeliegendem {tumor or '____________'} durchgeführten, {therapieintention_klein}n Radiotherapie.")
-        texte["fliesstext_indikation"] = (f" ")
+        texte["fliesstext_indikation"] = fliesstext_indikation
         texte["fliesstext_anamnese"] = (f"{g('herrfrau','Herr/Frau')} {nachname} stellte sich planmässig zur heutigen Abschlusskontrolle vor, um mit uns den Verlauf"
                                f" der zuletzt durchgeführten Radiotherapie zu re-evaluieren sowie bei allfällig ausgeprägten Akuttoxizitäten oder Komplikationen entsprechend medizinische Massnahmen einzuleiten."
                                f"\n\n-")

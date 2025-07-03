@@ -686,108 +686,113 @@ class TumorGuideApp(QMainWindow):
         palette=QPalette();palette.setColor(QPalette.ColorRole.Window,QColor(25,35,45));palette.setColor(QPalette.ColorRole.WindowText,Qt.GlobalColor.white);palette.setColor(QPalette.ColorRole.Base,QColor(35,45,55));palette.setColor(QPalette.ColorRole.AlternateBase,QColor(45,55,65));palette.setColor(QPalette.ColorRole.ToolTipBase,QColor(25,35,45));palette.setColor(QPalette.ColorRole.ToolTipText,Qt.GlobalColor.white);palette.setColor(QPalette.ColorRole.Text,Qt.GlobalColor.white);palette.setColor(QPalette.ColorRole.Button,QColor(35,45,55));palette.setColor(QPalette.ColorRole.ButtonText,Qt.GlobalColor.white);palette.setColor(QPalette.ColorRole.BrightText,Qt.GlobalColor.red);palette.setColor(QPalette.ColorRole.Link,QColor(42,130,218));palette.setColor(QPalette.ColorRole.Highlight,QColor(42,130,218));palette.setColor(QPalette.ColorRole.HighlightedText,Qt.GlobalColor.black);QApplication.setPalette(palette)
 
 def run_update_check():
-        """
-        Prüft auf eine neue Version der App und fragt den Benutzer,
-        ob diese installiert werden soll.
-        """
-        try:
-            # --- 1. Pfade und Muster definieren ---
-            network_base_path = r'K:\RAO_Projekte\App'
-            local_version_file = os.path.join(os.path.dirname(__file__), 'version.txt')
-            version_dir_prefix = 'USZ-RAO-App_v'
+    """
+    Prüft auf eine neue Version der App und fragt den Benutzer,
+    ob diese installiert werden soll.
+    """
+    try:
+        # --- 1. Pfade definieren ---
+        # Der neue, feste Pfad zur Remote-App-Installation
+        network_app_content_path = r'K:\RAO_Projekte\App\Resources\USZ-RAO-App'
+        
+        # Der Pfad zur updater.bat-Datei. Es wird angenommen, dass diese nun
+        # im 'Resources'-Ordner liegt, eine Ebene über dem 'USZ-RAO-App'-Ordner.
+        network_resources_path = os.path.dirname(network_app_content_path)
+        updater_script_path = os.path.join(network_resources_path, 'EXECUTE_ME_FOR_INSTALLING_OR_UPDATING.bat')
 
-            # --- 2. Netzwerk-Verfügbarkeit prüfen und Versionsordner finden ---
-            if not os.path.exists(network_base_path):
-                print(f"INFO: {APP_PREFIX}Update check skipped: Network path '{network_base_path}' not found.")
-                return # App normal starten
+        local_version_file = os.path.join(os.path.dirname(__file__), 'version.txt')
 
-            network_version_dir = None
-            for dir_name in os.listdir(network_base_path):
-                if dir_name.startswith(version_dir_prefix) and os.path.isdir(os.path.join(network_base_path, dir_name)):
-                    network_version_dir = os.path.join(network_base_path, dir_name)
-                    break # Nimm den ersten gefundenen Ordner
+        # --- 2. Netzwerk-Verfügbarkeit prüfen ---
+        if not os.path.exists(network_app_content_path):
+            print(f"INFO: {APP_PREFIX}Update check skipped: Network application path '{network_app_content_path}' not found.")
+            return # App normal starten
 
-            if not network_version_dir:
-                print(f"INFO: {APP_PREFIX}Update check skipped: No version folder found in '{network_base_path}'.")
-                return # App normal starten
+        # --- 3. Versionen aus den 'version.txt' Dateien lesen ---
+        remote_version_str = None
+        remote_version_file = os.path.join(network_app_content_path, 'version.txt')
+        
+        if os.path.exists(remote_version_file):
+            with open(remote_version_file, 'r') as f:
+                remote_version_str = f.read().strip()
 
-            # --- 3. Versionen aus den 'version.txt' Dateien lesen ---
-            remote_version_str = None
-            app_content_folder = os.path.join(network_version_dir, 'USZ-RAO-App')
-            remote_version_file = os.path.join(app_content_folder, 'version.txt')
-            if os.path.exists(remote_version_file):
-                with open(remote_version_file, 'r') as f:
-                    remote_version_str = f.read().strip()
+        local_version_str = None
+        if os.path.exists(local_version_file):
+            with open(local_version_file, 'r') as f:
+                local_version_str = f.read().strip()
+        
+        if not remote_version_str or not local_version_str:
+            print(f"WARNUNG: {APP_PREFIX}Update check skipped: version.txt file missing (Local: {local_version_str is not None}, Remote: {remote_version_str is not None}).")
+            return # App normal starten
 
-            local_version_str = None
-            if os.path.exists(local_version_file):
-                with open(local_version_file, 'r') as f:
-                    local_version_str = f.read().strip()
-            
-            if not remote_version_str or not local_version_str:
-                print(f"WARNUNG: {APP_PREFIX}Update check skipped: version.txt file missing (Local: {local_version_str is not None}, Remote: {remote_version_str is not None}).")
-                return # App normal starten
+        # --- 4. Versionen vergleichen ---
+        print(f"INFO: {APP_PREFIX}Version Check - Local: {local_version_str}, Remote: {remote_version_str}")
+        if remote_version_str == local_version_str:
+            print(f"INFO: {APP_PREFIX}Application is up to date.")
+            return # Versionen sind identisch, App normal starten
 
-            # --- 4. Versionen vergleichen ---
-            print(f"INFO: {APP_PREFIX}Version Check - Local: {local_version_str}, Remote: {remote_version_str}")
-            if remote_version_str == local_version_str:
-                print(f"INFO: {APP_PREFIX}Application is up to date.")
-                return # Versionen sind identisch, App normal starten
+        # --- 5. Update-Dialog anzeigen, wenn Versionen abweichen ---
+        print(f"INFO: {APP_PREFIX}Update available. Showing dialog to user.")
+        msg_box = QMessageBox()
+        msg_box.setWindowTitle("Update verfügbar")
+        msg_box.setText("Update verfügbar. Installation zu Stabilitätszwecken dringend empfohlen!\n\nUpdate jetzt automatisch installieren lassen? (ca. 2 min)")
+        msg_box.setIcon(QMessageBox.Icon.Information)
+        yes_button = msg_box.addButton("Ja", QMessageBox.ButtonRole.YesRole)
+        no_button = msg_box.addButton("Nein, Update später laden", QMessageBox.ButtonRole.NoRole)
+        
+        # KORREKTUR 1: Setze eine Mindestbreite für die gesamte Dialogbox.
+        # Dies gibt dem Layout genug Platz für den Textumbruch. Passen Sie den Wert bei Bedarf an.
+        msg_box.setMinimumWidth(500)
 
-            # --- 5. Update-Dialog anzeigen, wenn Versionen abweichen ---
-            print(f"INFO: {APP_PREFIX}Update available. Showing dialog to user.")
-            msg_box = QMessageBox()
-            msg_box.setWindowTitle("Update verfügbar")
-            msg_box.setText("Update verfügbar. Installation zu Stabilitätszwecken dringend empfohlen!\n\nUpdate jetzt automatisch installieren lassen? (ca. 2 min)")
-            msg_box.setIcon(QMessageBox.Icon.Information)
-            yes_button = msg_box.addButton("Ja", QMessageBox.ButtonRole.YesRole)
-            no_button = msg_box.addButton("Nein, Update später laden", QMessageBox.ButtonRole.NoRole)
-            
-            # KORREKTUR 1: Setze eine Mindestbreite für die gesamte Dialogbox.
-            # Dies gibt dem Layout genug Platz für den Textumbruch. Passen Sie den Wert bei Bedarf an.
-            msg_box.setMinimumWidth(500)
+        # Style für den Dialog (angepasst an Ihr Theme)
+        msg_box.setStyleSheet("""
+            QMessageBox { background-color: #19232D; }
+            /* KORREKTUR 2: Keine Breitenangabe mehr für das Label, damit es flexibel bleibt. */
+            QMessageBox QLabel { color: white; font-size: 14px; padding: 15px; }
+            QMessageBox QPushButton {
+                background-color: #37414F; color: white; padding: 8px 20px;
+                border-radius: 4px; min-width: 180px; font-size: 13px; margin: 5px;
+            }
+            QMessageBox QPushButton:hover { background-color: #4C5A6D; }
+        """)
+        yes_button.setStyleSheet("background-color: #3292ea; font-weight: bold;")
 
-            # Style für den Dialog (angepasst an Ihr Theme)
-            msg_box.setStyleSheet("""
-                QMessageBox { background-color: #19232D; }
-                /* KORREKTUR 2: Keine Breitenangabe mehr für das Label, damit es flexibel bleibt. */
-                QMessageBox QLabel { color: white; font-size: 14px; padding: 15px; }
-                QMessageBox QPushButton {
-                    background-color: #37414F; color: white; padding: 8px 20px;
-                    border-radius: 4px; min-width: 180px; font-size: 13px; margin: 5px;
-                }
-                QMessageBox QPushButton:hover { background-color: #4C5A6D; }
-            """)
-            yes_button.setStyleSheet("background-color: #3292ea; font-weight: bold;")
+        msg_box.exec()
 
-            msg_box.exec()
-
-            if msg_box.clickedButton() == yes_button:
-                # --- 6. Update-Skript ausführen und App beenden ---
-                updater_script_path = os.path.join(network_version_dir, 'EXECUTE_ME_FOR_INSTALLING_OR_UPDATING.bat')
-                if os.path.exists(updater_script_path):
-                    print(f"INFO: {APP_PREFIX}User accepted update. Executing: {updater_script_path}")
-                    try:
-                        subprocess.Popen([updater_script_path], creationflags=subprocess.CREATE_NEW_CONSOLE)
-                        print(f"INFO: {APP_PREFIX}Updater launched. Exiting application.")
-                        sys.exit(0)
-                    except Exception as e:
-                        print(f"ERROR: {APP_PREFIX}Failed to execute updater script: {e}")
-                        error_msg = QMessageBox()
-                        error_msg.setIcon(QMessageBox.Icon.Critical)
-                        error_msg.setText(f"Das Update-Skript konnte nicht gestartet werden.\n\nFehler: {e}\n\nBitte kontaktieren Sie den Support.")
-                        error_msg.setWindowTitle("Update-Fehler")
-                        error_msg.exec()
-                        sys.exit(1)
-                else:
-                    print(f"ERROR: {APP_PREFIX}Updater script not found at: {updater_script_path}")
+        if msg_box.clickedButton() == yes_button:
+            # --- 6. Update-Skript ausführen und App beenden ---
+            if os.path.exists(updater_script_path):
+                print(f"INFO: {APP_PREFIX}User accepted update. Executing: {updater_script_path}")
+                try:
+                    # subprocess.CREATE_NEW_CONSOLE stellt sicher, dass das Batch-Skript
+                    # in einem neuen Konsolenfenster ausgeführt wird und Ihre App beendet werden kann.
+                    subprocess.Popen([updater_script_path], creationflags=subprocess.CREATE_NEW_CONSOLE)
+                    print(f"INFO: {APP_PREFIX}Updater launched. Exiting application.")
+                    sys.exit(0) # App beenden, damit das Update durchgeführt werden kann
+                except Exception as e:
+                    print(f"ERROR: {APP_PREFIX}Failed to execute updater script: {e}")
+                    error_msg = QMessageBox()
+                    error_msg.setIcon(QMessageBox.Icon.Critical)
+                    error_msg.setText(f"Das Update-Skript konnte nicht gestartet werden.\n\nFehler: {e}\n\nBitte kontaktieren Sie den Support.")
+                    error_msg.setWindowTitle("Update-Fehler")
+                    error_msg.exec()
+                    sys.exit(1) # App mit Fehlercode beenden
             else:
-                print(f"INFO: {APP_PREFIX}User declined update. Starting application normally.")
-                return
+                print(f"ERROR: {APP_PREFIX}Updater script not found at: {updater_script_path}")
+                # Optional: Benutzer informieren, dass das Skript fehlt
+                QMessageBox.critical(None, "Update-Fehler", 
+                                     f"Das Update-Skript wurde nicht gefunden:\n{updater_script_path}\n\nBitte kontaktieren Sie den Support.")
+                return # App normal starten, da kein Update möglich ist
 
-        except Exception as e:
-            print(f"ERROR: {APP_PREFIX}An unexpected error occurred during the update check: {e}")
+        else:
+            print(f"INFO: {APP_PREFIX}User declined update. Starting application normally.")
             return
+
+    except Exception as e:
+        print(f"ERROR: {APP_PREFIX}An unexpected error occurred during the update check: {e}")
+        # Optional: Benutzer über den Fehler informieren
+        QMessageBox.warning(None, "Update-Prüfungsfehler", 
+                            f"Ein unerwarteter Fehler ist bei der Update-Prüfung aufgetreten: {e}\n\nDie Anwendung wird normal gestartet.")
+        return
 
 
 if __name__ == '__main__':
