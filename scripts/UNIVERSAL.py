@@ -2192,7 +2192,7 @@ def rt_konzept_oeffnen():
 
     time.sleep(0.3)
 
-    if not find_button("button_rtkonzept_doppelt.png", base_path=berichte_path, max_attempts=20, interval=0.05, confidence=0.95):
+    if not find_and_click_button_offset("button_rtkonzept_doppelt.png", base_path=berichte_path, max_attempts=20, interval=0.05, confidence=0.90, clicks=2, y_offset=5):
         print("button_rtkonzept_doppelt.png nicht gefunden, setze Zeitraum unbestimmt.png")
         if not find_and_click_button_offset("button_zeitraum_pfeil.png", base_path=berichte_path, max_attempts=20, interval=0.05, confidence=0.90, x_offset=-45):
             print("button_zeitraum_pfeil.png nicht gefunden")
@@ -2200,10 +2200,11 @@ def rt_konzept_oeffnen():
         if not find_and_click_button("button_unbestimmt.png", base_path=berichte_path, max_attempts=100, interval=0.05, confidence=0.90):
             print("button_unbestimmt.png nicht gefunden")
             return False
+        if not find_and_click_button_offset("button_rtkonzept_doppelt_schwarz.png", base_path=berichte_path, max_attempts=20, interval=0.05, confidence=0.90, clicks=2, y_offset=5):
+            print("button_rtkonzept_doppelt_schwarz.png nicht gefunden; offset Klick fehlgeschlagen")
+            return False
 
-    if not find_and_click_button_offset("button_rtkonzept_doppelt.png", base_path=berichte_path, max_attempts=20, interval=0.05, confidence=0.95, clicks=2, y_offset=5):
-        print("button_rtkonzept_doppelt.png nicht gefunden; offset Klick fehlgeschlagen")
-        return False
+
 
     if not find_button("button_rtkonzept_offen_confirm.png", base_path=berichte_path, max_attempts=150, interval=0.05, confidence=0.90):
         print("button_rtkonzept_offen_confirm.png nicht gefunden, Fehler beim Öffnen des RT-Konzepts")

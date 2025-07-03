@@ -17,7 +17,6 @@ entity_dictionary_icd = {
     'Hypophysenadenom': 'D35.2', # Gutartige Neubildung der Hypophyse
     'Kraniopharyngeom': 'D44.4', #Neubildung unsicheren oder unbekannten Verhaltens der endokrinen Drüsen, Ductus craniopharyngealis
     'Arteriovenöse Malformation': 'Q28.29', #Angeborene arteriovenöse Fehlbildung der zerebralen Gefäße, nicht näher bezeichnet
-
     'Sarkom': 'C49.9', #Bösartige Neubildung: Bindegewebe und andere Weichteilgewebe, nicht näher bezeichnet.
 
     # --- Kopf-Hals (erweitert) ---
