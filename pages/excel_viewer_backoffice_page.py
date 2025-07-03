@@ -7,65 +7,7 @@ import os
 import logging
 from pathlib import Path
 import pandas as pd
-import subprocess
 
-class QismBillingDialog(QDialog):
-    """Dialog for confirming QISM billing automation"""
-    def __init__(self, parent=None):
-        super().__init__(parent)
-        self.setWindowTitle("QISM Automatisierte Abrechnung")
-        self.setFixedSize(500, 200)
-        self.setStyleSheet("""
-            QDialog {
-                background-color: #1a2633;
-                color: white;
-            }
-        """)
-        
-        layout = QVBoxLayout(self)
-        layout.setSpacing(20)
-        layout.setContentsMargins(30, 30, 30, 30)
-        
-        # Message
-        message_label = QLabel("Es erfolgt jetzt die automatisierte Leistungsabrechnung.\n\n"
-                              "Bitte gewährleisten Sie, dass KISIM geöffnet ist und sich der "
-                              "Benutzer eingeloggt hat.\n\n"
-                              "Bestätigen Sie die Voraussetzung mit \"OK\".")
-        message_label.setFont(QFont("Helvetica", 12))
-        message_label.setStyleSheet("color: white; line-height: 1.4;")
-        message_label.setWordWrap(True)
-        layout.addWidget(message_label)
-        
-        # Buttons
-        self.button_box = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | 
-                                          QDialogButtonBox.StandardButton.Cancel)
-        self.button_box.setStyleSheet("""
-            QPushButton {
-                background-color: #114473;
-                color: white;
-                border: none;
-                border-radius: 4px;
-                padding: 8px 16px;
-                font-weight: bold;
-                min-width: 80px;
-                min-height: 30px;
-            }
-            QPushButton:hover {
-                background-color: #1a5a9e;
-            }
-            QPushButton:pressed {
-                background-color: #0d3355;
-            }
-        """)
-        
-        # Set button text to German
-        self.button_box.button(QDialogButtonBox.StandardButton.Ok).setText("OK")
-        self.button_box.button(QDialogButtonBox.StandardButton.Cancel).setText("Abbrechen")
-        
-        self.button_box.accepted.connect(self.accept)
-        self.button_box.rejected.connect(self.reject)
-        
-        layout.addWidget(self.button_box)
 
 class ExcelViewerBackofficePage(QWidget):
     def __init__(self, main_window, tumorboard_name, date_str):
@@ -94,7 +36,7 @@ class ExcelViewerBackofficePage(QWidget):
         main_layout.setSpacing(10)
         self.setLayout(main_layout)
 
-        # Top section with QISM billing button and title
+        # Top section with title
         top_section = QFrame()
         top_section.setFixedHeight(80)
         top_section.setStyleSheet("background: transparent;")
@@ -102,55 +44,30 @@ class ExcelViewerBackofficePage(QWidget):
         top_layout.setContentsMargins(0, 10, 0, 10)
         top_layout.setSpacing(20)
         
-        # Left side: QISM Billing button
-        self.qism_billing_button = QPushButton("Automatische QISM Abrechnung jetzt durchführen")
-        self.qism_billing_button.setFixedHeight(40)
-        self.qism_billing_button.setFixedWidth(350)
-        self.qism_billing_button.setCursor(Qt.CursorShape.PointingHandCursor)
-        self.qism_billing_button.setStyleSheet("""
-            QPushButton {
-                background-color: #FF8C00;
-                color: white;
-                border: none;
-                border-radius: 6px;
-                padding: 8px 16px;
-                font-weight: bold;
-                font-size: 13px;
-            }
-            QPushButton:hover {
-                background-color: #FFA500;
-            }
-            QPushButton:pressed {
-                background-color: #FF7F00;
-            }
-        """)
-        self.qism_billing_button.clicked.connect(self.start_qism_billing)
-        top_layout.addWidget(self.qism_billing_button, 0, Qt.AlignmentFlag.AlignVCenter)
-        
-        # Right side: Title and Date container (compact)
+        # Title and Date container (centered)
         title_container = QWidget()
         title_layout = QVBoxLayout(title_container)
-        title_layout.setContentsMargins(0, 0, 300, 0)
+        title_layout.setContentsMargins(0, 0, 0, 0)
         title_layout.setSpacing(4)  # Very tight spacing between title and date
         
-        # Page title (smaller font)
+        # Page title
         title_label = QLabel(f"Tumorboard: {self.tumorboard_name}")
-        title_label.setFont(QFont("Helvetica", 18, QFont.Weight.Bold))  # Reduced from 20 to 18
+        title_label.setFont(QFont("Helvetica", 20, QFont.Weight.Bold))
         title_label.setStyleSheet("color: white;")
         title_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         title_layout.addWidget(title_label)
 
-        # Date subtitle (smaller font, tighter)
+        # Date subtitle
         date_label = QLabel(f"Datum: {self.date_str}")
-        date_label.setFont(QFont("Helvetica", 14))  # Reduced from 16 to 14
+        date_label.setFont(QFont("Helvetica", 16))
         date_label.setStyleSheet("color: #00BFFF;")
         date_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         title_layout.addWidget(date_label)
         
-        # Add title container to layout with stretch to center it
+        # Center the title container
         top_layout.addStretch(1)
-        top_layout.addWidget(title_container, 0, Qt.AlignmentFlag.AlignVCenter)
-        top_layout.addStretch(1)  # Balance on right side
+        top_layout.addWidget(title_container, 0, Qt.AlignmentFlag.AlignCenter)
+        top_layout.addStretch(1)
         
         main_layout.addWidget(top_section)
         
@@ -385,193 +302,7 @@ class ExcelViewerBackofficePage(QWidget):
         
         logging.error(f"Error loading Excel file for {self.tumorboard_name} on {self.date_str}: {error_msg}")
 
-    def start_qism_billing(self):
-        """Start the QISM billing automation process"""
-        logging.info("QISM billing automation button clicked")
-        
-        # Show confirmation dialog
-        dialog = QismBillingDialog(self)
-        result = dialog.exec()
-        
-        if result == QDialog.DialogCode.Accepted:
-            logging.info("User confirmed QISM billing automation prerequisites")
-            self.execute_billing_script()
-        else:
-            logging.info("User cancelled QISM billing automation")
 
-    def execute_billing_script(self):
-        """Execute the abrechnung.py script"""
-        try:
-            # Path to the abrechnung.py script
-            script_path = Path(__file__).parent.parent / "scripts" / "abrechnung.py"
-            
-            if not script_path.exists():
-                # Show error message that script doesn't exist
-                error_msg = QMessageBox(self)
-                error_msg.setWindowTitle("Script-Fehler")
-                error_msg.setText("Das Abrechnungs-Script wurde nicht gefunden.\n\n"
-                                f"Erwartet bei: {script_path}")
-                error_msg.setIcon(QMessageBox.Icon.Critical)
-                error_msg.setStandardButtons(QMessageBox.StandardButton.Ok)
-                error_msg.setStyleSheet("""
-                    QMessageBox {
-                        background-color: #1a2633;
-                        color: white;
-                    }
-                    QMessageBox QLabel {
-                        color: white;
-                        font-size: 14px;
-                    }
-                    QPushButton {
-                        background-color: #114473;
-                        color: white;
-                        border: none;
-                        border-radius: 4px;
-                        padding: 8px 16px;
-                        font-weight: bold;
-                        min-width: 80px;
-                    }
-                    QPushButton:hover {
-                        background-color: #1a5a9e;
-                    }
-                """)
-                error_msg.exec()
-                return
-            
-            logging.info(f"Executing billing script: {script_path}")
-            
-            # Execute the script
-            result = subprocess.run([
-                "python", str(script_path)
-            ], capture_output=True, text=True, timeout=300)  # 5 minute timeout
-            
-            if result.returncode == 0:
-                # Success message
-                success_msg = QMessageBox(self)
-                success_msg.setWindowTitle("Abrechnung erfolgreich")
-                success_msg.setText("Die automatisierte QISM Abrechnung wurde erfolgreich durchgeführt.")
-                success_msg.setIcon(QMessageBox.Icon.Information)
-                success_msg.setStandardButtons(QMessageBox.StandardButton.Ok)
-                success_msg.setStyleSheet("""
-                    QMessageBox {
-                        background-color: #1a2633;
-                        color: white;
-                    }
-                    QMessageBox QLabel {
-                        color: white;
-                        font-size: 14px;
-                    }
-                    QPushButton {
-                        background-color: #114473;
-                        color: white;
-                        border: none;
-                        border-radius: 4px;
-                        padding: 8px 16px;
-                        font-weight: bold;
-                        min-width: 80px;
-                    }
-                    QPushButton:hover {
-                        background-color: #1a5a9e;
-                    }
-                """)
-                success_msg.exec()
-                logging.info("QISM billing automation completed successfully")
-            else:
-                # Error message
-                error_msg = QMessageBox(self)
-                error_msg.setWindowTitle("Abrechnung fehlgeschlagen")
-                error_msg.setText(f"Die automatisierte QISM Abrechnung ist fehlgeschlagen.\n\n"
-                                f"Fehlercode: {result.returncode}\n"
-                                f"Fehlermeldung: {result.stderr}")
-                error_msg.setIcon(QMessageBox.Icon.Critical)
-                error_msg.setStandardButtons(QMessageBox.StandardButton.Ok)
-                error_msg.setStyleSheet("""
-                    QMessageBox {
-                        background-color: #1a2633;
-                        color: white;
-                    }
-                    QMessageBox QLabel {
-                        color: white;
-                        font-size: 14px;
-                    }
-                    QPushButton {
-                        background-color: #114473;
-                        color: white;
-                        border: none;
-                        border-radius: 4px;
-                        padding: 8px 16px;
-                        font-weight: bold;
-                        min-width: 80px;
-                    }
-                    QPushButton:hover {
-                        background-color: #1a5a9e;
-                    }
-                """)
-                error_msg.exec()
-                logging.error(f"QISM billing automation failed with code {result.returncode}: {result.stderr}")
-        
-        except subprocess.TimeoutExpired:
-            timeout_msg = QMessageBox(self)
-            timeout_msg.setWindowTitle("Timeout")
-            timeout_msg.setText("Die automatisierte QISM Abrechnung hat zu lange gedauert und wurde abgebrochen.")
-            timeout_msg.setIcon(QMessageBox.Icon.Warning)
-            timeout_msg.setStandardButtons(QMessageBox.StandardButton.Ok)
-            timeout_msg.setStyleSheet("""
-                QMessageBox {
-                    background-color: #1a2633;
-                    color: white;
-                }
-                QMessageBox QLabel {
-                    color: white;
-                    font-size: 14px;
-                }
-                QPushButton {
-                    background-color: #114473;
-                    color: white;
-                    border: none;
-                    border-radius: 4px;
-                    padding: 8px 16px;
-                    font-weight: bold;
-                    min-width: 80px;
-                }
-                QPushButton:hover {
-                    background-color: #1a5a9e;
-                }
-            """)
-            timeout_msg.exec()
-            logging.error("QISM billing automation timed out")
-        
-        except Exception as e:
-            # General error message
-            error_msg = QMessageBox(self)
-            error_msg.setWindowTitle("Unerwarteter Fehler")
-            error_msg.setText(f"Ein unerwarteter Fehler ist aufgetreten:\n\n{str(e)}")
-            error_msg.setIcon(QMessageBox.Icon.Critical)
-            error_msg.setStandardButtons(QMessageBox.StandardButton.Ok)
-            error_msg.setStyleSheet("""
-                QMessageBox {
-                    background-color: #1a2633;
-                    color: white;
-                }
-                QMessageBox QLabel {
-                    color: white;
-                    font-size: 14px;
-                }
-                QPushButton {
-                    background-color: #114473;
-                    color: white;
-                    border: none;
-                    border-radius: 4px;
-                    padding: 8px 16px;
-                    font-weight: bold;
-                    min-width: 80px;
-                }
-                QPushButton:hover {
-                    background-color: #1a5a9e;
-                }
-            """)
-            error_msg.exec()
-            logging.error(f"Unexpected error during QISM billing automation: {e}")
 
     def refresh_excel_data(self):
         """Refresh the Excel data by reloading the file"""

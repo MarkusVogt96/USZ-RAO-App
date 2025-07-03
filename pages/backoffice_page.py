@@ -74,7 +74,7 @@ class BackofficePage(QWidget):
     def create_open_tasks_section(self, parent_layout):
         """Create the prominent Open Tasks section at the top"""
         # Section title
-        tasks_title = QLabel("📋 Offene Aufgaben")
+        tasks_title = QLabel("📋 Offene Aufgaben - Übersicht")
         tasks_title.setFont(QFont("Helvetica", 20, QFont.Weight.Bold))
         tasks_title.setStyleSheet("color: #FFA500; margin-bottom: 10px;")
         parent_layout.addWidget(tasks_title)
@@ -87,21 +87,26 @@ class BackofficePage(QWidget):
                 border: 1px solid #425061;
                 border-radius: 8px;
                 padding: 15px;
-                min-height: 80px;
+                min-height: 120px;
             }
         """)
         
         tasks_layout = QVBoxLayout(tasks_frame)
         tasks_layout.setSpacing(8)
 
-        # Single task item
-        self.create_task_item(tasks_layout, "📊", "Ausstehende Leistungserfassung Tumorboard", 
-                             "QISM Abrechnungen für abgeschlossene Tumorboards durchführen", "#DC143C")
+        # Task items from different categories (clickable)
+        self.create_clickable_task_item(tasks_layout, "📊", "Ausstehende Leistungserfassung Tumorboard", 
+                                       "12 offene Tumorboard-Abrechnungen für QISM-System", "#DC143C", 
+                                       self.open_leistungsabrechnungen)
+        
+        self.create_clickable_task_item(tasks_layout, "🩺", "Offene Erstkonsultationen", 
+                                       "18 wartende Patienten für Terminvergabe (5 dringend)", "#FF4500",
+                                       self.open_erstkonsultationen)
 
         parent_layout.addWidget(tasks_frame)
 
     def create_task_item(self, parent_layout, icon, title, description, color):
-        """Create an individual task item"""
+        """Create an individual task item (deprecated - use create_clickable_task_item)"""
         task_item = QFrame()
         task_item.setStyleSheet(f"""
             QFrame {{
@@ -146,6 +151,64 @@ class BackofficePage(QWidget):
 
         parent_layout.addWidget(task_item)
 
+    def create_clickable_task_item(self, parent_layout, icon, title, description, color, callback):
+        """Create a clickable task item that navigates to a specific page"""
+        task_item = QFrame()
+        task_item.setStyleSheet(f"""
+            QFrame {{
+                background-color: #232F3B;
+                border-radius: 6px;
+                padding: 8px;
+                margin: 2px 0;
+                border: 1px solid #425061;
+            }}
+            QFrame:hover {{
+                background-color: #2A3642;
+                border-color: {color};
+                cursor: pointer;
+            }}
+        """)
+        task_item.setCursor(Qt.CursorShape.PointingHandCursor)
+        task_item.mousePressEvent = lambda event: callback()
+        
+        task_layout = QHBoxLayout(task_item)
+        task_layout.setSpacing(12)
+        task_layout.setContentsMargins(10, 6, 10, 6)
+
+        # Icon
+        icon_label = QLabel(icon)
+        icon_label.setFont(QFont("Segoe UI Emoji", 16))
+        icon_label.setFixedWidth(30)
+        icon_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        task_layout.addWidget(icon_label)
+
+        # Text content
+        text_layout = QVBoxLayout()
+        text_layout.setSpacing(2)
+        
+        title_label = QLabel(title)
+        title_label.setFont(QFont("Helvetica", 12, QFont.Weight.Bold))
+        title_label.setStyleSheet("color: white;")
+        text_layout.addWidget(title_label)
+        
+        desc_label = QLabel(description)
+        desc_label.setFont(QFont("Helvetica", 10))
+        desc_label.setStyleSheet("color: #CCCCCC;")
+        desc_label.setWordWrap(True)
+        text_layout.addWidget(desc_label)
+        
+        task_layout.addLayout(text_layout)
+        
+        # Add arrow indicator
+        arrow_label = QLabel("→")
+        arrow_label.setFont(QFont("Helvetica", 16, QFont.Weight.Bold))
+        arrow_label.setStyleSheet(f"color: {color};")
+        arrow_label.setFixedWidth(20)
+        arrow_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        task_layout.addWidget(arrow_label)
+
+        parent_layout.addWidget(task_item)
+
     def create_navigation_section(self, parent_layout):
         """Create the navigation and tools section"""
         # Section title
@@ -168,11 +231,11 @@ class BackofficePage(QWidget):
         nav_layout.setSpacing(15)
 
         # Navigation buttons
-        self.create_nav_button(nav_layout, 0, 0, "📊 Dashboard Analytics", 
-                              "Detaillierte Statistiken und Berichte", self.open_analytics)
+        self.create_nav_button(nav_layout, 0, 0, "📊 Leistungsabrechnungen", 
+                              "QISM Abrechnungen für Tumorboards verwalten", self.open_leistungsabrechnungen)
         
-        self.create_nav_button(nav_layout, 0, 1, "⚙️ System Settings", 
-                              "Backoffice-Einstellungen und Konfiguration", self.open_settings)
+        self.create_nav_button(nav_layout, 0, 1, "🩺 Erstkonsultationen aufbieten", 
+                              "Wartende Patienten für Erstkonsultationen verwalten", self.open_erstkonsultationen)
 
         parent_layout.addWidget(nav_frame)
 
@@ -264,21 +327,61 @@ class BackofficePage(QWidget):
 
         parent_layout.addWidget(completed_frame)
 
-    def open_analytics(self):
-        """Open analytics/dashboard page (placeholder)"""
-        msg = QMessageBox(self)
-        msg.setWindowTitle("Feature in Entwicklung")
-        msg.setText("Dashboard Analytics wird in einer zukünftigen Version verfügbar sein.")
-        msg.setIcon(QMessageBox.Icon.Information)
-        msg.exec()
+    def open_leistungsabrechnungen(self):
+        """Open the Leistungsabrechnungen page"""
+        logging.info("Opening Leistungsabrechnungen page...")
+        
+        # Check if we came from session navigation
+        if not self.main_window.check_tumorboard_session_before_navigation():
+            return  # User cancelled navigation
+        
+        from pages.backoffice_page_leistungsabrechnungen import BackofficePageLeistungsabrechnungen
+        
+        # Check if page already exists
+        leistungsabrechnungen_page = None
+        for i in range(self.main_window.stacked_widget.count()):
+            widget = self.main_window.stacked_widget.widget(i)
+            if isinstance(widget, BackofficePageLeistungsabrechnungen):
+                leistungsabrechnungen_page = widget
+                break
+        
+        if leistungsabrechnungen_page is None:
+            logging.info("Creating new BackofficePageLeistungsabrechnungen instance.")
+            leistungsabrechnungen_page = BackofficePageLeistungsabrechnungen(self.main_window)
+            self.main_window.stacked_widget.addWidget(leistungsabrechnungen_page)
+        else:
+            logging.info("Found existing BackofficePageLeistungsabrechnungen.")
+        
+        self.main_window.stacked_widget.setCurrentWidget(leistungsabrechnungen_page)
+        logging.info("Navigated to BackofficePageLeistungsabrechnungen.")
 
-    def open_settings(self):
-        """Open system settings (placeholder)"""
-        msg = QMessageBox(self)
-        msg.setWindowTitle("Feature in Entwicklung")
-        msg.setText("System Settings wird in einer zukünftigen Version verfügbar sein.")
-        msg.setIcon(QMessageBox.Icon.Information)
-        msg.exec()
+    def open_erstkonsultationen(self):
+        """Open the Erstkonsultationen page"""
+        logging.info("Opening Erstkonsultationen page...")
+        
+        # Check if we came from session navigation
+        if not self.main_window.check_tumorboard_session_before_navigation():
+            return  # User cancelled navigation
+        
+        from pages.backoffice_page_erstkonsultationen import BackofficePageErstkonsultationen
+        
+        # Check if page already exists
+        erstkonsultationen_page = None
+        for i in range(self.main_window.stacked_widget.count()):
+            widget = self.main_window.stacked_widget.widget(i)
+            if isinstance(widget, BackofficePageErstkonsultationen):
+                erstkonsultationen_page = widget
+                break
+        
+        if erstkonsultationen_page is None:
+            logging.info("Creating new BackofficePageErstkonsultationen instance.")
+            erstkonsultationen_page = BackofficePageErstkonsultationen(self.main_window)
+            self.main_window.stacked_widget.addWidget(erstkonsultationen_page)
+        else:
+            logging.info("Found existing BackofficePageErstkonsultationen.")
+        
+        self.main_window.stacked_widget.setCurrentWidget(erstkonsultationen_page)
+        logging.info("Navigated to BackofficePageErstkonsultationen.")
 
 
 

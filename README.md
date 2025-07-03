@@ -253,3 +253,32 @@ Das Backoffice-System bietet administrative Funktionen für die Verwaltung und N
 *   **Threading:** Indexing-Prozesse laufen in separaten Threads um UI-Reaktivität zu gewährleisten
 *   **Fehlerbehandlung:** Robuste Behandlung von Netzwerkfehlern, Berechtigungsproblemen und fehlenden Dateien
 *   **Breadcrumb-Navigation:** Integrierte Navigation zwischen Backoffice-Seiten mit automatischer Breadcrumb-Generierung
+
+#### 4.6.5. Task Management System
+Das erweiterte Backoffice-System umfasst ein zentralisiertes Task Management für administrative Aufgaben:
+
+**Hauptkategorien:**
+*   **Leistungsabrechnungen:** Verwaltung offener QISM-Abrechnungen für abgeschlossene Tumorboards
+*   **Erstkonsultationen:** Management wartender Patienten für Terminvergabe
+
+**Zentrale Übersicht (`BackofficePage`):**
+*   **Task-Aggregation:** Sammlung und Darstellung aller offenen Aufgaben aus verschiedenen Kategorien
+*   **Klickbare Task-Items:** Direkte Navigation zu spezialisierten Verwaltungsseiten durch Klick auf Aufgaben-Übersicht
+*   **Echtzeit-Statistiken:** Anzeige aktueller Zahlen (Anzahl offener Abrechnungen, wartende Patienten, etc.)
+
+**Leistungsabrechnungen (`BackofficePageLeistungsabrechnungen`):**
+*   **Abrechnungsübersicht:** Tabellarische Darstellung aller offenen Tumorboard-Abrechnungen
+*   **Statistik-Dashboard:** Visualisierung von Kennzahlen (Anzahl offener Boards, geschätzter Betrag, älteste Abrechnung)
+*   **Direkte Bearbeitung:** Integration von Abrechnung-Scripts pro Tumorboard
+*   **Filterfunktionen:** Suche und Filterung nach Tumorboard-Typ, Datum, Status
+
+**Erstkonsultationen (`BackofficePageErstkonsultationen`):**
+*   **Warteschlangen-Management:** Übersicht aller wartenden Patienten für Erstkonsultationen
+*   **Priorisierung:** Farbkodierte Darstellung nach Dringlichkeit (< 7 Tage, Normal, Niedrig)
+*   **Filter-System:** Filterung nach Priorität, Tumorart, Anmeldedatum
+*   **Terminaufgebot:** Direkte Integration für Terminvergabe und Patientenbenachrichtigung
+
+**Navigation & UX:**
+*   **Unified Navigation:** Einheitliche Navigation zwischen allen Backoffice-Seiten
+*   **Zurück-Buttons:** Konsistente Rücknavigation mit Session-Schutz
+*   **Visual Feedback:** Hover-Effekte und Farbkodierung für bessere Benutzererfahrung
