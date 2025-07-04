@@ -239,7 +239,7 @@ Das Backoffice-System bietet administrative Funktionen für die Verwaltung und N
     - **Sortierbare Tabelle:** Sortierung nach Datum oder Tumorboard-Entität durch Klick auf Spaltenköpfe
 *   **Direkte Navigation:** Doppelklick auf Tabelleneinträge öffnet den spezialisierten Excel Viewer
 
-#### 4.6.3. Excel Viewer Backoffice (`ExcelViewerBackofficePage`)
+#### 4.6.3. Excel Viewer Backoffice (`BackofficeExcelViewerPage`)
 *   **Spezialisierte Ansicht:** Angepasste Version des Standard Excel Viewers ohne Start/Edit Tumorboard Funktionen
 *   **QISM Abrechnungsintegration:**
     - **Abrechnungs-Button:** Prominent platzierter Button für automatisierte Leistungsabrechnung

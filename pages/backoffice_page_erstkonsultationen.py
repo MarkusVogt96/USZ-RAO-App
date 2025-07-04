@@ -1,11 +1,118 @@
 from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton, 
                              QFrame, QMessageBox, QGridLayout, QScrollArea, QTableWidget, 
                              QTableWidgetItem, QHeaderView, QComboBox)
-from PyQt6.QtCore import Qt
-from PyQt6.QtGui import QFont
+from PyQt6.QtCore import Qt, QTimer
+from PyQt6.QtGui import QFont, QPixmap
 import os
 import logging
+import pandas as pd
 from pathlib import Path
+
+class CategoryButton(QPushButton):
+    """Custom button for category selection - similar to StaticTile styling"""
+    def __init__(self, title, subtitle, count, status_text, category_key, parent=None):
+        super().__init__(parent)
+        self.title = title
+        self.subtitle = subtitle
+        self.count = count
+        self.status_text = status_text
+        self.category_key = category_key
+        self.setFixedSize(400, 300)
+        
+        # Set basic button styling (same as StaticTile)
+        self.setStyleSheet("""
+            QPushButton {
+                background-color: #114473;
+                color: white;
+                border: none;
+                border-radius: 10px;
+            }
+            QPushButton:hover {
+                background-color: #1a5a9e;
+            }
+            QPushButton:pressed {
+                background-color: #0d2e4d;
+            }
+        """)
+        
+        # Create layout for button content
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(10, 30, 10, 20)  # More top margin to push content down
+        layout.setSpacing(15)  # Slightly tighter spacing
+        self.setLayout(layout)
+        
+        # Add title label at the top
+        self.title_label = QLabel(title)
+        self.title_label.setStyleSheet("color: white; background: transparent;")
+        self.title_label.setFont(QFont('Calibri', 18, QFont.Weight.Bold))  # Increased from 16 to 18
+        self.title_label.setAlignment(Qt.AlignmentFlag.AlignHCenter)
+        self.title_label.setWordWrap(True)
+        layout.addWidget(self.title_label)
+        
+        # Add subtitle
+        self.subtitle_label = QLabel(subtitle)
+        self.subtitle_label.setStyleSheet("color: #cccccc; background: transparent;")
+        self.subtitle_label.setFont(QFont('Calibri', 14))  # Increased from 12 to 14
+        self.subtitle_label.setAlignment(Qt.AlignmentFlag.AlignHCenter)
+        self.subtitle_label.setWordWrap(True)
+        layout.addWidget(self.subtitle_label)
+        
+        # Add count and status
+        self.status_label = QLabel()
+        self.status_label.setFont(QFont('Calibri', 14, QFont.Weight.Bold))  # Decreased from 14 to 12
+        self.status_label.setAlignment(Qt.AlignmentFlag.AlignHCenter)
+        layout.addWidget(self.status_label)
+        
+        # Set initial status
+        self.update_count(count, status_text)
+        
+        # Add stretch to push content to top
+        layout.addStretch()
+    
+    def update_count(self, count, status_text):
+        """Update the count and status text with proper plural/singular and color coding"""
+        self.count = count
+        self.status_text = status_text
+        
+        # Handle count display and plural/singular
+        if isinstance(count, str) and ("Keine Verbindung" in count or "Fehler" in count):
+            # Error case
+            display_text = count
+            color = "#FF6B6B"  # Light red for errors
+        elif count == 0:
+            # No pending items - show "alles bearbeitet" in green
+            display_text = "alles bearbeitet"
+            color = "#4CAF50"  # Green
+        else:
+            # Format text with proper plural/singular
+            if "Erstkons" in status_text:
+                if count == 1:
+                    singular_text = status_text.replace("Erstkons-Aufgebote", "Erstkons-Aufgebot")
+                    display_text = f"{count} {singular_text}"
+                else:
+                    display_text = f"{count} {status_text}"
+            elif "Konsil" in status_text:
+                if count == 1:
+                    singular_text = status_text.replace("Konsil-Eingänge", "Konsil-Eingang")
+                    display_text = f"{count} {singular_text}"
+                else:
+                    display_text = f"{count} {status_text}"
+            else:
+                display_text = f"{count} {status_text}"
+            
+            # Color coding based on category
+            if self.category_key == "kat_I":
+                color = "#FF4444"  # Red
+            elif self.category_key == "kat_II":
+                color = "#FF8C00"  # Orange  
+            elif self.category_key == "kat_III":
+                color = "#FFD700"  # Gold/Yellow
+            else:
+                color = "#FFA500"  # Default orange
+        
+        # Update label
+        self.status_label.setText(display_text)
+        self.status_label.setStyleSheet(f"color: {color}; background: transparent;")
 
 class BackofficePageErstkonsultationen(QWidget):
     def __init__(self, main_window):
@@ -23,35 +130,13 @@ class BackofficePageErstkonsultationen(QWidget):
         main_layout.setSpacing(20)
         self.setLayout(main_layout)
 
-        # Header with back button and title
+        # Header with title only (back button removed)
         header_layout = QHBoxLayout()
         header_layout.setSpacing(15)
 
-        # Back button
-        back_button = QPushButton("← Zurück")
-        back_button.setFont(QFont("Helvetica", 12))
-        back_button.setFixedSize(100, 40)
-        back_button.setStyleSheet("""
-            QPushButton {
-                background-color: #425061;
-                color: white;
-                border: none;
-                border-radius: 6px;
-                padding: 8px 15px;
-            }
-            QPushButton:hover {
-                background-color: #5A6B7D;
-            }
-            QPushButton:pressed {
-                background-color: #324252;
-            }
-        """)
-        back_button.clicked.connect(self.go_back)
-        header_layout.addWidget(back_button)
-
         # Title
-        title_label = QLabel("🩺 Erstkonsultationen aufbieten")
-        title_label.setFont(QFont("Helvetica", 28, QFont.Weight.Bold))
+        title_label = QLabel("Erstkonsultationen aufbieten")
+        title_label.setFont(QFont("Helvetica", 26, QFont.Weight.Bold))
         title_label.setStyleSheet("color: white;")
         header_layout.addWidget(title_label)
         header_layout.addStretch()
@@ -62,284 +147,196 @@ class BackofficePageErstkonsultationen(QWidget):
         self.create_content(main_layout)
 
     def create_content(self, parent_layout):
-        """Create the main content"""
+        """Create the main content with category buttons"""
         # Scrollable area for content
         scroll_area = QScrollArea()
         scroll_area.setWidgetResizable(True)
-        scroll_area.setStyleSheet("""
-            QScrollArea {
-                border: none;
-                background-color: transparent;
-            }
-            QScrollBar:vertical {
-                background-color: #232F3B;
-                width: 12px;
-                border-radius: 6px;
-            }
-            QScrollBar::handle:vertical {
-                background-color: #425061;
-                border-radius: 6px;
-                min-height: 20px;
-            }
-            QScrollBar::handle:vertical:hover {
-                background-color: #5A6B7D;
-            }
-        """)
+        scroll_area.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        scroll_area.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
+        scroll_area.setStyleSheet("QScrollArea { border: none; }")
         
         # Content widget inside scroll area
         content_widget = QWidget()
         content_layout = QVBoxLayout(content_widget)
-        content_layout.setSpacing(25)
-        content_layout.setContentsMargins(0, 0, 0, 0)
+        content_layout.setSpacing(20)
+        content_layout.setContentsMargins(10, 10, 40, 40)
 
-        # Overview section
-        self.create_overview_section(content_layout)
+        # Grid layout for category buttons (same as tumor group page)
+        grid_layout = QGridLayout()
+        grid_layout.setHorizontalSpacing(20)
+        grid_layout.setVerticalSpacing(50)
 
-        # Pending consultations section
-        self.create_pending_consultations_section(content_layout)
+        # Create category buttons with counts
+        self.create_category_buttons(grid_layout)
+
+        # Add grid layout to content
+        content_layout.addLayout(grid_layout)
+        content_layout.addStretch()
 
         # Set scroll area content
         scroll_area.setWidget(content_widget)
         parent_layout.addWidget(scroll_area)
 
-    def create_overview_section(self, parent_layout):
-        """Create overview section with statistics"""
-        overview_title = QLabel("📊 Übersicht Ausstehende Erstkonsultationen")
-        overview_title.setFont(QFont("Helvetica", 20, QFont.Weight.Bold))
-        overview_title.setStyleSheet("color: #FFA500; margin-bottom: 10px;")
-        parent_layout.addWidget(overview_title)
+    def create_category_buttons(self, grid_layout):
+        """Create the three category buttons with current counts"""
+        # Category definitions
+        categories = [
+            {
+                "key": "kat_I",
+                "title": "Kategorie I",
+                "subtitle": "Aufgebot in 1-3 Tagen",
+                "status_text": "Erstkons-Aufgebote ausstehend",
+                "excel_file": "Kat_I.xlsx"
+            },
+            {
+                "key": "kat_II", 
+                "title": "Kategorie II",
+                "subtitle": "Aufgebot in 4-7 Tagen",
+                "status_text": "Erstkons-Aufgebote ausstehend",
+                "excel_file": "Kat_II.xlsx"
+            },
+            {
+                "key": "kat_III",
+                "title": "Kategorie III", 
+                "subtitle": "Aufgebot nach Konsil-Eingang",
+                "status_text": "Konsil-Eingänge ausstehend",
+                "excel_file": "Kat_III.xlsx"
+            }
+        ]
 
-        # Statistics frame
-        stats_frame = QFrame()
-        stats_frame.setStyleSheet("""
-            QFrame {
-                background-color: #1a2633;
-                border: 1px solid #425061;
-                border-radius: 8px;
-                padding: 20px;
-            }
-        """)
-        
-        stats_layout = QGridLayout(stats_frame)
-        stats_layout.setSpacing(20)
+        # Create buttons for each category
+        self.category_buttons = {}
+        for i, category in enumerate(categories):
+            # Get current count
+            count = self.get_category_count(category["excel_file"])
+            
+            # Create button
+            button = CategoryButton(
+                category["title"],
+                category["subtitle"], 
+                count,
+                category["status_text"],
+                category["key"]  # Pass category key for color coding
+            )
+            
+            # Connect click event
+            button.clicked.connect(lambda checked, key=category["key"]: self.open_category_page(key))
+            
+            # Store button reference
+            self.category_buttons[category["key"]] = button
+            
+            # Add to grid (arrange in single row)
+            grid_layout.addWidget(button, 0, i)
 
-        # Create stat cards
-        self.create_stat_card(stats_layout, 0, 0, "📋", "Offene Termine", "18", "#DC143C")
-        self.create_stat_card(stats_layout, 0, 1, "⏱️", "Dringend (< 7 Tage)", "5", "#FF4500")
-        self.create_stat_card(stats_layout, 0, 2, "👥", "Wartende Patienten", "23", "#FFA500")
+    def get_category_count(self, excel_filename):
+        """Get count of pending patients from category Excel file"""
+        try:
+            # Determine backoffice path - use same logic as export function
+            base_path = Path.home() / "tumorboards"
+            backoffice_dir = base_path / "_Backoffice"
+            excel_path = backoffice_dir / excel_filename
+            
+            if not excel_path.exists():
+                logging.warning(f"Category Excel file not found: {excel_path}")
+                return f"Keine Verbindung zu {excel_filename.replace('.xlsx', '')}"
+            
+            # Read Excel file
+            df = pd.read_excel(excel_path, engine='openpyxl')
+            
+            if df.empty:
+                return 0
+            
+            # Count patients with "Nein" in column N (Status column)
+            # Column N should be index 13 (0-based indexing)
+            if len(df.columns) < 14:
+                logging.warning(f"Excel file {excel_filename} has insufficient columns")
+                return 0
+            
+            status_column = df.iloc[:, 13]  # Column N (0-based index 13)
+            
+            # Count "Nein" entries (case-insensitive)
+            pending_count = 0
+            for value in status_column:
+                if str(value).strip().lower() == 'nein':
+                    pending_count += 1
+            
+            return pending_count
+            
+        except Exception as e:
+            logging.error(f"Error reading category Excel file {excel_filename}: {e}")
+            return f"Fehler beim Laden von {excel_filename.replace('.xlsx', '')}"
 
-        parent_layout.addWidget(stats_frame)
+    def open_category_page(self, category_key):
+        """Open the specific category page"""
+        logging.info(f"Opening category page: {category_key}")
+        
+        # Check for session navigation
+        if not self.main_window.check_tumorboard_session_before_navigation():
+            return
+        
+        # Import the appropriate category page class
+        try:
+            if category_key == "kat_I":
+                from pages.backoffice_kat_I_page import BackofficeKatIPage
+                page_class = BackofficeKatIPage
+            elif category_key == "kat_II":
+                from pages.backoffice_kat_II_page import BackofficeKatIIPage
+                page_class = BackofficeKatIIPage
+            elif category_key == "kat_III":
+                from pages.backoffice_kat_III_page import BackofficeKatIIIPage
+                page_class = BackofficeKatIIIPage
+            else:
+                logging.error(f"Unknown category key: {category_key}")
+                return
+            
+            # Check if page already exists
+            existing_page = None
+            for i in range(self.main_window.stacked_widget.count()):
+                widget = self.main_window.stacked_widget.widget(i)
+                if isinstance(widget, page_class):
+                    existing_page = widget
+                    break
+            
+            if existing_page:
+                # Refresh the existing page to update counts
+                if hasattr(existing_page, 'refresh_data'):
+                    existing_page.refresh_data()
+                self.main_window.stacked_widget.setCurrentWidget(existing_page)
+                logging.info(f"Navigated to existing {page_class.__name__}")
+            else:
+                # Create new page
+                new_page = page_class(self.main_window)
+                new_index = self.main_window.stacked_widget.addWidget(new_page)
+                self.main_window.stacked_widget.setCurrentIndex(new_index)
+                logging.info(f"Created and navigated to {page_class.__name__}")
+                
+        except ImportError as e:
+            logging.error(f"Could not import category page for {category_key}: {e}")
+            # Show error message to user
+            msg = QMessageBox(self)
+            msg.setWindowTitle("Seite nicht verfügbar")
+            msg.setText(f"Die Kategorie-Seite ist noch nicht implementiert.\n\nFehler: {e}")
+            msg.setIcon(QMessageBox.Icon.Warning)
+            msg.exec()
 
-    def create_stat_card(self, grid_layout, row, col, icon, title, value, color):
-        """Create a statistics card"""
-        card_frame = QFrame()
-        card_frame.setStyleSheet(f"""
-            QFrame {{
-                background-color: #232F3B;
-                border-radius: 8px;
-                padding: 15px;
-                border: 1px solid #425061;
-            }}
-        """)
-        
-        card_layout = QVBoxLayout(card_frame)
-        card_layout.setSpacing(8)
-        card_layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        
-        # Icon
-        icon_label = QLabel(icon)
-        icon_label.setFont(QFont("Segoe UI Emoji", 24))
-        icon_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        card_layout.addWidget(icon_label)
-        
-        # Title
-        title_label = QLabel(title)
-        title_label.setFont(QFont("Helvetica", 11))
-        title_label.setStyleSheet("color: #CCCCCC;")
-        title_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        card_layout.addWidget(title_label)
-        
-        # Value
-        value_label = QLabel(value)
-        value_label.setFont(QFont("Helvetica", 16, QFont.Weight.Bold))
-        value_label.setStyleSheet(f"color: {color};")
-        value_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        card_layout.addWidget(value_label)
-        
-        grid_layout.addWidget(card_frame, row, col)
-
-    def create_pending_consultations_section(self, parent_layout):
-        """Create section showing pending consultations"""
-        consultations_title = QLabel("👥 Ausstehende Erstkonsultationen")
-        consultations_title.setFont(QFont("Helvetica", 18, QFont.Weight.Bold))
-        consultations_title.setStyleSheet("color: #00BFFF; margin-bottom: 10px; margin-top: 15px;")
-        parent_layout.addWidget(consultations_title)
-
-        # Table frame
-        table_frame = QFrame()
-        table_frame.setStyleSheet("""
-            QFrame {
-                background-color: #19232D;
-                border-radius: 10px;
-                padding: 20px;
-            }
-        """)
-        
-        table_layout = QVBoxLayout(table_frame)
-        
-        # Filter section
-        filter_layout = QHBoxLayout()
-        filter_layout.setSpacing(15)
-        
-        filter_label = QLabel("Filter:")
-        filter_label.setFont(QFont("Helvetica", 12))
-        filter_label.setStyleSheet("color: white;")
-        filter_layout.addWidget(filter_label)
-        
-        self.priority_filter = QComboBox()
-        self.priority_filter.addItems(["Alle", "Dringend", "Normal", "Niedrig"])
-        self.priority_filter.setStyleSheet("""
-            QComboBox {
-                background-color: #232F3B;
-                border: 1px solid #425061;
-                border-radius: 4px;
-                padding: 5px;
-                color: white;
-            }
-            QComboBox::drop-down {
-                border: none;
-            }
-            QComboBox::down-arrow {
-                width: 12px;
-                height: 12px;
-            }
-        """)
-        filter_layout.addWidget(self.priority_filter)
-        
-        filter_layout.addStretch()
-        table_layout.addLayout(filter_layout)
-        
-        # Create table
-        self.consultations_table = QTableWidget()
-        self.consultations_table.setColumnCount(6)
-        self.consultations_table.setHorizontalHeaderLabels([
-            "Patient", "Tumorart", "Anmeldedatum", "Priorität", "Status", "Aktionen"
-        ])
-        
-        # Style the table
-        self.consultations_table.setStyleSheet("""
-            QTableWidget {
-                background-color: #232F3B;
-                border: 1px solid #425061;
-                border-radius: 6px;
-                color: white;
-                gridline-color: #425061;
-            }
-            QTableWidget::item {
-                padding: 8px;
-                border-bottom: 1px solid #425061;
-            }
-            QTableWidget::item:selected {
-                background-color: #425061;
-            }
-            QHeaderView::section {
-                background-color: #425061;
-                color: white;
-                padding: 10px;
-                border: none;
-                font-weight: bold;
-            }
-        """)
-        
-        # Set table properties
-        self.consultations_table.horizontalHeader().setStretchLastSection(True)
-        self.consultations_table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.ResizeToContents)
-        self.consultations_table.setAlternatingRowColors(True)
-        self.consultations_table.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
-        
-        # Add sample data
-        self.populate_consultations_table()
-        
-        table_layout.addWidget(self.consultations_table)
-        parent_layout.addWidget(table_frame)
-
-    def populate_consultations_table(self):
-        """Populate the consultations table with sample data"""
-        sample_data = [
-            ("Müller, Anna", "Glioblastom", "10.01.2025", "Dringend", "Wartend", "Aufbieten"),
-            ("Schmidt, Peter", "Lungenkarzinom", "12.01.2025", "Normal", "Wartend", "Aufbieten"),
-            ("Weber, Maria", "Mammakarzinom", "15.01.2025", "Dringend", "Wartend", "Aufbieten"),
-            ("Meier, Hans", "Prostatakarzinom", "16.01.2025", "Normal", "Wartend", "Aufbieten"),
-            ("Fischer, Lisa", "Ovarialkarzinom", "18.01.2025", "Niedrig", "Wartend", "Aufbieten"),
-            ("Bauer, Klaus", "Rektumkarzinom", "19.01.2025", "Dringend", "Wartend", "Aufbieten"),
-            ("Huber, Sophie", "Hodgkin-Lymphom", "20.01.2025", "Normal", "Wartend", "Aufbieten")
+    def refresh_category_counts(self):
+        """Refresh the counts on all category buttons"""
+        categories = [
+            {"key": "kat_I", "excel_file": "Kat_I.xlsx", "status_text": "Erstkons-Aufgebote ausstehend"},
+            {"key": "kat_II", "excel_file": "Kat_II.xlsx", "status_text": "Erstkons-Aufgebote ausstehend"},
+            {"key": "kat_III", "excel_file": "Kat_III.xlsx", "status_text": "Konsil-Eingänge ausstehend"}
         ]
         
-        self.consultations_table.setRowCount(len(sample_data))
+        for category in categories:
+            if category["key"] in self.category_buttons:
+                count = self.get_category_count(category["excel_file"])
+                self.category_buttons[category["key"]].update_count(count, category["status_text"])
         
-        for row, data in enumerate(sample_data):
-            for col, value in enumerate(data):
-                if col == 5:  # Actions column
-                    action_btn = QPushButton("📅 Aufbieten")
-                    action_btn.setStyleSheet("""
-                        QPushButton {
-                            background-color: #114473;
-                            color: white;
-                            border: none;
-                            border-radius: 4px;
-                            padding: 6px 12px;
-                        }
-                        QPushButton:hover {
-                            background-color: #1a5a9e;
-                        }
-                    """)
-                    action_btn.clicked.connect(lambda checked, r=row: self.schedule_consultation(r))
-                    self.consultations_table.setCellWidget(row, col, action_btn)
-                else:
-                    item = QTableWidgetItem(str(value))
-                    item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
-                    if col == 3:  # Priority column
-                        if value == "Dringend":
-                            item.setForeground(Qt.GlobalColor.red)
-                        elif value == "Normal":
-                            item.setForeground(Qt.GlobalColor.yellow)
-                        else:
-                            item.setForeground(Qt.GlobalColor.white)
-                    elif col == 4 and value == "Wartend":  # Status column
-                        item.setForeground(Qt.GlobalColor.red)
-                    self.consultations_table.setItem(row, col, item)
+        logging.info("Category counts refreshed")
 
-    def schedule_consultation(self, row):
-        """Schedule a specific consultation"""
-        patient_name = self.consultations_table.item(row, 0).text()
-        tumor_type = self.consultations_table.item(row, 1).text()
-        
-        msg = QMessageBox(self)
-        msg.setWindowTitle("Erstkonsultation aufbieten")
-        msg.setText(f"Erstkonsultation für {patient_name} ({tumor_type}) wird aufgeboten.\n\nDiese Funktion wird in einer zukünftigen Version implementiert.")
-        msg.setIcon(QMessageBox.Icon.Information)
-        msg.exec()
-
-    def go_back(self):
-        """Navigate back to the main backoffice page"""
-        logging.info("Navigating back to main backoffice page...")
-        
-        # Check if we came from session navigation
-        if not self.main_window.check_tumorboard_session_before_navigation():
-            return  # User cancelled navigation
-        
-        from pages.backoffice_page import BackofficePage
-        
-        # Find the backoffice page
-        backoffice_page = None
-        for i in range(self.main_window.stacked_widget.count()):
-            widget = self.main_window.stacked_widget.widget(i)
-            if isinstance(widget, BackofficePage):
-                backoffice_page = widget
-                break
-        
-        if backoffice_page:
-            self.main_window.stacked_widget.setCurrentWidget(backoffice_page)
-            logging.info("Navigated back to BackofficePage.")
-        else:
-            logging.warning("BackofficePage not found in stacked widget.") 
+    def showEvent(self, event):
+        """Refresh counts whenever the page is shown"""
+        super().showEvent(event)
+        if hasattr(self, 'category_buttons'):
+            # Use QTimer to ensure the UI is fully loaded before refreshing
+            QTimer.singleShot(100, self.refresh_category_counts) 

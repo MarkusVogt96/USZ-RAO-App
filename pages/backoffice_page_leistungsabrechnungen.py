@@ -1188,10 +1188,10 @@ class BackofficePageLeistungsabrechnungen(QWidget):
             logging.info(f"Opening Excel viewer for {tumorboard_data['tumorboard']} on {tumorboard_data['datum']}")
             
             # Import the Excel viewer backoffice page
-            from pages.excel_viewer_backoffice_page import ExcelViewerBackofficePage
+            from pages.backoffice_excel_viewer_page import BackofficeExcelViewerPage
             
             # Create the Excel viewer page
-            excel_viewer_page = ExcelViewerBackofficePage(
+            excel_viewer_page = BackofficeExcelViewerPage(
                 self.main_window,
                 tumorboard_data['tumorboard'],
                 tumorboard_data['datum'],

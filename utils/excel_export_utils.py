@@ -242,17 +242,16 @@ def export_patients_by_category(tumorboard_name, date_str, tumorboard_base_path=
                     patient_row = [
                         today_date,  # Column A: Heutiges Datum
                         tumorboard_name,  # Column B: Tumorboard-Klasse
-                        '',  # Column C: bleibt frei
-                        str(row.get('Name', '')),  # Column D: Name
-                        str(row.get('Geburtsdatum', '')),  # Column E: Geburtsdatum
-                        str(row.get('Patientennummer', '')),  # Column F: Patientennummer
-                        str(row.get('Diagnose', '')),  # Column G: Diagnose
-                        str(row.get('ICD-10', row.get('ICD-Code', ''))),  # Column H: ICD-Code
-                        str(row.get('Radiotherapie indiziert', '')),  # Column I: Radiotherapie indiziert
-                        str(row.get('Art des Aufgebots', '')),  # Column J: Art des Aufgebots
-                        str(row.get('Teams Priorisierung', '')),  # Column K: Teams Priorisierung
-                        str(row.get('Vormerken für Studie', '')),  # Column L: Vormerken für Studie
-                        str(row.get('Bemerkung/Procedere', ''))  # Column M: Bemerkung/Procedere
+                        str(row.get('Name', '')),  # Column C: Name
+                        str(row.get('Geburtsdatum', '')),  # Column D: Geburtsdatum
+                        str(row.get('Patientennummer', '')),  # Column E: Patientennummer
+                        str(row.get('Diagnose', '')),  # Column F: Diagnose
+                        str(row.get('ICD-10', row.get('ICD-Code', ''))),  # Column G: ICD-Code
+                        str(row.get('Radiotherapie indiziert', '')),  # Column H: Radiotherapie indiziert
+                        str(row.get('Art des Aufgebots', '')),  # Column I: Art des Aufgebots
+                        str(row.get('Teams Priorisierung', '')),  # Column J: Teams Priorisierung
+                        str(row.get('Vormerken für Studie', '')),  # Column K: Vormerken für Studie
+                        str(row.get('Bemerkung/Procedere', ''))  # Column L: Bemerkung/Procedere
                     ]
                     category_patients.append(patient_row)
             

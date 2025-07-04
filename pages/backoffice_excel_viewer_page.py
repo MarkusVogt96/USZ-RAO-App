@@ -9,10 +9,10 @@ from pathlib import Path
 import pandas as pd
 
 
-class ExcelViewerBackofficePage(QWidget):
+class BackofficeExcelViewerPage(QWidget):
     def __init__(self, main_window, tumorboard_name, date_str, source_page=None):
         super().__init__()
-        logging.info(f"Initializing ExcelViewerBackofficePage for: {tumorboard_name} on {date_str}")
+        logging.info(f"Initializing BackofficeExcelViewerPage for: {tumorboard_name} on {date_str}")
         self.main_window = main_window
         self.tumorboard_name = tumorboard_name
         self.date_str = date_str
@@ -27,7 +27,7 @@ class ExcelViewerBackofficePage(QWidget):
         
         self.setup_ui()
         self.load_excel_file()
-        logging.info(f"ExcelViewerBackofficePage UI setup complete for {tumorboard_name} on {date_str}.")
+        logging.info(f"BackofficeExcelViewerPage UI setup complete for {tumorboard_name} on {date_str}.")
 
     def setup_ui(self):
         """Setup the user interface"""

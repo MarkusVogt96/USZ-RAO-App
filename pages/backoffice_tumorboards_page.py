@@ -899,10 +899,10 @@ class BackofficeTumorboardsPage(QWidget):
         
         try:
             # Import and create Excel viewer backoffice page
-            from pages.excel_viewer_backoffice_page import ExcelViewerBackofficePage
+            from pages.backoffice_excel_viewer_page import BackofficeExcelViewerPage
             
             # Check if page already exists
-            existing_page_index = self.main_window.find_page_index(ExcelViewerBackofficePage, 
+            existing_page_index = self.main_window.find_page_index(BackofficeExcelViewerPage, 
                                                                    entity_name=f"{entity_name}_{date_str}")
             if existing_page_index is not None:
                 print("DEBUG: Found existing Excel viewer backoffice page, switching to it.")
@@ -911,7 +911,7 @@ class BackofficeTumorboardsPage(QWidget):
             else:
                 print("DEBUG: Creating new Excel viewer backoffice page.")
                 logging.info("Creating new Excel viewer backoffice page.")
-                excel_page = ExcelViewerBackofficePage(self.main_window, entity_name, date_str)
+                excel_page = BackofficeExcelViewerPage(self.main_window, entity_name, date_str)
                 new_index = self.main_window.stacked_widget.addWidget(excel_page)
                 self.main_window.stacked_widget.setCurrentIndex(new_index)
                 print(f"DEBUG: Successfully created and switched to page index {new_index}")

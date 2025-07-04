@@ -472,7 +472,7 @@ class TumorGuideApp(QMainWindow):
                 add_separator();add_button("Backoffice",BackofficePage);add_separator();add_label("Abgeschlossene Tumorboards")
             except ImportError:
                 add_separator();add_label("Backoffice");add_separator();add_label("Abgeschlossene Tumorboards")
-        elif current_widget.__class__.__name__ == "ExcelViewerBackofficePage":
+        elif current_widget.__class__.__name__ == "BackofficeExcelViewerPage":
             # Check if this came from the billing (leistungsabrechnungen) page
             source_page = getattr(current_widget, 'source_page', None)
             
@@ -492,6 +492,37 @@ class TumorGuideApp(QMainWindow):
                     add_separator();add_button("Backoffice",BackofficePage);add_separator();add_button("Abgeschlossene Tumorboards",BackofficeTumorboardsPage);add_separator();add_label(f"{getattr(current_widget,'tumorboard_name','Tumorboard')} - {getattr(current_widget,'date_str','Datum')}")
                 except ImportError:
                     add_separator();add_label("Backoffice");add_separator();add_label("Abgeschlossene Tumorboards");add_separator();add_label(f"{getattr(current_widget,'tumorboard_name','Tumorboard')} - {getattr(current_widget,'date_str','Datum')}")
+        elif current_widget.__class__.__name__ == "BackofficePageErstkonsultationen":
+            # Import BackofficePage for breadcrumb button
+            try:
+                from pages.backoffice_page import BackofficePage
+                add_separator();add_button("Backoffice",BackofficePage);add_separator();add_label("Erstkonsultationen")
+            except ImportError:
+                add_separator();add_label("Backoffice");add_separator();add_label("Erstkonsultationen")
+        elif current_widget.__class__.__name__ == "BackofficeKatIPage":
+            # Import BackofficePage and BackofficePageErstkonsultationen for breadcrumb buttons  
+            try:
+                from pages.backoffice_page import BackofficePage
+                from pages.backoffice_page_erstkonsultationen import BackofficePageErstkonsultationen
+                add_separator();add_button("Backoffice",BackofficePage);add_separator();add_button("Erstkonsultationen",BackofficePageErstkonsultationen);add_separator();add_label("Kategorie I")
+            except ImportError:
+                add_separator();add_label("Backoffice");add_separator();add_label("Erstkonsultationen");add_separator();add_label("Kategorie I")
+        elif current_widget.__class__.__name__ == "BackofficeKatIIPage":
+            # Import BackofficePage and BackofficePageErstkonsultationen for breadcrumb buttons
+            try:
+                from pages.backoffice_page import BackofficePage
+                from pages.backoffice_page_erstkonsultationen import BackofficePageErstkonsultationen
+                add_separator();add_button("Backoffice",BackofficePage);add_separator();add_button("Erstkonsultationen",BackofficePageErstkonsultationen);add_separator();add_label("Kategorie II")
+            except ImportError:
+                add_separator();add_label("Backoffice");add_separator();add_label("Erstkonsultationen");add_separator();add_label("Kategorie II")
+        elif current_widget.__class__.__name__ == "BackofficeKatIIIPage":
+            # Import BackofficePage and BackofficePageErstkonsultationen for breadcrumb buttons
+            try:
+                from pages.backoffice_page import BackofficePage
+                from pages.backoffice_page_erstkonsultationen import BackofficePageErstkonsultationen
+                add_separator();add_button("Backoffice",BackofficePage);add_separator();add_button("Erstkonsultationen",BackofficePageErstkonsultationen);add_separator();add_label("Kategorie III")
+            except ImportError:
+                add_separator();add_label("Backoffice");add_separator();add_label("Erstkonsultationen");add_separator();add_label("Kategorie III")
         elif current_widget.__class__.__name__ == "DeveloperAreaPage":add_separator();add_label("Developer Area")
         elif isinstance(current_widget,CmdScriptsPage):
             # Check if we came from Developer Area by looking at the script being run

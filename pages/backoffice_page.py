@@ -5,12 +5,19 @@ from PyQt6.QtGui import QFont
 import os
 import logging
 from pathlib import Path
+import pandas as pd
+import re
+from datetime import datetime
+
+# Import billing tracker
+from utils.billing_tracker import BillingTracker
 
 class BackofficePage(QWidget):
     def __init__(self, main_window):
         super().__init__()
         logging.info("Initializing BackofficePage Dashboard...")
         self.main_window = main_window
+        self.billing_tracker = BillingTracker()
         self.setup_ui()
         logging.info("BackofficePage Dashboard initialization complete.")
 
@@ -72,41 +79,344 @@ class BackofficePage(QWidget):
         main_layout.addWidget(scroll_area)
 
     def create_open_tasks_section(self, parent_layout):
-        """Create the prominent Open Tasks section at the top"""
+        """Create the prominent Open Tasks section with dynamic status buttons"""
         # Section title
         tasks_title = QLabel("📋 Offene Aufgaben - Übersicht")
         tasks_title.setFont(QFont("Helvetica", 20, QFont.Weight.Bold))
         tasks_title.setStyleSheet("color: #FFA500; margin-bottom: 10px;")
         parent_layout.addWidget(tasks_title)
 
-        # Compact tasks frame
+        # Tasks frame
         tasks_frame = QFrame()
         tasks_frame.setStyleSheet("""
             QFrame {
                 background-color: #1a2633;
                 border: 1px solid #425061;
                 border-radius: 8px;
-                padding: 15px;
-                min-height: 120px;
+                padding: 25px;
             }
         """)
         
         tasks_layout = QVBoxLayout(tasks_frame)
-        tasks_layout.setSpacing(8)
+        tasks_layout.setSpacing(15)
 
-        # Task items from different categories (clickable)
-        self.create_clickable_task_item(tasks_layout, "📊", "Ausstehende Leistungserfassung Tumorboard", 
-                                       "12 offene Tumorboard-Abrechnungen für QISM-System", "#DC143C", 
-                                       self.open_leistungsabrechnungen)
+        # Calculate open tasks
+        billing_status = self.get_billing_status()
+        kat_i_status = self.get_category_status("Kat_I.xlsx")
+        kat_ii_status = self.get_category_status("Kat_II.xlsx")
+        kat_iii_status = self.get_category_status("Kat_III.xlsx")
+
+        # 1. Billing Status Button
+        self.create_status_button(tasks_layout, "Abrechnungen", billing_status, self.open_leistungsabrechnungen)
         
-        self.create_clickable_task_item(tasks_layout, "🩺", "Offene Erstkonsultationen", 
-                                       "18 wartende Patienten für Terminvergabe (5 dringend)", "#FF4500",
-                                       self.open_erstkonsultationen)
+        # 2. Category I Status Button
+        self.create_status_button(tasks_layout, "Kategorie I", kat_i_status, self.open_kategorie_i)
+        
+        # 3. Category II Status Button
+        self.create_status_button(tasks_layout, "Kategorie II", kat_ii_status, self.open_kategorie_ii)
+        
+        # 4. Category III Status Button
+        self.create_status_button(tasks_layout, "Kategorie III", kat_iii_status, self.open_kategorie_iii)
 
         parent_layout.addWidget(tasks_frame)
 
+    def create_status_button(self, parent_layout, title, status_info, callback):
+        """Create a status button with dynamic text and color (styled like CategoryButton)"""
+        task_item = QPushButton()
+        task_item.setFixedHeight(80)  # Lower height
+        task_item.setMinimumWidth(600)  # Much wider
+        task_item.setStyleSheet("""
+            QPushButton {
+                background-color: #114473;
+                color: white;
+                border: none;
+                border-radius: 10px;
+                text-align: left;
+                padding: 15px 20px;
+            }
+            QPushButton:hover {
+                background-color: #1a5a9e;
+            }
+            QPushButton:pressed {
+                background-color: #0d2e4d;
+            }
+        """)
+        task_item.clicked.connect(callback)
+        
+        # Create layout for button content
+        layout = QHBoxLayout(task_item)
+        layout.setContentsMargins(20, 15, 20, 15)
+        layout.setSpacing(15)
+
+        # Title
+        title_label = QLabel(f"{title}:")
+        title_label.setFont(QFont("Calibri", 16, QFont.Weight.Bold))
+        title_label.setStyleSheet("color: white; background: transparent;")
+        title_label.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
+        title_label.setFixedWidth(150)
+        layout.addWidget(title_label)
+        
+        # Status text with proper color coding (like CategoryButton)
+        status_label = QLabel(status_info['text'])
+        status_label.setFont(QFont("Calibri", 14, QFont.Weight.Bold))
+        status_label.setStyleSheet(f"color: {status_info['color']}; background: transparent;")
+        status_label.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
+        status_label.setWordWrap(True)
+        layout.addWidget(status_label)
+        
+        layout.addStretch()
+
+        parent_layout.addWidget(task_item)
+
+    def get_billing_status(self):
+        """Get the billing status for open billing tasks"""
+        try:
+            # Get all finalized tumorboards
+            finalized_tumorboards = self.get_finalized_tumorboards()
+            
+            # Check billing status for each using the correct method
+            unbilled_tumorboards = []
+            for tb in finalized_tumorboards:
+                billing_status = self.billing_tracker.get_billing_status(tb['entity'], tb['date'])
+                if billing_status is None:  # Not billed yet
+                    unbilled_tumorboards.append(tb)
+            
+            if not unbilled_tumorboards:
+                return {
+                    'text': "alles bearbeitet",
+                    'color': '#4CAF50'  # Green (same as categories)
+                }
+            else:
+                # Create description with tumorboard names
+                if len(unbilled_tumorboards) == 1:
+                    tb = unbilled_tumorboards[0]
+                    text = f"1 Abrechnung ausstehend ({tb['entity']} vom {tb['date']})"
+                else:
+                    tb_names = [f"{tb['entity']} vom {tb['date']}" for tb in unbilled_tumorboards[:2]]
+                    if len(unbilled_tumorboards) > 2:
+                        text = f"{len(unbilled_tumorboards)} Abrechnungen ausstehend ({', '.join(tb_names)}, ...)"
+                    else:
+                        text = f"{len(unbilled_tumorboards)} Abrechnungen ausstehend ({', '.join(tb_names)})"
+                
+                return {
+                    'text': text,
+                    'color': '#FFD700'  # Yellow (consistent with categories)
+                }
+        except Exception as e:
+            logging.error(f"Error getting billing status: {e}")
+            return {
+                'text': "Fehler beim Abrufen des Abrechnungsstatus",
+                'color': '#FF6B6B'  # Red
+            }
+
+    def get_category_status(self, filename):
+        """Get the status for a specific category Excel file (same logic as CategoryButton)"""
+        try:
+            # Determine backoffice path - same logic as erstkonsultationen page
+            base_path = Path.home() / "tumorboards"
+            backoffice_dir = base_path / "_Backoffice"
+            excel_path = backoffice_dir / filename
+            
+            if not excel_path.exists():
+                return {
+                    'text': f"Keine Verbindung zu {filename.replace('.xlsx', '')}",
+                    'color': '#FF6B6B'  # Light red for errors
+                }
+            
+            # Read Excel file
+            df = pd.read_excel(excel_path, engine='openpyxl')
+            
+            if df.empty:
+                return {
+                    'text': "alles bearbeitet",
+                    'color': '#4CAF50'  # Green
+                }
+            
+            # Check if we have enough columns
+            if len(df.columns) < 14:
+                return {
+                    'text': f"Excel-Datei {filename} hat zu wenige Spalten",
+                    'color': '#FF6B6B'  # Light red for errors
+                }
+            
+            # Count "Nein" entries in column N (index 13) - same logic as erstkonsultationen
+            status_column = df.iloc[:, 13]  # Column N (0-based index 13)
+            
+            pending_count = 0
+            for value in status_column:
+                if str(value).strip().lower() == 'nein':
+                    pending_count += 1
+            
+            # Generate text and color based on category (exact same as CategoryButton)
+            if pending_count == 0:
+                text = "alles bearbeitet"
+                color = '#4CAF50'  # Green
+            else:
+                # Text and color based on category
+                if "I" in filename:
+                    if pending_count == 1:
+                        text = f"{pending_count} Erstkons-Aufgebot ausstehend"
+                    else:
+                        text = f"{pending_count} Erstkons-Aufgebote ausstehend"
+                    color = '#FF4444'  # Red (exact same as CategoryButton)
+                elif "II" in filename:
+                    if pending_count == 1:
+                        text = f"{pending_count} Erstkons-Aufgebot ausstehend"
+                    else:
+                        text = f"{pending_count} Erstkons-Aufgebote ausstehend"
+                    color = '#FF8C00'  # Orange (exact same as CategoryButton)
+                else:  # III
+                    if pending_count == 1:
+                        text = f"{pending_count} Konsil-Eingang ausstehend"
+                    else:
+                        text = f"{pending_count} Konsil-Eingänge ausstehend"
+                    color = '#FFD700'  # Gold/Yellow (exact same as CategoryButton)
+            
+            return {
+                'text': text,
+                'color': color
+            }
+            
+        except Exception as e:
+            logging.error(f"Error getting category status for {filename}: {e}")
+            return {
+                'text': f"Fehler beim Laden von {filename.replace('.xlsx', '')}",
+                'color': '#FF6B6B'  # Light red for errors
+            }
+
+    def get_finalized_tumorboards(self):
+        """Get all finalized tumorboards (same logic as leistungsabrechnungen page)"""
+        try:
+            tumorboards_path = Path.home() / "tumorboards"
+            if not tumorboards_path.exists():
+                return []
+            
+            finalized_tumorboards = []
+            
+            # Get all entity folders
+            entity_folders = [f for f in tumorboards_path.iterdir() 
+                            if f.is_dir() and not f.name.startswith('_') and not f.name.startswith('__')]
+            
+            for entity_folder in entity_folders:
+                entity_name = entity_folder.name
+                
+                # Look for date folders in this entity
+                date_folders = [f for f in entity_folder.iterdir() if f.is_dir()]
+                
+                for date_folder in date_folders:
+                    # Check if folder name matches date format (dd.mm.yyyy)
+                    if self.is_valid_date_format(date_folder.name):
+                        # Check for timestamp file (finalized marker)
+                        timestamp_files = list(date_folder.glob("*timestamp*"))
+                        
+                        if timestamp_files:
+                            # Check for Excel file
+                            excel_file = date_folder / f"{date_folder.name}.xlsx"
+                            
+                            if excel_file.exists():
+                                finalized_tumorboards.append({
+                                    'entity': entity_name,
+                                    'date': date_folder.name,
+                                    'path': str(date_folder)
+                                })
+            
+            return finalized_tumorboards
+            
+        except Exception as e:
+            logging.error(f"Error getting finalized tumorboards: {e}")
+            return []
+
+    def is_valid_date_format(self, folder_name):
+        """Check if folder name matches dd.mm.yyyy format"""
+        pattern = r"^\d{2}\.\d{2}\.\d{4}$"
+        return bool(re.match(pattern, folder_name))
+
+    def open_kategorie_i(self):
+        """Open the Kategorie I page"""
+        logging.info("Opening Kategorie I page...")
+        
+        if not self.main_window.check_tumorboard_session_before_navigation():
+            return
+        
+        from pages.backoffice_kat_I_page import BackofficeKatIPage
+        
+        # Check if page already exists
+        kat_i_page = None
+        for i in range(self.main_window.stacked_widget.count()):
+            widget = self.main_window.stacked_widget.widget(i)
+            if isinstance(widget, BackofficeKatIPage):
+                kat_i_page = widget
+                break
+        
+        if kat_i_page is None:
+            logging.info("Creating new BackofficeKatIPage instance.")
+            kat_i_page = BackofficeKatIPage(self.main_window)
+            self.main_window.stacked_widget.addWidget(kat_i_page)
+        else:
+            logging.info("Found existing BackofficeKatIPage, refreshing data.")
+            kat_i_page.refresh_data()
+        
+        self.main_window.stacked_widget.setCurrentWidget(kat_i_page)
+        logging.info("Navigated to BackofficeKatIPage.")
+
+    def open_kategorie_ii(self):
+        """Open the Kategorie II page"""
+        logging.info("Opening Kategorie II page...")
+        
+        if not self.main_window.check_tumorboard_session_before_navigation():
+            return
+        
+        from pages.backoffice_kat_II_page import BackofficeKatIIPage
+        
+        # Check if page already exists
+        kat_ii_page = None
+        for i in range(self.main_window.stacked_widget.count()):
+            widget = self.main_window.stacked_widget.widget(i)
+            if isinstance(widget, BackofficeKatIIPage):
+                kat_ii_page = widget
+                break
+        
+        if kat_ii_page is None:
+            logging.info("Creating new BackofficeKatIIPage instance.")
+            kat_ii_page = BackofficeKatIIPage(self.main_window)
+            self.main_window.stacked_widget.addWidget(kat_ii_page)
+        else:
+            logging.info("Found existing BackofficeKatIIPage, refreshing data.")
+            kat_ii_page.refresh_data()
+        
+        self.main_window.stacked_widget.setCurrentWidget(kat_ii_page)
+        logging.info("Navigated to BackofficeKatIIPage.")
+
+    def open_kategorie_iii(self):
+        """Open the Kategorie III page"""
+        logging.info("Opening Kategorie III page...")
+        
+        if not self.main_window.check_tumorboard_session_before_navigation():
+            return
+        
+        from pages.backoffice_kat_III_page import BackofficeKatIIIPage
+        
+        # Check if page already exists
+        kat_iii_page = None
+        for i in range(self.main_window.stacked_widget.count()):
+            widget = self.main_window.stacked_widget.widget(i)
+            if isinstance(widget, BackofficeKatIIIPage):
+                kat_iii_page = widget
+                break
+        
+        if kat_iii_page is None:
+            logging.info("Creating new BackofficeKatIIIPage instance.")
+            kat_iii_page = BackofficeKatIIIPage(self.main_window)
+            self.main_window.stacked_widget.addWidget(kat_iii_page)
+        else:
+            logging.info("Found existing BackofficeKatIIIPage, refreshing data.")
+            kat_iii_page.refresh_data()
+        
+        self.main_window.stacked_widget.setCurrentWidget(kat_iii_page)
+        logging.info("Navigated to BackofficeKatIIIPage.")
+
     def create_task_item(self, parent_layout, icon, title, description, color):
-        """Create an individual task item (deprecated - use create_clickable_task_item)"""
+        """Create an individual task item (deprecated - use create_status_button)"""
         task_item = QFrame()
         task_item.setStyleSheet(f"""
             QFrame {{
