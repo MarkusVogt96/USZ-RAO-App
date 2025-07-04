@@ -589,7 +589,7 @@ def define_berrao_texte(bericht_typ, entity, patdata, glossary):
                                 f"Bei Exazerbation oder Neuauftreten von tumor- oder therapieassoziierten Beschwerden ist eine ausserplanmässige Vorstellung in unserer ambulanten Sprechstunde allzeit möglich."]
 
     elif bericht_typ == "k":
-        print("Definiere Texte für Berrao Klinische VK (Typ k)...")
+        print("Definiere Texte für Berrao Klinische VK (Typ k)...\n\n")
 
         texte["fliesstext_wir_berichten"] = f"Wir berichten Ihnen über oben {g('genannte_akkusativ', 'genannten/genannte')} {g('patient_akkusativ','Patienten/in')}, {g('artikel_akkusativ_klein','den/die')} wir am {heute} zur klinischen Verlaufskontrolle konsultiert haben."
         texte["fliesstext_onkologischer_krankheitsverlauf"] = (f" ")
@@ -608,7 +608,7 @@ def define_berrao_texte(bericht_typ, entity, patdata, glossary):
                                          f"Bei Exazerbation oder Neuauftreten von tumor- oder therapieassoziierten Beschwerden ist eine ausserplanmässige Vorstellung in unserer ambulanten Sprechstunde allzeit möglich."]
 
     elif bericht_typ == "t":
-        print("Definiere Texte für Berrao Telefonische VK (Typ t)...")
+        print("Definiere Texte für Berrao Telefonische VK (Typ t)...\n\n")
 
         texte["fliesstext_wir_berichten"] = f"Wir berichten Ihnen über oben {g('genannte_akkusativ', 'genannten/genannte')} {g('patient_akkusativ','Patienten/in')}, {g('artikel_akkusativ_klein','den/die')} wir am {heute} zur telefonischen Verlaufskontrolle konsultiert haben."
         texte["fliesstext_onkologischer_krankheitsverlauf"] = (f" ")
