@@ -100,11 +100,20 @@ class BackofficePage(QWidget):
         tasks_layout = QVBoxLayout(tasks_frame)
         tasks_layout.setSpacing(15)
 
-        # Calculate open tasks
+        # Calculate open tasks with debug logging
+        logging.info("Calculating status for all categories...")
+        
         billing_status = self.get_billing_status()
+        logging.info(f"Billing status: {billing_status}")
+        
         kat_i_status = self.get_category_status("Kat_I.xlsx")
+        logging.info(f"Kat I status: {kat_i_status}")
+        
         kat_ii_status = self.get_category_status("Kat_II.xlsx")
+        logging.info(f"Kat II status: {kat_ii_status}")
+        
         kat_iii_status = self.get_category_status("Kat_III.xlsx")
+        logging.info(f"Kat III status: {kat_iii_status}")
 
         # 1. Billing Status Button
         self.create_status_button(tasks_layout, "Abrechnungen", billing_status, self.open_leistungsabrechnungen)
@@ -122,49 +131,49 @@ class BackofficePage(QWidget):
 
     def create_status_button(self, parent_layout, title, status_info, callback):
         """Create a status button with dynamic text and color (styled like CategoryButton)"""
-        task_item = QPushButton()
-        task_item.setFixedHeight(80)  # Lower height
-        task_item.setMinimumWidth(600)  # Much wider
+        logging.info(f"Creating status button for {title} with status: {status_info}")
+        
+        task_item = QFrame()
+        task_item.setFixedHeight(80)
+        task_item.setMinimumWidth(600)
         task_item.setStyleSheet("""
-            QPushButton {
+            QFrame {
                 background-color: #114473;
-                color: white;
                 border: none;
                 border-radius: 10px;
-                text-align: left;
-                padding: 15px 20px;
+                padding: 5px;
             }
-            QPushButton:hover {
+            QFrame:hover {
                 background-color: #1a5a9e;
             }
-            QPushButton:pressed {
-                background-color: #0d2e4d;
-            }
         """)
-        task_item.clicked.connect(callback)
+        task_item.setCursor(Qt.CursorShape.PointingHandCursor)
+        task_item.mousePressEvent = lambda event: callback()
         
         # Create layout for button content
         layout = QHBoxLayout(task_item)
-        layout.setContentsMargins(20, 15, 20, 15)
-        layout.setSpacing(15)
+        layout.setContentsMargins(15, 10, 15, 10)
+        layout.setSpacing(10)
 
         # Title
         title_label = QLabel(f"{title}:")
-        title_label.setFont(QFont("Calibri", 16, QFont.Weight.Bold))
+        title_label.setFont(QFont("Calibri", 14, QFont.Weight.Bold))
         title_label.setStyleSheet("color: white; background: transparent;")
         title_label.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
-        title_label.setFixedWidth(150)
+        title_label.setFixedWidth(140)
         layout.addWidget(title_label)
         
-        # Status text with proper color coding (like CategoryButton)
+        # Status text with proper color coding
         status_label = QLabel(status_info['text'])
-        status_label.setFont(QFont("Calibri", 14, QFont.Weight.Bold))
+        status_label.setFont(QFont("Calibri", 13, QFont.Weight.Bold))
         status_label.setStyleSheet(f"color: {status_info['color']}; background: transparent;")
         status_label.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
         status_label.setWordWrap(True)
         layout.addWidget(status_label)
         
         layout.addStretch()
+        
+        logging.info(f"Status button created - Title: '{title_label.text()}', Status: '{status_label.text()}', Color: '{status_info['color']}'")
 
         parent_layout.addWidget(task_item)
 
@@ -205,7 +214,7 @@ class BackofficePage(QWidget):
         except Exception as e:
             logging.error(f"Error getting billing status: {e}")
             return {
-                'text': "Fehler beim Abrufen des Abrechnungsstatus",
+                'text': "Status nicht verfügbar",
                 'color': '#FF6B6B'  # Red
             }
 
@@ -219,7 +228,7 @@ class BackofficePage(QWidget):
             
             if not excel_path.exists():
                 return {
-                    'text': f"Keine Verbindung zu {filename.replace('.xlsx', '')}",
+                    'text': f"Datei nicht gefunden",
                     'color': '#FF6B6B'  # Light red for errors
                 }
             
@@ -227,15 +236,20 @@ class BackofficePage(QWidget):
             df = pd.read_excel(excel_path, engine='openpyxl')
             
             if df.empty:
+                # Wording depends on category
+                if "Kat_III" in filename:
+                    no_pending_text = "keine Konsil-Eingänge ausstehend"
+                else:
+                    no_pending_text = "keine Erstkons-Aufgebote ausstehend"
                 return {
-                    'text': "alles bearbeitet",
+                    'text': no_pending_text,
                     'color': '#4CAF50'  # Green
                 }
             
             # Check if we have enough columns
             if len(df.columns) < 14:
                 return {
-                    'text': f"Excel-Datei {filename} hat zu wenige Spalten",
+                    'text': f"Excel-Format fehlerhaft",
                     'color': '#FF6B6B'  # Light red for errors
                 }
             
@@ -249,28 +263,33 @@ class BackofficePage(QWidget):
             
             # Generate text and color based on category (exact same as CategoryButton)
             if pending_count == 0:
-                text = "alles bearbeitet"
+                if "Kat_III" in filename:
+                    text = "keine Konsil-Eingänge ausstehend"
+                else:
+                    text = "keine Erstkons-Aufgebote ausstehend"
                 color = '#4CAF50'  # Green
             else:
-                # Text and color based on category
-                if "I" in filename:
-                    if pending_count == 1:
-                        text = f"{pending_count} Erstkons-Aufgebot ausstehend"
-                    else:
-                        text = f"{pending_count} Erstkons-Aufgebote ausstehend"
-                    color = '#FF4444'  # Red (exact same as CategoryButton)
-                elif "II" in filename:
-                    if pending_count == 1:
-                        text = f"{pending_count} Erstkons-Aufgebot ausstehend"
-                    else:
-                        text = f"{pending_count} Erstkons-Aufgebote ausstehend"
-                    color = '#FF8C00'  # Orange (exact same as CategoryButton)
-                else:  # III
+                # Determine category based on filename with precise matching to avoid substring collisions
+                if "Kat_III" in filename:
                     if pending_count == 1:
                         text = f"{pending_count} Konsil-Eingang ausstehend"
                     else:
                         text = f"{pending_count} Konsil-Eingänge ausstehend"
-                    color = '#FFD700'  # Gold/Yellow (exact same as CategoryButton)
+                    color = '#FFCC00'  # Bright Yellow
+                elif "Kat_II" in filename:
+                    if pending_count == 1:
+                        text = f"{pending_count} Erstkons-Aufgebot ausstehend"
+                    else:
+                        text = f"{pending_count} Erstkons-Aufgebote ausstehend"
+                    color = '#FF8800'  # Bright Orange
+                elif "Kat_I" in filename:
+                    if pending_count == 1:
+                        text = f"{pending_count} Erstkons-Aufgebot ausstehend"
+                    else:
+                        text = f"{pending_count} Erstkons-Aufgebote ausstehend"
+                    color = '#f93737'  # Bright Red
+            
+            logging.info(f"Category {filename}: {pending_count} pending, color: {color}, text: {text}")
             
             return {
                 'text': text,
@@ -280,7 +299,7 @@ class BackofficePage(QWidget):
         except Exception as e:
             logging.error(f"Error getting category status for {filename}: {e}")
             return {
-                'text': f"Fehler beim Laden von {filename.replace('.xlsx', '')}",
+                'text': f"Status nicht verfügbar",
                 'color': '#FF6B6B'  # Light red for errors
             }
 
@@ -537,51 +556,52 @@ class BackofficePage(QWidget):
             }
         """)
         
-        nav_layout = QGridLayout(nav_frame)
-        nav_layout.setSpacing(15)
+        nav_layout = QHBoxLayout(nav_frame)
+        nav_layout.setSpacing(30)
 
-        # Navigation buttons
-        self.create_nav_button(nav_layout, 0, 0, "📊 Leistungsabrechnungen", 
-                              "QISM Abrechnungen für Tumorboards verwalten", self.open_leistungsabrechnungen)
-        
-        self.create_nav_button(nav_layout, 0, 1, "🩺 Erstkonsultationen aufbieten", 
-                              "Wartende Patienten für Erstkonsultationen verwalten", self.open_erstkonsultationen)
-
-        parent_layout.addWidget(nav_frame)
-
-    def create_nav_button(self, grid_layout, row, col, title, description, callback):
-        """Create a navigation button"""
-        button_frame = QFrame()
-        button_frame.setStyleSheet("""
-            QFrame {
-                background-color: #232F3B;
+        # Leistungsabrechnungen button
+        leistungsabrechnungen_button = QPushButton("📊 Leistungsabrechnungen")
+        leistungsabrechnungen_button.setFont(QFont("Helvetica", 14, QFont.Weight.Bold))
+        leistungsabrechnungen_button.setFixedHeight(50)
+        leistungsabrechnungen_button.setCursor(Qt.CursorShape.PointingHandCursor)
+        leistungsabrechnungen_button.setStyleSheet("""
+            QPushButton {
+                background-color: #114473;
+                color: white;
+                border: none;
                 border-radius: 8px;
-                padding: 15px;
-                border: 1px solid #425061;
+                padding: 10px 20px;
+                text-align: left;
             }
-            QFrame:hover {
-                background-color: #2A3642;
-                border-color: #00BFFF;
+            QPushButton:pressed {
+                background-color: #0d3355;
             }
         """)
-        button_frame.setCursor(Qt.CursorShape.PointingHandCursor)
-        button_frame.mousePressEvent = lambda event: callback()
+        leistungsabrechnungen_button.clicked.connect(self.open_leistungsabrechnungen)
+        nav_layout.addWidget(leistungsabrechnungen_button)
         
-        button_layout = QVBoxLayout(button_frame)
-        button_layout.setSpacing(8)
-        
-        title_label = QLabel(title)
-        title_label.setFont(QFont("Helvetica", 13, QFont.Weight.Bold))
-        title_label.setStyleSheet("color: white;")
-        button_layout.addWidget(title_label)
-        
-        desc_label = QLabel(description)
-        desc_label.setFont(QFont("Helvetica", 10))
-        desc_label.setStyleSheet("color: #CCCCCC;")
-        desc_label.setWordWrap(True)
-        button_layout.addWidget(desc_label)
-        
-        grid_layout.addWidget(button_frame, row, col)
+        # Erstkonsultationen button
+        erstkonsultationen_button = QPushButton("🩺 Erstkonsultationen aufbieten")
+        erstkonsultationen_button.setFont(QFont("Helvetica", 14, QFont.Weight.Bold))
+        erstkonsultationen_button.setFixedHeight(50)
+        erstkonsultationen_button.setCursor(Qt.CursorShape.PointingHandCursor)
+        erstkonsultationen_button.setStyleSheet("""
+            QPushButton {
+                background-color: #114473;
+                color: white;
+                border: none;
+                border-radius: 8px;
+                padding: 10px 20px;
+                text-align: left;
+            }
+            QPushButton:pressed {
+                background-color: #0d3355;
+            }
+        """)
+        erstkonsultationen_button.clicked.connect(self.open_erstkonsultationen)
+        nav_layout.addWidget(erstkonsultationen_button)
+
+        parent_layout.addWidget(nav_frame)
 
     def create_completed_tumorboards_section(self, parent_layout):
         """Create the completed tumorboards section"""

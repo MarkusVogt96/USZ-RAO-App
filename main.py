@@ -601,16 +601,63 @@ class TumorGuideApp(QMainWindow):
         if not self.check_tumorboard_session_before_navigation():
             return  # User cancelled navigation
             
-        if self.backoffice_page is None:
-            print(f"{APP_PREFIX}Creating BackofficePage instance.")
-            from pages.backoffice_page import BackofficePage
-            self.backoffice_page=BackofficePage(self)
-            self.stacked_widget.addWidget(self.backoffice_page)
+        # Show password dialog before opening Backoffice
+        from pages.developer_area_page_simple import PasswordDialog
         
-        self.stacked_widget.setCurrentWidget(self.backoffice_page)
-        self._update_active_menu("Backoffice")
-        print(f"{APP_PREFIX}Navigated to Backoffice page.")
-
+        password_dialog = PasswordDialog(self, "Backoffice")
+        if password_dialog.exec() == QDialog.DialogCode.Accepted:
+            entered_password = password_dialog.get_password()
+            
+            # Check password
+            if entered_password == "backoffice":
+                print(f"{APP_PREFIX}Backoffice access granted.")
+                
+                if self.backoffice_page is None:
+                    print(f"{APP_PREFIX}Creating BackofficePage instance.")
+                    from pages.backoffice_page import BackofficePage
+                    self.backoffice_page=BackofficePage(self)
+                    self.stacked_widget.addWidget(self.backoffice_page)
+                
+                self.stacked_widget.setCurrentWidget(self.backoffice_page)
+                self._update_active_menu("Backoffice")
+                print(f"{APP_PREFIX}Navigated to Backoffice page.")
+            else:
+                print(f"{APP_PREFIX}Backoffice access denied - incorrect password.")
+                msg_box = QMessageBox(self)
+                msg_box.setWindowTitle("Zugriff verweigert")
+                msg_box.setText("Falsches Passwort. Zugriff zum Backoffice verweigert.")
+                msg_box.setIcon(QMessageBox.Icon.Warning)
+                msg_box.setStyleSheet("""
+                    QMessageBox {
+                        background-color: #19232D;
+                        color: white;
+                    }
+                    QMessageBox QLabel {
+                        color: white;
+                        font-size: 14px;
+                        padding: 10px;
+                    }
+                    QMessageBox QPushButton {
+                        background-color: #3292ea;
+                        color: white;
+                        padding: 8px 20px;
+                        border: none;
+                        border-radius: 6px;
+                        font-size: 13px;
+                        font-weight: bold;
+                        min-width: 80px;
+                        min-height: 30px;
+                    }
+                    QMessageBox QPushButton:hover {
+                        background-color: #4da2fa;
+                    }
+                    QMessageBox QPushButton:pressed {
+                        background-color: #2a82da;
+                    }
+                """)
+                msg_box.exec()
+        else:
+            print(f"{APP_PREFIX}Backoffice access cancelled by user.")
     def open_developer_area_page(self):        
         if not self.check_tumorboard_session_before_navigation():
             return  # User cancelled navigation
@@ -618,7 +665,7 @@ class TumorGuideApp(QMainWindow):
         # Show password dialog before opening Developer Area
         from pages.developer_area_page_simple import PasswordDialog
         
-        password_dialog = PasswordDialog(self)
+        password_dialog = PasswordDialog(self, "Developer Area")
         if password_dialog.exec() == QDialog.DialogCode.Accepted:
             entered_password = password_dialog.get_password()
             

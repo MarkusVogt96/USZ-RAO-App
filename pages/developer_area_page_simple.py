@@ -12,9 +12,10 @@ from PyQt6.QtGui import QFont
 class PasswordDialog(QDialog):
     """Simple password dialog"""
     
-    def __init__(self, parent=None):
+    def __init__(self, parent=None, area_name="Developer Area"):
         super().__init__(parent)
-        self.setWindowTitle("Developer Area - Zugriff")
+        self.area_name = area_name
+        self.setWindowTitle(f"{area_name} - Zugriff")
         self.setModal(True)
         self.setFixedSize(500, 320)
         self.setup_ui()
@@ -28,7 +29,7 @@ class PasswordDialog(QDialog):
         layout.setSpacing(20)
         
         # Title
-        title_label = QLabel("🔐 Developer Area Zugriff")
+        title_label = QLabel(f"🔐 {self.area_name} Zugriff")
         title_label.setFont(QFont("Helvetica", 18, QFont.Weight.Bold))
         title_label.setStyleSheet("color: #3292ea; margin-bottom: 5px; padding: 5px;")
         title_label.setAlignment(Qt.AlignmentFlag.AlignCenter)

@@ -10,6 +10,7 @@ import pandas as pd
 from pathlib import Path
 from datetime import datetime, date
 from openpyxl import load_workbook
+import getpass
 
 class BackofficeKatIPage(QWidget):
     def __init__(self, main_window):
@@ -35,7 +36,8 @@ class BackofficeKatIPage(QWidget):
             9: True,   # Teams Priorisierung
             10: False, # Vormerken für Studie (hidden per user request)
             11: False, # Bemerkung/Procedere (hidden per user request)
-            12: True,  # Aktionen
+            12: True,  # Timestamp
+            13: True,  # Bearbeitet (Aktionen)
         }
         
         self.setup_ui()
@@ -225,11 +227,11 @@ class BackofficeKatIPage(QWidget):
         
         # Create table
         self.patients_table = QTableWidget()
-        self.patients_table.setColumnCount(13)  # A-L + Action column (13 total)
+        self.patients_table.setColumnCount(14)  # A-M + Action column (14 total)
         self.patients_table.setHorizontalHeaderLabels([
             "Datum", "Tumorboard", "Name", "Geburtsdatum", "Patienten-Nr.", 
             "Diagnose", "ICD-Code", "Radiotherapie indiziert", "Art des Aufgebots",
-            "Teams Priorisierung", "Vormerken für Studie", "Bemerkung/Procedere", "Bearbeitet"
+            "Teams Priorisierung", "Vormerken für Studie", "Bemerkung/Procedere", "Timestamp", "Bearbeitet"
         ])
         
         # Apply exact same styling as Leistungsabrechnungen table
@@ -273,7 +275,7 @@ class BackofficeKatIPage(QWidget):
         horizontal_header = self.patients_table.horizontalHeader()
         
         # Set ALL columns to Interactive mode (resizable by dragging)
-        for col in range(13):
+        for col in range(14):
             horizontal_header.setSectionResizeMode(col, QHeaderView.ResizeMode.Interactive)
         
         # Set some reasonable default widths
@@ -289,7 +291,8 @@ class BackofficeKatIPage(QWidget):
         horizontal_header.resizeSection(9, 280)   # Teams Priorisierung
         horizontal_header.resizeSection(10, 140)  # Vormerken für Studie
         horizontal_header.resizeSection(11, 180)  # Bemerkung/Procedere
-        horizontal_header.resizeSection(12, 150)  # Aktionen
+        horizontal_header.resizeSection(12, 150)  # Timestamp
+        horizontal_header.resizeSection(13, 150)  # Bearbeitet
         
         # Don't stretch last section to allow custom widths
         horizontal_header.setStretchLastSection(False)
@@ -380,6 +383,7 @@ class BackofficeKatIPage(QWidget):
                     'teams_priorisierung': str(row.iloc[9]) if len(row) > 9 else '',
                     'studie': str(row.iloc[10]) if len(row) > 10 else '',
                     'bemerkung': str(row.iloc[11]) if len(row) > 11 else '',
+                    'timestamp': str(row.iloc[12]) if len(row) > 12 and pd.notna(row.iloc[12]) else '',  # Spalte M (index 12)
                     'status': str(row.iloc[13]).strip().lower() if len(row) > 13 else 'nein'  # Spalte N (index 13)
                 }
                 self.patients_data.append(patient)
@@ -421,7 +425,7 @@ class BackofficeKatIPage(QWidget):
                 patient['datum'], patient['tumorboard'], patient['name'],
                 patient['geburtsdatum'], patient['patientennummer'], patient['diagnose'],
                 patient['icd_code'], patient['radiotherapie'], patient['art_aufgebot'],
-                patient['teams_priorisierung'], patient['studie'], patient['bemerkung']
+                patient['teams_priorisierung'], patient['studie'], patient['bemerkung'], patient['timestamp']
             ]
             
             for col, value in enumerate(columns):
@@ -438,9 +442,9 @@ class BackofficeKatIPage(QWidget):
                 
                 self.patients_table.setItem(row, col, item)
             
-            # Create action button (column 12, since we removed the empty column)
+            # Create action button (column 13, since we added timestamp column)
             action_widget = self.create_action_widget(patient, row)
-            self.patients_table.setCellWidget(row, 12, action_widget)
+            self.patients_table.setCellWidget(row, 13, action_widget)
 
     def create_action_widget(self, patient, row):
         """Create action dropdown widget for table row"""
@@ -525,6 +529,24 @@ class BackofficeKatIPage(QWidget):
     def on_status_changed(self, new_status, patient, row):
         """Handle status change from dropdown"""
         try:
+            old_status = patient['status'].lower()
+            new_status_lower = new_status.lower()
+            
+            # Check if user is trying to revert from Ja to Nein
+            if old_status == 'ja' and new_status_lower == 'nein':
+                # Show warning dialog with timestamp information
+                if not self.confirm_status_revert(patient):
+                    # User cancelled - revert dropdown to original value
+                    container_widget = self.patients_table.cellWidget(row, 13)
+                    if container_widget:
+                        dropdown = container_widget.findChild(QComboBox)
+                        if dropdown:
+                            dropdown.setCurrentText(patient['status'].title())
+                    return
+                
+                # Log the reversion
+                self.log_status_reversion(patient)
+            
             # Update Excel file
             base_path = Path.home() / "tumorboards"
             backoffice_dir = base_path / "_Backoffice"
@@ -542,6 +564,33 @@ class BackofficeKatIPage(QWidget):
             excel_row = patient['row_index']
             ws.cell(row=excel_row, column=14, value=new_status)
             
+            # Handle timestamp for Nein -> Ja transition
+            if old_status == 'nein' and new_status_lower == 'ja':
+                # Create timestamp with date/time and username
+                timestamp = self.create_timestamp()
+                ws.cell(row=excel_row, column=13, value=timestamp)  # Column M (index 13 in Excel)
+                patient['timestamp'] = timestamp
+                
+                # Update timestamp display in table
+                timestamp_item = QTableWidgetItem(timestamp)
+                timestamp_item.setFont(QFont("Helvetica", 11))
+                if new_status_lower == 'ja':
+                    timestamp_item.setBackground(Qt.GlobalColor.darkGreen)
+                else:
+                    timestamp_item.setBackground(Qt.GlobalColor.darkRed)
+                self.patients_table.setItem(row, 12, timestamp_item)
+            
+            # Clear timestamp when reverting from Ja to Nein
+            elif old_status == 'ja' and new_status_lower == 'nein':
+                ws.cell(row=excel_row, column=13, value='')  # Clear timestamp
+                patient['timestamp'] = ''
+                
+                # Clear timestamp display in table
+                timestamp_item = QTableWidgetItem('')
+                timestamp_item.setFont(QFont("Helvetica", 11))
+                timestamp_item.setBackground(Qt.GlobalColor.darkRed)
+                self.patients_table.setItem(row, 12, timestamp_item)
+            
             # Save workbook
             wb.save(excel_path)
             
@@ -551,7 +600,7 @@ class BackofficeKatIPage(QWidget):
             patient['status'] = new_status.lower()
             
             # Update dropdown color
-            container_widget = self.patients_table.cellWidget(row, 12)
+            container_widget = self.patients_table.cellWidget(row, 13) # Changed from 12 to 13
             if container_widget:
                 # Find the dropdown within the container
                 dropdown = container_widget.findChild(QComboBox)
@@ -559,7 +608,7 @@ class BackofficeKatIPage(QWidget):
                     self.update_dropdown_color(dropdown, new_status.lower())
             
             # Update row background color
-            for col in range(12):  # Only data columns, not action column
+            for col in range(13):  # Only data columns, not action column
                 item = self.patients_table.item(row, col)
                 if item:
                     if new_status.lower() == 'ja':
@@ -575,11 +624,135 @@ class BackofficeKatIPage(QWidget):
                 f"Fehler beim Ändern des Status:\n\n{str(e)}"
             )
             # Revert dropdown to original value
-            container_widget = self.patients_table.cellWidget(row, 12)
+            container_widget = self.patients_table.cellWidget(row, 13) # Changed from 12 to 13
             if container_widget:
                 dropdown = container_widget.findChild(QComboBox)
                 if dropdown:
                     dropdown.setCurrentText(patient['status'].title())
+    
+    def create_timestamp(self):
+        """Create a timestamp string with date/time and username"""
+        now = datetime.now()
+        date_time = now.strftime("%d.%m.%Y %H:%M:%S")
+        try:
+            username = getpass.getuser()
+        except:
+            username = "Unbekannt"
+        
+        return f"{date_time}\n{username}"
+    
+    def confirm_status_revert(self, patient):
+        """Show confirmation dialog when reverting status from Ja to Nein"""
+        # Parse timestamp if available
+        timestamp_info = "Unbekannt"
+        if patient['timestamp']:
+            try:
+                lines = patient['timestamp'].split('\n')
+                if len(lines) >= 2:
+                    date_time = lines[0]
+                    username = lines[1]
+                    timestamp_info = f"{date_time} durch {username}"
+                else:
+                    timestamp_info = patient['timestamp']
+            except:
+                timestamp_info = patient['timestamp']
+        
+        # Create confirmation dialog
+        dialog = QDialog(self)
+        dialog.setWindowTitle("Bearbeitungsstatus zurücksetzen")
+        dialog.setFixedSize(500, 200)
+        dialog.setStyleSheet("""
+            QDialog {
+                background-color: #19232D;
+                color: white;
+            }
+            QLabel {
+                color: white;
+                font-size: 12px;
+            }
+            QPushButton {
+                background-color: #114473;
+                color: white;
+                border: none;
+                border-radius: 6px;
+                padding: 8px 15px;
+                font-weight: bold;
+                min-width: 80px;
+            }
+            QPushButton:hover {
+                background-color: #1a5a9e;
+            }
+        """)
+        
+        layout = QVBoxLayout(dialog)
+        layout.setSpacing(15)
+        
+        # Warning message
+        warning_label = QLabel(f"Dieser Patient wurde bereits als bearbeitet markiert am:")
+        warning_label.setFont(QFont("Helvetica", 12, QFont.Weight.Bold))
+        layout.addWidget(warning_label)
+        
+        # Timestamp info
+        timestamp_label = QLabel(timestamp_info)
+        timestamp_label.setFont(QFont("Helvetica", 11))
+        timestamp_label.setStyleSheet("color: #FFD700; margin-left: 20px;")
+        layout.addWidget(timestamp_label)
+        
+        # Confirmation question
+        question_label = QLabel("Sind Sie sicher, dass Sie den Bearbeitungszustand auf Nein zurücksetzen möchten?")
+        question_label.setFont(QFont("Helvetica", 11))
+        question_label.setWordWrap(True)
+        layout.addWidget(question_label)
+        
+        # Log info
+        log_label = QLabel("Dieser Vorgang wird in den programminternen Logs dokumentiert.")
+        log_label.setFont(QFont("Helvetica", 10))
+        log_label.setStyleSheet("color: #CCCCCC; font-style: italic;")
+        layout.addWidget(log_label)
+        
+        # Buttons
+        button_layout = QHBoxLayout()
+        button_layout.addStretch()
+        
+        yes_button = QPushButton("Ja")
+        yes_button.clicked.connect(dialog.accept)
+        button_layout.addWidget(yes_button)
+        
+        no_button = QPushButton("Nein")
+        no_button.clicked.connect(dialog.reject)
+        button_layout.addWidget(no_button)
+        
+        layout.addLayout(button_layout)
+        
+        return dialog.exec() == QDialog.DialogCode.Accepted
+    
+    def log_status_reversion(self, patient):
+        """Log status reversion from Ja to Nein"""
+        try:
+            # Create log entry
+            timestamp = datetime.now().strftime("%d.%m.%Y %H:%M:%S")
+            username = getpass.getuser()
+            category = self.category_name
+            
+            log_entry = f"[{timestamp}] {category}: Patient {patient['name']} (ID: {patient['patientennummer']}) von Ja→Nein geändert durch {username}\n"
+            
+            # Determine log file path
+            base_path = Path.home() / "tumorboards"
+            backoffice_dir = base_path / "_Backoffice"
+            log_file = backoffice_dir / "erstkons-logs.txt"
+            
+            # Ensure directory exists
+            backoffice_dir.mkdir(parents=True, exist_ok=True)
+            
+            # Append to log file
+            with open(log_file, 'a', encoding='utf-8') as f:
+                f.write(log_entry)
+            
+            logging.info(f"Status reversion logged for patient {patient['name']}")
+            
+        except Exception as e:
+            logging.error(f"Error logging status reversion: {e}")
+            # Don't show error to user, as this is just logging
 
     def mark_as_processed(self, row, patient):
         """Mark a patient as processed (change status from Nein to Ja)"""
