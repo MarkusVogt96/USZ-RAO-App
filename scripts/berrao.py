@@ -662,11 +662,14 @@ def main(patientennummer_param=None):
         else: print(f"FEHLER: Unerwarteter bericht_typ '{bericht_typ}'."); sys.exit("Abbruch.")
 
         #Tox.-Formular anlegen, falls gewünscht
-        print("Überprüfe, ob Tox-Formular angelegt werden soll....")
+        icd_code_to_pass = secondary_icd_code if secondary_icd_code and secondary_icd_code.strip() else icd_code
+        print(f"\n\n\nICD-Code für Organspez. Symptomblock: icd_code_to_pass = {icd_code_to_pass}")
+
+        print("Überprüfe, ob Tox-Formular angelegt werden soll...")
         if bericht_typ == 'e':
             if soll_symp_vor_rt_erfasst_werden:
                 print("Gefunden: Symp vor RT soll angelegt werden.")
-                if UNIVERSAL.symptome_vor_rt_anlegen(chemotherapie=simultane_chemotherapie) is True:
+                if UNIVERSAL.symptome_vor_rt_anlegen(chemotherapie=simultane_chemotherapie, icd_code=icd_code_to_pass, geschlecht=geschlecht):
                     print("Formular erfolgreich angelegt")
                 else:
                     print("UNIVERSAL.symptome_vor_rt_anlegen nicht True, Formular ggf. nicht korrekt angelegt.")
@@ -674,7 +677,7 @@ def main(patientennummer_param=None):
         elif bericht_typ == 'a':
             if soll_akuttox_nach_rt_erfasst_werden:
                 print("Gefunden: Akuttox nach RT soll angelegt werden.")
-                if UNIVERSAL.akuttox_nach_rt_anlegen(chemotherapie=simultane_chemotherapie) is True:
+                if UNIVERSAL.akuttox_nach_rt_anlegen(chemotherapie=simultane_chemotherapie, icd_code=icd_code_to_pass, geschlecht=geschlecht):
                     print("Formular erfolgreich angelegt")
                 else:
                     print("UNIVERSAL.akuttox_nach_rt_anlegen nicht True, Formular ggf. nicht korrekt angelegt.")    
@@ -682,7 +685,7 @@ def main(patientennummer_param=None):
         elif bericht_typ == 'k' or bericht_typ == "t":
             if soll_nachsorgeformular_erfasst_werden:
                 print("Gefunden: Nachsorgeformular soll angelegt werden.")
-                if UNIVERSAL.nachsorgeformular_anlegen(nachsorgeformular_typ=nachsorgeformular_typ, bericht_typ=bericht_typ, chemotherapie=simultane_chemotherapie) is True:
+                if UNIVERSAL.nachsorgeformular_anlegen(nachsorgeformular_typ=nachsorgeformular_typ, bericht_typ=bericht_typ, chemotherapie=simultane_chemotherapie, icd_code=icd_code_to_pass, geschlecht=geschlecht):
                     print("Formular erfolgreich angelegt")
                 else:
                     print("UNIVERSAL.nachsorgeformular_anlegen nicht True, Formular ggf. nicht korrekt angelegt.")    
