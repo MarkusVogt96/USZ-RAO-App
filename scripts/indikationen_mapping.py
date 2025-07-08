@@ -583,6 +583,7 @@ Zusätzlich besteht die Indikation zur postoperativen Radiotherapie der (elektiv
 Chen et al., Int J Radiat Oncol Biol Phys (2007), Lau et al., Head Neck (2014)
 
 
+
 C61:
 
 Prostata – Primäre kurative Radiotherapie:

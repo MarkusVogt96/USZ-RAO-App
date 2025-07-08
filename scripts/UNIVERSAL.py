@@ -3368,8 +3368,44 @@ def signation_benutzer_eintragen():
 
 ###################################
 ###################################
+try:
+    from symptomblock_mapping import MAPPING_SYMPTOMBLOCK
+except ImportError:
+    print("WARNUNG: symptomblock_mapping.py nicht gefunden...")
+    MAPPING_SYMPTOMBLOCK = {}
 
-def symptome_vor_rt_anlegen(chemotherapie):
+def _get_symptomblock_image_from_icd(icd_code, geschlecht):
+    """
+    Sucht im Mapping nach dem passenden Symptomblock-Button für einen ICD-Code.
+    
+    Args:
+        icd_code (str): Der ICD-Code des Patienten (z.B. "C71.3").
+        geschlecht (str): Das Geschlecht ('M' oder 'W') für Spezialfälle.
+
+    Returns:
+        str | None: Der Dateiname des PNG-Buttons oder None, wenn kein Match gefunden wurde.
+    """
+    if not icd_code or not isinstance(icd_code, str):
+        return None
+
+    for icd_prefixes, button_info in MAPPING_SYMPTOMBLOCK.items():
+        for prefix in icd_prefixes:
+            if icd_code.startswith(prefix):
+                # Prüfen, ob es ein geschlechtsspezifischer Eintrag ist
+                if isinstance(button_info, dict):
+                    # Gib den passenden Button für das Geschlecht zurück, mit 'M' als Fallback
+                    return button_info.get(geschlecht, button_info.get("M"))
+                else:
+                    # Standardfall: Gib den Button-Namen direkt zurück
+                    return button_info
+    
+    # Wenn die Schleife durchläuft, ohne einen Treffer zu finden
+    return None
+
+###################################
+###################################
+
+def symptome_vor_rt_anlegen(chemotherapie, icd_code, geschlecht):
     local_screenshots_dir = os.path.join(screenshots_dir, 'UNIVERSAL', 'bereich_berichte')
     print(f'local_screenshots_dir angelegt in {local_screenshots_dir}')
     
@@ -3400,6 +3436,7 @@ def symptome_vor_rt_anlegen(chemotherapie):
         print("chemotherapie weder ja noch nein gefunden. Lege ohne an Blutbild an.")
         pyautogui.press('down')
         pyautogui.press('enter')
+
     while True:
         if find_button(image_name='button_symptomauswahl_offen.png', base_path=local_screenshots_dir, max_attempts=1):
             print("Gruppe auswählen noch offen, Navigation pausiert.")
@@ -3407,6 +3444,41 @@ def symptome_vor_rt_anlegen(chemotherapie):
         else:
             print("Gruppe auswählen nicht mehr offen, fahre fort.")
             break
+
+    # === NEUER CODEBLOCK SPEZIFISCHE TOX GRUPPE ===
+    symptom_button_image = _get_symptomblock_image_from_icd(icd_code, geschlecht)
+    if symptom_button_image:
+    
+        print(f"INFO: Passender Symptomblock für ICD '{icd_code}' gefunden: {symptom_button_image}")
+        print("INFO: Versuche, den zusätzlichen Symptomblock anzuklicken...")
+        for attempt in range(30):
+            if not find_and_click_button("button_symptomblock_auswahl.png", base_path=local_screenshots_dir, max_attempts=1):
+                print("WARNUNG: Konnte den Button 'button_symptomblock_auswahl.png' nicht finden. Probiere button_symptomblock_auswahl_rot.png ...")
+                if not find_and_click_button("button_symptomblock_auswahl_rot.png", base_path=local_screenshots_dir, max_attempts=1):
+                    print("WARNUNG: Konnte den Button 'button_symptomblock_auswahl_rot.png' nicht finden. Loop erneut (max 50)...")
+                    time.sleep(0.05)
+                else:
+                    print("INFO: Button 'button_symptomblock_auswahl_rot.png' gefunden und angeklickt.")
+                    break
+            else:
+                print("INFO: Button 'button_symptomblock_auswahl.png' gefunden und angeklickt.")
+                break
+
+        if not find_and_click_button(symptom_button_image, "Spezifischer Symptomblock", base_path=local_screenshots_dir, max_attempts=20, interval=0.05):
+            print(f"WARNUNG: Konnte den spezifischen Symptomblock-Button '{symptom_button_image}' nicht klicken.")
+            return False
+        #Warten, bis alle Nebenwirkungen geladen            
+        while True:
+            if find_button(image_name='button_symptomauswahl_offen.png', base_path=local_screenshots_dir, max_attempts=1):
+                print("Gruppe auswählen noch offen, Navigation pausiert.")
+                time.sleep(0.05)
+            else:
+                print("Gruppe auswählen nicht mehr offen, fahre fort.")
+                break
+    else:
+        print(f"INFO: Kein spezifischer Symptomblock für ICD-Code '{icd_code}' im Mapping gefunden. Lege nur General Symptomblock an.")
+        
+    # === NEUER CODEBLOCK ENDE ===
 
 
     if chemotherapie == 'ja':
@@ -3473,19 +3545,65 @@ def symptome_vor_rt_anlegen(chemotherapie):
             print("Überspringe Ankreuzen des CTCAE-Grades, gehe zu nächstem.")
 
 
+
+        #GENERAL BLOCK bearbeitet, jetzt check auf spez. UAW BLOCK
+        if symptom_button_image:
+            mapping_number_tox = {"button_symptomblock_brain.png": 8,
+                                "button_symptomblock_orl.png": 12,
+                                "button_symptomblock_abdomen.png": 9,
+                                "button_symptomblock_thorax.png": 8,
+                                "button_symptomblock_pelvismale.png": 10,
+                                "button_symptomblock_pelvisfemale.png": 12,
+                                "button_symptomblock_bone_extremities.png": 7, 
+                                "button_symptomblock_breast.png": 6}
+        
+        #je nach mapping: number of tx
+        number_tox = mapping_number_tox.get(symptom_button_image, 6) if symptom_button_image else 6
+        print(f"\n\n\n führe {number_tox} loops aus, um die spezifischen Toxizitäten für {symptom_button_image} zu erfassen.")
+        for _ in range(number_tox):
+            pyautogui.press('down')
+            pyautogui.hotkey('ctrl', 'tab')
+            pyautogui.press('enter')
+            time.sleep(0.05)
+
+
     else:
-                for _ in range(9):
-                            pyautogui.press('down')
-                            pyautogui.hotkey('ctrl', 'tab')
-                            pyautogui.press('enter')
-                            time.sleep(0.05)
+        for _ in range(9):
+            pyautogui.press('down')
+            pyautogui.hotkey('ctrl', 'tab')
+            pyautogui.press('enter')
+            time.sleep(0.05)
+
+        #GENERAL BLOCK bearbeitet, jetzt check auf spez. UAW BLOCK
+        if symptom_button_image:
+            mapping_number_tox = {"button_symptomblock_brain.png": 8,
+                                "button_symptomblock_orl.png": 12,
+                                "button_symptomblock_abdomen.png": 9,
+                                "button_symptomblock_thorax.png": 8,
+                                "button_symptomblock_pelvismale.png": 10,
+                                "button_symptomblock_pelvisfemale.png": 12,
+                                "button_symptomblock_bone_extremities.png": 7, 
+                                "button_symptomblock_breast.png": 6}
+        
+        #je nach mapping: number of tx
+        number_tox = mapping_number_tox.get(symptom_button_image, 6) if symptom_button_image else 6
+        print(f"\n\n\n führe {number_tox} loops aus, um die spezifischen Toxizitäten für {symptom_button_image} zu erfassen.")
+        for _ in range(number_tox):
+            pyautogui.press('down')
+            pyautogui.hotkey('ctrl', 'tab')
+            pyautogui.press('enter')
+            time.sleep(0.05)
+
+
+
+        
     if not find_and_click_button('button_speichern.png', base_path=local_screenshots_dir): print("'button_speichern.png nicht gefunden"); return False
     return True
 
 ###################################
 ###################################
 
-def akuttox_nach_rt_anlegen(chemotherapie):
+def akuttox_nach_rt_anlegen(chemotherapie, icd_code, geschlecht):
     local_screenshots_dir = os.path.join(screenshots_dir, 'UNIVERSAL', 'bereich_berichte')
     print(f'local_screenshots_dir angelegt in {local_screenshots_dir}')
     
@@ -3524,6 +3642,41 @@ def akuttox_nach_rt_anlegen(chemotherapie):
         else:
             print("Gruppe auswählen nicht mehr offen, fahre fort.")
             break
+
+    # === NEUER CODEBLOCK SPEZIFISCHE TOX GRUPPE ===
+    symptom_button_image = _get_symptomblock_image_from_icd(icd_code, geschlecht)
+    if symptom_button_image:
+    
+        print(f"INFO: Passender Symptomblock für ICD '{icd_code}' gefunden: {symptom_button_image}")
+        print("INFO: Versuche, den zusätzlichen Symptomblock anzuklicken...")
+        for attempt in range(30):
+            if not find_and_click_button("button_symptomblock_auswahl.png", base_path=local_screenshots_dir, max_attempts=1):
+                print("WARNUNG: Konnte den Button 'button_symptomblock_auswahl.png' nicht finden. Probiere button_symptomblock_auswahl_rot.png ...")
+                if not find_and_click_button("button_symptomblock_auswahl_rot.png", base_path=local_screenshots_dir, max_attempts=1):
+                    print("WARNUNG: Konnte den Button 'button_symptomblock_auswahl_rot.png' nicht finden. Loop erneut (max 50)...")
+                    time.sleep(0.05)
+                else:
+                    print("INFO: Button 'button_symptomblock_auswahl_rot.png' gefunden und angeklickt.")
+                    break
+            else:
+                print("INFO: Button 'button_symptomblock_auswahl.png' gefunden und angeklickt.")
+                break
+
+        if not find_and_click_button(symptom_button_image, "Spezifischer Symptomblock", base_path=local_screenshots_dir, max_attempts=20, interval=0.05):
+            print(f"WARNUNG: Konnte den spezifischen Symptomblock-Button '{symptom_button_image}' nicht klicken.")
+            return False
+        #Warten, bis alle Nebenwirkungen geladen            
+        while True:
+            if find_button(image_name='button_symptomauswahl_offen.png', base_path=local_screenshots_dir, max_attempts=1):
+                print("Gruppe auswählen noch offen, Navigation pausiert.")
+                time.sleep(0.05)
+            else:
+                print("Gruppe auswählen nicht mehr offen, fahre fort.")
+                break
+    else:
+        print(f"INFO: Kein spezifischer Symptomblock für ICD-Code '{icd_code}' im Mapping gefunden. Lege nur General Symptomblock an.")
+
+    # === NEUER CODEBLOCK ENDE ===
 
     if chemotherapie == 'ja':
         import ctcaeauslesen
@@ -3587,9 +3740,49 @@ def akuttox_nach_rt_anlegen(chemotherapie):
             print(f"ACHTUNG!!! thrombos_grade =/= integer erkannt. Es konnte kein Laborwert für Hb ausgelesen werden!! Ggf. in letzten 6 Monaten kein vollständiges Hämatogramm erfolgt?")
             print("Überspringe Ankreuzen des CTCAE-Grades, gehe zu nächstem.")
 
+        #GENERAL BLOCK bearbeitet, jetzt check auf spez. UAW BLOCK
+        if symptom_button_image:
+            mapping_number_tox = {"button_symptomblock_brain.png": 8,
+                                "button_symptomblock_orl.png": 12,
+                                "button_symptomblock_abdomen.png": 9,
+                                "button_symptomblock_thorax.png": 8,
+                                "button_symptomblock_pelvismale.png": 10,
+                                "button_symptomblock_pelvisfemale.png": 12,
+                                "button_symptomblock_bone_extremities.png": 7, 
+                                "button_symptomblock_breast.png": 6}
+    
+        #je nach mapping: number of tx
+        number_tox = mapping_number_tox.get(symptom_button_image, 6) if symptom_button_image else 6
+        print(f"\n\n\n führe {number_tox} loops aus, um die spezifischen Toxizitäten für {symptom_button_image} zu erfassen.")
+        for _ in range(number_tox):
+            pyautogui.press('down')
+            pyautogui.hotkey('ctrl', 'tab')
+            pyautogui.press('enter')
+            time.sleep(0.05)
+
     else:
         print("chemotherapie-Variable = nein oder None, lege UAW ohne Systemtherapie an...")
         for _ in range(9):
+            pyautogui.press('down')
+            pyautogui.hotkey('ctrl', 'tab')
+            pyautogui.press('enter')
+            time.sleep(0.05)
+
+        #GENERAL BLOCK bearbeitet, jetzt check auf spez. UAW BLOCK
+        if symptom_button_image:
+            mapping_number_tox = {"button_symptomblock_brain.png": 8,
+                                "button_symptomblock_orl.png": 12,
+                                "button_symptomblock_abdomen.png": 9,
+                                "button_symptomblock_thorax.png": 8,
+                                "button_symptomblock_pelvismale.png": 10,
+                                "button_symptomblock_pelvisfemale.png": 12,
+                                "button_symptomblock_bone_extremities.png": 7, 
+                                "button_symptomblock_breast.png": 6}
+        
+        #je nach mapping: number of tx
+        number_tox = mapping_number_tox.get(symptom_button_image, 6) if symptom_button_image else 6
+        print(f"\n\n\n führe {number_tox} loops aus, um die spezifischen Toxizitäten für {symptom_button_image} zu erfassen.")
+        for _ in range(number_tox):
             pyautogui.press('down')
             pyautogui.hotkey('ctrl', 'tab')
             pyautogui.press('enter')
@@ -3602,7 +3795,7 @@ def akuttox_nach_rt_anlegen(chemotherapie):
 ###################################
 ###################################
 
-def nachsorgeformular_anlegen(nachsorgeformular_typ, bericht_typ, chemotherapie):
+def nachsorgeformular_anlegen(nachsorgeformular_typ, bericht_typ, chemotherapie, icd_code, geschlecht):
     print("Starte nachsorgeformular_anlegen mit Argumenten nachsorgeformular_typ, bericht_typ, chemotherapie")
     local_screenshots_dir = os.path.join(screenshots_dir, 'UNIVERSAL', 'bereich_berichte')
     navigiere_bereich_berichte()
@@ -3657,6 +3850,42 @@ def nachsorgeformular_anlegen(nachsorgeformular_typ, bericht_typ, chemotherapie)
                     print("Gruppe auswählen nicht mehr offen, fahre fort.")
                     break
 
+            # === NEUER CODEBLOCK SPEZIFISCHE TOX GRUPPE ===
+            symptom_button_image = _get_symptomblock_image_from_icd(icd_code, geschlecht)
+            if symptom_button_image:
+            
+                print(f"INFO: Passender Symptomblock für ICD '{icd_code}' gefunden: {symptom_button_image}")
+                print("INFO: Versuche, den zusätzlichen Symptomblock anzuklicken...")
+                for attempt in range(30):
+                    if not find_and_click_button("button_symptomblock_auswahl.png", base_path=local_screenshots_dir, max_attempts=1):
+                        print("WARNUNG: Konnte den Button 'button_symptomblock_auswahl.png' nicht finden. Probiere button_symptomblock_auswahl_rot.png ...")
+                        if not find_and_click_button("button_symptomblock_auswahl_rot.png", base_path=local_screenshots_dir, max_attempts=1):
+                            print("WARNUNG: Konnte den Button 'button_symptomblock_auswahl_rot.png' nicht finden. Loop erneut (max 50)...")
+                            time.sleep(0.05)
+                        else:
+                            print("INFO: Button 'button_symptomblock_auswahl_rot.png' gefunden und angeklickt.")
+                            break
+                    else:
+                        print("INFO: Button 'button_symptomblock_auswahl.png' gefunden und angeklickt.")
+                        break
+
+                if not find_and_click_button(symptom_button_image, "Spezifischer Symptomblock", base_path=local_screenshots_dir, max_attempts=20, interval=0.05):
+                    print(f"WARNUNG: Konnte den spezifischen Symptomblock-Button '{symptom_button_image}' nicht klicken.")
+                    return False
+                #Warten, bis alle Nebenwirkungen geladen            
+                while True:
+                    if find_button(image_name='button_symptomauswahl_offen.png', base_path=local_screenshots_dir, max_attempts=1):
+                        print("Gruppe auswählen noch offen, Navigation pausiert.")
+                        time.sleep(0.05)
+                    else:
+                        print("Gruppe auswählen nicht mehr offen, fahre fort.")
+                        break
+            else:
+                print(f"INFO: Kein spezifischer Symptomblock für ICD-Code '{icd_code}' im Mapping gefunden. Lege nur General Symptomblock an.")
+                
+            # === NEUER CODEBLOCK ENDE ===
+
+
             #Holen der CTCAE Grade
             import ctcaeauslesen
             hb_grade, leucos_grade, lymphos_grade, neutros_grade, thrombos_grade  = ctcaeauslesen.main()
@@ -3664,7 +3893,6 @@ def nachsorgeformular_anlegen(nachsorgeformular_typ, bericht_typ, chemotherapie)
             navigiere_bereich_berichte()
 
             #Weiter in Nachsorgeformular:
-
             if not find_and_click_button('button_psa_feld.png', base_path=local_screenshots_dir): print('button_psa_feld.png not found. Bitte manuell übernehmen.'); sys.exit()
 
             ctrl_tabs(8); pyautogui.press('enter') #Pain 0
@@ -3726,6 +3954,28 @@ def nachsorgeformular_anlegen(nachsorgeformular_typ, bericht_typ, chemotherapie)
                 print(f"ACHTUNG!!! thrombos_grade =/= integer erkannt. Es konnte kein Laborwert für Hb ausgelesen werden!! Ggf. in letzten 6 Monaten kein vollständiges Hämatogramm erfolgt?")
                 print("Überspringe Ankreuzen des CTCAE-Grades, gehe zu nächstem.")
 
+
+            #GENERAL BLOCK bearbeitet, jetzt check auf spez. UAW BLOCK
+            if symptom_button_image:
+                mapping_number_tox = {"button_symptomblock_brain.png": 8,
+                                    "button_symptomblock_orl.png": 12,
+                                    "button_symptomblock_abdomen.png": 9,
+                                    "button_symptomblock_thorax.png": 8,
+                                    "button_symptomblock_pelvismale.png": 10,
+                                    "button_symptomblock_pelvisfemale.png": 12,
+                                    "button_symptomblock_bone_extremities.png": 7, 
+                                    "button_symptomblock_breast.png": 6}
+            
+            #je nach mapping: number of tx
+            number_tox = mapping_number_tox.get(symptom_button_image, 6) if symptom_button_image else 6
+            print(f"\n\n\n führe {number_tox} loops aus, um die spezifischen Toxizitäten für {symptom_button_image} zu erfassen.")
+            for _ in range(number_tox):
+                pyautogui.press('down')
+                ctrl_tabs(6) #Navigation auf nächste 0
+                pyautogui.press('enter') #Auswahl 0
+                time.sleep(0.05)    
+
+
             pyautogui.press('down'); ctrl_tabs(5); pyautogui.press('enter') #leitlinien-gerechte Nachsorge ja
 
 
@@ -3746,12 +3996,68 @@ def nachsorgeformular_anlegen(nachsorgeformular_typ, bericht_typ, chemotherapie)
                     print("Gruppe auswählen nicht mehr offen, fahre fort.")
                     break
 
+            # === NEUER CODEBLOCK SPEZIFISCHE TOX GRUPPE ===
+            symptom_button_image = _get_symptomblock_image_from_icd(icd_code, geschlecht)
+            if symptom_button_image:
+            
+                print(f"INFO: Passender Symptomblock für ICD '{icd_code}' gefunden: {symptom_button_image}")
+                print("INFO: Versuche, den zusätzlichen Symptomblock anzuklicken...")
+                for attempt in range(30):
+                    if not find_and_click_button("button_symptomblock_auswahl.png", base_path=local_screenshots_dir, max_attempts=1):
+                        print("WARNUNG: Konnte den Button 'button_symptomblock_auswahl.png' nicht finden. Probiere button_symptomblock_auswahl_rot.png ...")
+                        if not find_and_click_button("button_symptomblock_auswahl_rot.png", base_path=local_screenshots_dir, max_attempts=1):
+                            print("WARNUNG: Konnte den Button 'button_symptomblock_auswahl_rot.png' nicht finden. Loop erneut (max 50)...")
+                            time.sleep(0.05)
+                        else:
+                            print("INFO: Button 'button_symptomblock_auswahl_rot.png' gefunden und angeklickt.")
+                            break
+                    else:
+                        print("INFO: Button 'button_symptomblock_auswahl.png' gefunden und angeklickt.")
+                        break
+
+                if not find_and_click_button(symptom_button_image, "Spezifischer Symptomblock", base_path=local_screenshots_dir, max_attempts=20, interval=0.05):
+                    print(f"WARNUNG: Konnte den spezifischen Symptomblock-Button '{symptom_button_image}' nicht klicken.")
+                    return False
+                #Warten, bis alle Nebenwirkungen geladen            
+                while True:
+                    if find_button(image_name='button_symptomauswahl_offen.png', base_path=local_screenshots_dir, max_attempts=1):
+                        print("Gruppe auswählen noch offen, Navigation pausiert.")
+                        time.sleep(0.05)
+                    else:
+                        print("Gruppe auswählen nicht mehr offen, fahre fort.")
+                        break
+            else:
+                print(f"INFO: Kein spezifischer Symptomblock für ICD-Code '{icd_code}' im Mapping gefunden. Lege nur General Symptomblock an.")
+                
+            # === NEUER CODEBLOCK ENDE ===
+
             if not find_and_click_button('button_psa_feld.png', base_path=local_screenshots_dir): print('button_psa_feld.png not found. Bitte manuell übernehmen.'); sys.exit() 
 
             #Nebenwirkungen ausfüllen
             ctrl_tabs(8); pyautogui.press('enter') #Pain 0
             for _ in range(8):
                 pyautogui.press('down'); ctrl_tabs(6); pyautogui.press('enter'); time.sleep(0.05) #Restliche 0
+
+
+            #GENERAL BLOCK bearbeitet, jetzt check auf spez. UAW BLOCK
+            if symptom_button_image:
+                mapping_number_tox = {"button_symptomblock_brain.png": 8,
+                                    "button_symptomblock_orl.png": 12,
+                                    "button_symptomblock_abdomen.png": 9,
+                                    "button_symptomblock_thorax.png": 8,
+                                    "button_symptomblock_pelvismale.png": 10,
+                                    "button_symptomblock_pelvisfemale.png": 12,
+                                    "button_symptomblock_bone_extremities.png": 7, 
+                                    "button_symptomblock_breast.png": 6}
+            
+            #je nach mapping: number of tx
+            number_tox = mapping_number_tox.get(symptom_button_image, 6) if symptom_button_image else 6
+            print(f"\n\n\n führe {number_tox} loops aus, um die spezifischen Toxizitäten für {symptom_button_image} zu erfassen.")
+            for _ in range(number_tox):
+                pyautogui.press('down')
+                ctrl_tabs(6) #Navigation auf nächste 0
+                pyautogui.press('enter') #Auswahl 0
+                time.sleep(0.05)   
 
             ctrl_tabs(13); pyautogui.press('enter') #leitlinien-gerechte Nachsorge ja
 
@@ -3806,6 +4112,41 @@ def nachsorgeformular_anlegen(nachsorgeformular_typ, bericht_typ, chemotherapie)
                     else:
                         print("Gruppe auswählen nicht mehr offen, fahre fort.")
                         break
+
+                # === NEUER CODEBLOCK SPEZIFISCHE TOX GRUPPE ===
+                symptom_button_image = _get_symptomblock_image_from_icd(icd_code, geschlecht)
+                if symptom_button_image:
+                
+                    print(f"INFO: Passender Symptomblock für ICD '{icd_code}' gefunden: {symptom_button_image}")
+                    print("INFO: Versuche, den zusätzlichen Symptomblock anzuklicken...")
+                    for attempt in range(30):
+                        if not find_and_click_button("button_symptomblock_auswahl.png", base_path=local_screenshots_dir, max_attempts=1):
+                            print("WARNUNG: Konnte den Button 'button_symptomblock_auswahl.png' nicht finden. Probiere button_symptomblock_auswahl_rot.png ...")
+                            if not find_and_click_button("button_symptomblock_auswahl_rot.png", base_path=local_screenshots_dir, max_attempts=1):
+                                print("WARNUNG: Konnte den Button 'button_symptomblock_auswahl_rot.png' nicht finden. Loop erneut (max 50)...")
+                                time.sleep(0.05)
+                            else:
+                                print("INFO: Button 'button_symptomblock_auswahl_rot.png' gefunden und angeklickt.")
+                                break
+                        else:
+                            print("INFO: Button 'button_symptomblock_auswahl.png' gefunden und angeklickt.")
+                            break
+
+                    if not find_and_click_button(symptom_button_image, "Spezifischer Symptomblock", base_path=local_screenshots_dir, max_attempts=20, interval=0.05):
+                        print(f"WARNUNG: Konnte den spezifischen Symptomblock-Button '{symptom_button_image}' nicht klicken.")
+                        return False
+                    #Warten, bis alle Nebenwirkungen geladen            
+                    while True:
+                        if find_button(image_name='button_symptomauswahl_offen.png', base_path=local_screenshots_dir, max_attempts=1):
+                            print("Gruppe auswählen noch offen, Navigation pausiert.")
+                            time.sleep(0.05)
+                        else:
+                            print("Gruppe auswählen nicht mehr offen, fahre fort.")
+                            break
+                else:
+                    print(f"INFO: Kein spezifischer Symptomblock für ICD-Code '{icd_code}' im Mapping gefunden. Lege nur General Symptomblock an.")
+                    
+                # === NEUER CODEBLOCK ENDE ===
 
                 #Holen der CTCAE Grade
                 import ctcaeauslesen
@@ -3874,6 +4215,28 @@ def nachsorgeformular_anlegen(nachsorgeformular_typ, bericht_typ, chemotherapie)
                     print(f"ACHTUNG!!! thrombos_grade =/= integer erkannt. Es konnte kein Laborwert für Hb ausgelesen werden!! Ggf. in letzten 6 Monaten kein vollständiges Hämatogramm erfolgt?")
                     print("Überspringe Ankreuzen des CTCAE-Grades, gehe zu nächstem.")
 
+
+                #GENERAL BLOCK bearbeitet, jetzt check auf spez. UAW BLOCK
+                if symptom_button_image:
+                    mapping_number_tox = {"button_symptomblock_brain.png": 8,
+                                        "button_symptomblock_orl.png": 12,
+                                        "button_symptomblock_abdomen.png": 9,
+                                        "button_symptomblock_thorax.png": 8,
+                                        "button_symptomblock_pelvismale.png": 10,
+                                        "button_symptomblock_pelvisfemale.png": 12,
+                                        "button_symptomblock_bone_extremities.png": 7, 
+                                        "button_symptomblock_breast.png": 6}
+                
+                #je nach mapping: number of tx
+                number_tox = mapping_number_tox.get(symptom_button_image, 6) if symptom_button_image else 6
+                print(f"\n\n\n führe {number_tox} loops aus, um die spezifischen Toxizitäten für {symptom_button_image} zu erfassen.")
+                for _ in range(number_tox):
+                    pyautogui.press('down')
+                    ctrl_tabs(6) #Navigation auf nächste 0
+                    pyautogui.press('enter') #Auswahl 0
+                    time.sleep(0.05)    
+
+
                 pyautogui.press('down'); ctrl_tabs(5); pyautogui.press('enter') #leitlinien-gerechte Nachsorge ja
 
             # Block für OHNE Chemo
@@ -3891,12 +4254,71 @@ def nachsorgeformular_anlegen(nachsorgeformular_typ, bericht_typ, chemotherapie)
                         print("Gruppe auswählen nicht mehr offen, fahre fort.")
                         break
 
+
+                # === NEUER CODEBLOCK SPEZIFISCHE TOX GRUPPE ===
+                symptom_button_image = _get_symptomblock_image_from_icd(icd_code, geschlecht)
+                if symptom_button_image:
+                
+                    print(f"INFO: Passender Symptomblock für ICD '{icd_code}' gefunden: {symptom_button_image}")
+                    print("INFO: Versuche, den zusätzlichen Symptomblock anzuklicken...")
+                    for attempt in range(30):
+                        if not find_and_click_button("button_symptomblock_auswahl.png", base_path=local_screenshots_dir, max_attempts=1):
+                            print("WARNUNG: Konnte den Button 'button_symptomblock_auswahl.png' nicht finden. Probiere button_symptomblock_auswahl_rot.png ...")
+                            if not find_and_click_button("button_symptomblock_auswahl_rot.png", base_path=local_screenshots_dir, max_attempts=1):
+                                print("WARNUNG: Konnte den Button 'button_symptomblock_auswahl_rot.png' nicht finden. Loop erneut (max 50)...")
+                                time.sleep(0.05)
+                            else:
+                                print("INFO: Button 'button_symptomblock_auswahl_rot.png' gefunden und angeklickt.")
+                                break
+                        else:
+                            print("INFO: Button 'button_symptomblock_auswahl.png' gefunden und angeklickt.")
+                            break
+
+                    if not find_and_click_button(symptom_button_image, "Spezifischer Symptomblock", base_path=local_screenshots_dir, max_attempts=20, interval=0.05):
+                        print(f"WARNUNG: Konnte den spezifischen Symptomblock-Button '{symptom_button_image}' nicht klicken.")
+                        return False
+                    #Warten, bis alle Nebenwirkungen geladen            
+                    while True:
+                        if find_button(image_name='button_symptomauswahl_offen.png', base_path=local_screenshots_dir, max_attempts=1):
+                            print("Gruppe auswählen noch offen, Navigation pausiert.")
+                            time.sleep(0.05)
+                        else:
+                            print("Gruppe auswählen nicht mehr offen, fahre fort.")
+                            break
+                else:
+                    print(f"INFO: Kein spezifischer Symptomblock für ICD-Code '{icd_code}' im Mapping gefunden. Lege nur General Symptomblock an.")
+                    
+                # === NEUER CODEBLOCK ENDE ===
+
+
+
                 if not find_and_click_button('button_ecog_feld.png', base_path=local_screenshots_dir): print('button_ecog_feld.png not found. Bitte manuell übernehmen.'); sys.exit() 
 
                 #Nebenwirkungen ausfüllen
                 ctrl_tabs(8); pyautogui.press('enter') #Pain 0
                 for _ in range(8):
                     pyautogui.press('down'); ctrl_tabs(6); pyautogui.press('enter'); time.sleep(0.05) #Restliche 0
+
+                #GENERAL BLOCK bearbeitet, jetzt check auf spez. UAW BLOCK
+                if symptom_button_image:
+                    mapping_number_tox = {"button_symptomblock_brain.png": 8,
+                                        "button_symptomblock_orl.png": 12,
+                                        "button_symptomblock_abdomen.png": 9,
+                                        "button_symptomblock_thorax.png": 8,
+                                        "button_symptomblock_pelvismale.png": 10,
+                                        "button_symptomblock_pelvisfemale.png": 12,
+                                        "button_symptomblock_bone_extremities.png": 7, 
+                                        "button_symptomblock_breast.png": 6}
+                
+                #je nach mapping: number of tx
+                number_tox = mapping_number_tox.get(symptom_button_image, 6) if symptom_button_image else 6
+                print(f"\n\n\n führe {number_tox} loops aus, um die spezifischen Toxizitäten für {symptom_button_image} zu erfassen.")
+                for _ in range(number_tox):
+                    pyautogui.press('down')
+                    ctrl_tabs(6) #Navigation auf nächste 0
+                    pyautogui.press('enter') #Auswahl 0
+                    time.sleep(0.05)    
+
 
                 ctrl_tabs(13); pyautogui.press('enter') #leitlinien-gerechte Nachsorge ja
 

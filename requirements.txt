@@ -10,6 +10,8 @@ easyocr
 et-xmlfile
 filelock
 fsspec
+google-genai
+google-auth
 grpcio
 imageio
 jinja2
