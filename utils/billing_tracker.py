@@ -9,8 +9,16 @@ class BillingTracker:
     """Handles billing status tracking for completed tumorboards"""
     
     def __init__(self):
-        # Base paths
-        self.backoffice_path = Path.home() / "tumorboards" / "_Backoffice"
+        # Use centralized path management for backoffice path
+        from utils.path_management import BackofficePathManager
+        try:
+            self.backoffice_path, self.using_network = BackofficePathManager.get_backoffice_path(show_warnings=False)
+        except FileNotFoundError:
+            # Fallback to local path if neither network nor local is available
+            logging.warning("BillingTracker: No backoffice path available, using fallback")
+            self.backoffice_path = Path.home() / "tumorboards" / "_Backoffice"
+            self.using_network = False
+            
         self.log_path = self.backoffice_path / "log_abrechnungen"
         self.backup_path = self.backoffice_path / "backup" / "json_abrechnungen"
         self.status_file = self.log_path / "abrechnung_status.json"

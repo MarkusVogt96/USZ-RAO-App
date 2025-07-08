@@ -1385,7 +1385,7 @@ class TumorboardSessionPage(QWidget):
         entry_layout.addWidget(self.aufgebot_label)
         
         self.aufgebot_combo = NoScrollComboBox()
-        self.aufgebot_combo.addItems(["-", "Kat I: In 1-3 Tagen ohne Konsil", "Kat II: In 5-7 Tagen ohne Konsil", "Kat III: Nach Eingang des Konsils"])
+        self.aufgebot_combo.addItems(["-", "Kat I: In 1-3 Tagen ohne Konsil", "Kat II: In 5-7 Tagen ohne Konsil", "Kat III: Nach Eingang des Konsils", "RAO Termin existiert bereits"])
         self.aufgebot_combo.setStyleSheet(self.get_input_style())
         self.aufgebot_combo.currentTextChanged.connect(self.update_label_styles)
         self.aufgebot_combo.currentTextChanged.connect(self.mark_unsaved_changes)

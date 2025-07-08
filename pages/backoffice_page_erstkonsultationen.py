@@ -8,6 +8,9 @@ import logging
 import pandas as pd
 from pathlib import Path
 
+# Import centralized path management
+from utils.path_management import BackofficePathManager
+
 class CategoryButton(QPushButton):
     """Custom button for category selection - similar to StaticTile styling"""
     def __init__(self, title, subtitle, count, status_text, category_key, parent=None):
@@ -231,9 +234,8 @@ class BackofficePageErstkonsultationen(QWidget):
     def get_category_count(self, excel_filename):
         """Get count of pending patients from category Excel file"""
         try:
-            # Determine backoffice path - use same logic as export function
-            base_path = Path.home() / "tumorboards"
-            backoffice_dir = base_path / "_Backoffice"
+            # Use centralized path management with network/local priority
+            backoffice_dir, using_network = BackofficePathManager.get_backoffice_path(show_warnings=False)
             excel_path = backoffice_dir / excel_filename
             
             if not excel_path.exists():

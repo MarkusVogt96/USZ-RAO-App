@@ -12,6 +12,9 @@ from datetime import datetime, date
 from openpyxl import load_workbook
 import getpass
 
+# Import centralized path management
+from utils.path_management import BackofficePathManager
+
 class BackofficeKatIPage(QWidget):
     def __init__(self, main_window):
         super().__init__()
@@ -345,9 +348,8 @@ class BackofficeKatIPage(QWidget):
     def load_data(self):
         """Load data from the category Excel file"""
         try:
-            # Determine backoffice path
-            base_path = Path.home() / "tumorboards"
-            backoffice_dir = base_path / "_Backoffice"
+            # Use centralized path management with network/local priority
+            backoffice_dir, using_network = BackofficePathManager.get_backoffice_path(show_warnings=False)
             excel_path = backoffice_dir / self.excel_filename
             
             if not excel_path.exists():
@@ -736,9 +738,8 @@ class BackofficeKatIPage(QWidget):
             
             log_entry = f"[{timestamp}] {category}: Patient {patient['name']} (ID: {patient['patientennummer']}) von Ja→Nein geändert durch {username}\n"
             
-            # Determine log file path
-            base_path = Path.home() / "tumorboards"
-            backoffice_dir = base_path / "_Backoffice"
+            # Determine log file path using centralized path management
+            backoffice_dir, using_network = BackofficePathManager.get_backoffice_path(show_warnings=False)
             log_file = backoffice_dir / "erstkons-logs.txt"
             
             # Ensure directory exists
@@ -757,9 +758,8 @@ class BackofficeKatIPage(QWidget):
     def mark_as_processed(self, row, patient):
         """Mark a patient as processed (change status from Nein to Ja)"""
         try:
-            # Update Excel file
-            base_path = Path.home() / "tumorboards"
-            backoffice_dir = base_path / "_Backoffice"
+            # Update Excel file using centralized path management
+            backoffice_dir, using_network = BackofficePathManager.get_backoffice_path(show_warnings=False)
             excel_path = backoffice_dir / self.excel_filename
             
             if not excel_path.exists():

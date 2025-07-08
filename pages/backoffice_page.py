@@ -9,8 +9,9 @@ import pandas as pd
 import re
 from datetime import datetime
 
-# Import billing tracker
+# Import billing tracker and path management
 from utils.billing_tracker import BillingTracker
+from utils.path_management import BackofficePathManager
 
 class BackofficePage(QWidget):
     def __init__(self, main_window):
@@ -20,6 +21,91 @@ class BackofficePage(QWidget):
         self.billing_tracker = BillingTracker()
         self.setup_ui()
         logging.info("BackofficePage Dashboard initialization complete.")
+
+    def refresh_status(self):
+        """Refresh the status of all task categories"""
+        logging.info("Refreshing backoffice status indicators...")
+        
+        try:
+            # Re-calculate all status information
+            billing_status = self.get_billing_status()
+            kat_i_status = self.get_category_status("Kat_I.xlsx")
+            kat_ii_status = self.get_category_status("Kat_II.xlsx")
+            kat_iii_status = self.get_category_status("Kat_III.xlsx")
+            
+            # Find and update the existing status buttons
+            # We need to rebuild the open tasks section with fresh data
+            self.create_open_tasks_section_refresh(billing_status, kat_i_status, kat_ii_status, kat_iii_status)
+            
+            logging.info("Backoffice status refresh completed successfully")
+            
+        except Exception as e:
+            logging.error(f"Error refreshing backoffice status: {e}")
+
+    def create_open_tasks_section_refresh(self, billing_status, kat_i_status, kat_ii_status, kat_iii_status):
+        """Refresh the open tasks section with new status data"""
+        try:
+            # Find the main layout and the tasks frame
+            main_layout = self.layout()
+            if main_layout is None:
+                return
+                
+            # Find and remove the old tasks frame
+            tasks_frame_to_remove = None
+            for i in range(main_layout.count()):
+                item = main_layout.itemAt(i)
+                if item and item.widget():
+                    widget = item.widget()
+                    # Look for the tasks frame by checking its children
+                    if hasattr(widget, 'layout') and widget.layout():
+                        layout = widget.layout()
+                        if layout.count() > 0:
+                            first_item = layout.itemAt(0)
+                            if first_item and first_item.widget():
+                                first_widget = first_item.widget()
+                                if isinstance(first_widget, QLabel) and "Offene Aufgaben" in first_widget.text():
+                                    tasks_frame_to_remove = widget
+                                    break
+            
+            if tasks_frame_to_remove:
+                main_layout.removeWidget(tasks_frame_to_remove)
+                tasks_frame_to_remove.deleteLater()
+                
+                # Create new tasks section with updated data
+                self.create_open_tasks_section_with_data(main_layout, billing_status, kat_i_status, kat_ii_status, kat_iii_status)
+                
+        except Exception as e:
+            logging.error(f"Error refreshing open tasks section: {e}")
+
+    def create_open_tasks_section_with_data(self, parent_layout, billing_status, kat_i_status, kat_ii_status, kat_iii_status):
+        """Create the open tasks section with provided status data"""
+        # Section title
+        tasks_title = QLabel("📋 Offene Aufgaben - Übersicht")
+        tasks_title.setFont(QFont("Helvetica", 20, QFont.Weight.Bold))
+        tasks_title.setStyleSheet("color: #FFA500; margin-bottom: 10px;")
+        parent_layout.insertWidget(1, tasks_title)  # Insert after the main title
+
+        # Tasks frame
+        tasks_frame = QFrame()
+        tasks_frame.setStyleSheet("""
+            QFrame {
+                background-color: #1a2633;
+                border: 1px solid #425061;
+                border-radius: 8px;
+                padding: 25px;
+            }
+        """)
+        
+        tasks_layout = QVBoxLayout(tasks_frame)
+        tasks_layout.setSpacing(15)
+
+        # Create status buttons with provided data
+        self.create_status_button(tasks_layout, "Abrechnungen", billing_status, self.open_leistungsabrechnungen)
+        self.create_status_button(tasks_layout, "Kategorie I", kat_i_status, self.open_kategorie_i)
+        self.create_status_button(tasks_layout, "Kategorie II", kat_ii_status, self.open_kategorie_ii)
+        self.create_status_button(tasks_layout, "Kategorie III", kat_iii_status, self.open_kategorie_iii)
+
+        parent_layout.insertWidget(2, tasks_frame)  # Insert after the title
 
     def setup_ui(self):
         """Setup the dashboard user interface"""
@@ -221,9 +307,8 @@ class BackofficePage(QWidget):
     def get_category_status(self, filename):
         """Get the status for a specific category Excel file (same logic as CategoryButton)"""
         try:
-            # Determine backoffice path - same logic as erstkonsultationen page
-            base_path = Path.home() / "tumorboards"
-            backoffice_dir = base_path / "_Backoffice"
+            # Use centralized path management with network/local priority
+            backoffice_dir, using_network = BackofficePathManager.get_backoffice_path(show_warnings=True)
             excel_path = backoffice_dir / filename
             
             if not excel_path.exists():
@@ -306,7 +391,8 @@ class BackofficePage(QWidget):
     def get_finalized_tumorboards(self):
         """Get all finalized tumorboards (same logic as leistungsabrechnungen page)"""
         try:
-            tumorboards_path = Path.home() / "tumorboards"
+            # Use centralized path management for tumorboard base path
+            tumorboards_path, using_network = BackofficePathManager.get_tumorboard_base_path()
             if not tumorboards_path.exists():
                 return []
             

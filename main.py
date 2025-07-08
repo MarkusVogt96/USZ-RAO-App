@@ -492,6 +492,13 @@ class TumorGuideApp(QMainWindow):
                     add_separator();add_button("Backoffice",BackofficePage);add_separator();add_button("Abgeschlossene Tumorboards",BackofficeTumorboardsPage);add_separator();add_label(f"{getattr(current_widget,'tumorboard_name','Tumorboard')} - {getattr(current_widget,'date_str','Datum')}")
                 except ImportError:
                     add_separator();add_label("Backoffice");add_separator();add_label("Abgeschlossene Tumorboards");add_separator();add_label(f"{getattr(current_widget,'tumorboard_name','Tumorboard')} - {getattr(current_widget,'date_str','Datum')}")
+        elif current_widget.__class__.__name__ == "BackofficePageLeistungsabrechnungen":
+            # Import BackofficePage for breadcrumb button
+            try:
+                from pages.backoffice_page import BackofficePage
+                add_separator();add_button("Backoffice",BackofficePage);add_separator();add_label("Leistungsabrechnungen")
+            except ImportError:
+                add_separator();add_label("Backoffice");add_separator();add_label("Leistungsabrechnungen")
         elif current_widget.__class__.__name__ == "BackofficePageErstkonsultationen":
             # Import BackofficePage for breadcrumb button
             try:
@@ -617,6 +624,10 @@ class TumorGuideApp(QMainWindow):
                     from pages.backoffice_page import BackofficePage
                     self.backoffice_page=BackofficePage(self)
                     self.stacked_widget.addWidget(self.backoffice_page)
+                else:
+                    # Refresh status when returning to existing backoffice page
+                    print(f"{APP_PREFIX}Refreshing BackofficePage status.")
+                    self.backoffice_page.refresh_status()
                 
                 self.stacked_widget.setCurrentWidget(self.backoffice_page)
                 self._update_active_menu("Backoffice")

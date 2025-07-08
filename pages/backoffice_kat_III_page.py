@@ -12,6 +12,9 @@ from datetime import datetime, date
 from openpyxl import load_workbook
 import getpass
 
+# Import centralized path management
+from utils.path_management import BackofficePathManager
+
 class BackofficeKatIIIPage(QWidget):
     def __init__(self, main_window):
         super().__init__()
@@ -345,9 +348,8 @@ class BackofficeKatIIIPage(QWidget):
     def load_data(self):
         """Load data from the category Excel file"""
         try:
-            # Determine backoffice path
-            base_path = Path.home() / "tumorboards"
-            backoffice_dir = base_path / "_Backoffice"
+            # Use centralized path management with network/local priority
+            backoffice_dir, using_network = BackofficePathManager.get_backoffice_path(show_warnings=False)
             excel_path = backoffice_dir / self.excel_filename
             
             if not excel_path.exists():
@@ -369,9 +371,20 @@ class BackofficeKatIIIPage(QWidget):
             # Convert dataframe to list of dictionaries
             self.patients_data = []
             for index, row in df.iterrows():
+                # Handle datum field with proper formatting
+                datum_value = row.iloc[0] if len(row) > 0 else ''
+                if pd.notna(datum_value):
+                    # If it's a datetime object, format it as dd.mm.yyyy
+                    if isinstance(datum_value, (pd.Timestamp, datetime)):
+                        datum_str = datum_value.strftime("%d.%m.%Y")
+                    else:
+                        datum_str = str(datum_value)
+                else:
+                    datum_str = ''
+                
                 patient = {
                     'row_index': index + 2,  # Excel row (1-based + header)
-                    'datum': str(row.iloc[0]) if len(row) > 0 else '',
+                    'datum': datum_str,
                     'tumorboard': str(row.iloc[1]) if len(row) > 1 else '',
                     'name': str(row.iloc[2]) if len(row) > 2 else '',  # Removed empty column, shifted indices
                     'geburtsdatum': str(row.iloc[3]) if len(row) > 3 else '',
@@ -547,9 +560,8 @@ class BackofficeKatIIIPage(QWidget):
                 # Log the reversion
                 self.log_status_reversion(patient)
             
-            # Update Excel file
-            base_path = Path.home() / "tumorboards"
-            backoffice_dir = base_path / "_Backoffice"
+            # Update Excel file using centralized path management
+            backoffice_dir, using_network = BackofficePathManager.get_backoffice_path(show_warnings=False)
             excel_path = backoffice_dir / self.excel_filename
             
             if not excel_path.exists():
@@ -736,9 +748,8 @@ class BackofficeKatIIIPage(QWidget):
             
             log_entry = f"[{timestamp}] {category}: Patient {patient['name']} (ID: {patient['patientennummer']}) von Ja→Nein geändert durch {username}\n"
             
-            # Determine log file path
-            base_path = Path.home() / "tumorboards"
-            backoffice_dir = base_path / "_Backoffice"
+            # Determine log file path using centralized path management
+            backoffice_dir, using_network = BackofficePathManager.get_backoffice_path(show_warnings=False)
             log_file = backoffice_dir / "erstkons-logs.txt"
             
             # Ensure directory exists
@@ -757,9 +768,8 @@ class BackofficeKatIIIPage(QWidget):
     def mark_as_processed(self, row, patient):
         """Mark a patient as processed (change status from Nein to Ja)"""
         try:
-            # Update Excel file
-            base_path = Path.home() / "tumorboards"
-            backoffice_dir = base_path / "_Backoffice"
+            # Update Excel file using centralized path management
+            backoffice_dir, using_network = BackofficePathManager.get_backoffice_path(show_warnings=False)
             excel_path = backoffice_dir / self.excel_filename
             
             if not excel_path.exists():

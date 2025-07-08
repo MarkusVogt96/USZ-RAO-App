@@ -339,15 +339,14 @@ def export_patients_by_category(tumorboard_name, date_str, tumorboard_base_path=
             for idx, patient_row in enumerate(category_patients):
                 target_row = 2 + idx
                 
-                # Ensure we have enough columns (add empty Status column for column N)
-                patient_row_extended = patient_row + ['']  # Add empty Status column
+                # Write patient data to columns A through L (12 columns)
+                for col_idx, value in enumerate(patient_row, start=1):
+                    ws.cell(row=target_row, column=col_idx, value=value)
                 
-                # Write to specific row and columns A through N (avoid column O)
-                for col_idx, value in enumerate(patient_row_extended, start=1):
-                    if col_idx <= 14:  # Only write to columns A-N, preserve column O
-                        ws.cell(row=target_row, column=col_idx, value=value)
+                # Set default "Nein" in column N (14) for status
+                ws.cell(row=target_row, column=14, value="Nein")
             
-            # Create dropdown validation for new rows in column O
+            # Create dropdown validation for new rows in column N (Status column)
             try:
                 from openpyxl.worksheet.datavalidation import DataValidation
                 
@@ -361,14 +360,13 @@ def export_patients_by_category(tumorboard_name, date_str, tumorboard_base_path=
                 # Add the validation to the worksheet
                 ws.add_data_validation(dv)
                 
-                # Apply validation to new rows in column O
+                # Apply validation to new rows in column N (Status column)
                 for idx in range(num_new_patients):
                     target_row = 2 + idx
-                    target_cell = ws.cell(row=target_row, column=15)  # Column O
-                    target_cell.value = "Nein"  # Set default value
+                    target_cell = ws.cell(row=target_row, column=14)  # Column N (Status)
                     dv.add(target_cell)
                 
-                logging.info(f"Created dropdown validation for {num_new_patients} new rows in column O with default 'Nein'")
+                logging.info(f"Created dropdown validation for {num_new_patients} new rows in column N (Status) with default 'Nein'")
                 
             except Exception as validation_error:
                 logging.warning(f"Could not create dropdown validation: {validation_error}")

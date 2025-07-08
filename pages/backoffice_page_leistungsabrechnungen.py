@@ -12,8 +12,9 @@ from pathlib import Path
 from datetime import datetime, date
 import pandas as pd
 
-# Import our billing tracker
+# Import our billing tracker and path management
 from utils.billing_tracker import BillingTracker
+from utils.path_management import BackofficePathManager
 
 class KisimBillingDialog(QDialog):
     """Dialog for confirming KISIM billing automation"""
@@ -85,7 +86,13 @@ class TumorboardIndexingThread(QThread):
 
     def __init__(self):
         super().__init__()
-        self.tumorboards_path = Path("C:/Users/marku/tumorboards")
+        # Use centralized path management for tumorboard base path
+        try:
+            self.tumorboards_path, self.using_network = BackofficePathManager.get_tumorboard_base_path()
+        except FileNotFoundError:
+            # Fallback to None if no path is available
+            self.tumorboards_path = None
+            self.using_network = False
         self.billing_tracker = BillingTracker()
         self.completed_tumorboards = []
         self._should_stop = False
@@ -134,8 +141,8 @@ class TumorboardIndexingThread(QThread):
                 return
             
             # Check if the path is accessible
-            if not self.tumorboards_path.exists():
-                error_msg = f"Tumorboards path does not exist: {self.tumorboards_path}"
+            if self.tumorboards_path is None or not self.tumorboards_path.exists():
+                error_msg = f"Tumorboards path does not exist or is not available: {self.tumorboards_path}"
                 logging.error(error_msg)
                 self.error_occurred.emit("Keine Verbindung zum Tumorboards-Verzeichnis verfügbar")
                 return
@@ -649,7 +656,7 @@ class BackofficePageLeistungsabrechnungen(QWidget):
             script_button.setFixedHeight(28)
             script_button.setStyleSheet("""
                 QPushButton {
-                    background-color: #FF8C00;
+                    background-color: #006b0e;
                     color: white;
                     border: none;
                     border-radius: 4px;
