@@ -26,11 +26,11 @@ script_definitions = [
     ("Sozialberatung (stat)", "sb.py"),
     ("Physio (stat)", "physio.py"),
     ("Planungs-CT/MRI", "planungsbildgebung.py"),
-    ("S-O-P Eintrag", "sop_station.py"),
+    ("Verlaufseintrag Visite", "sop_station.py"),
     ("Tumorboard Export", "createtumorboardpdf.py"),
 ]
-# ---------------------------------------------------------
 
+# ---------------------------------------------------------
 # Helper function to generate script keys from tile names
 # This needs to match the logic used when creating the script_map keys
 def generate_script_key(tile_name):
