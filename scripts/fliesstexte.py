@@ -150,10 +150,10 @@ def define_eintritt_texte(eintritt_typ, patdata, glossary):
             f"{g('artikel_nominativ_gross')} {g('patient_nominativ')} präsentiert sich kardiopulmonal stabil sowie in {beschreibung_ecog.get(ecog, "____")} Allgemeinzustand (ECOG {ecog}). Im Rahmen der initial durchgeführten Laboranalyse sowie der körperlichen Eintrittsuntersuchung liessen sich keine interventionsbedürftigen Befunde eruieren.\n\n\n ")
         
         texte["procedere_list"] = [
-            f"Die Radiotherapie ist gemäss RT-Konzept vom {datum_erste_rt} - {datum_letzte_rt} geplant. Nach Gabe der Chemotherapie wird diese im ambulanten Setting weiter erfolgen.",
+            f"Die Radiotherapie ist gemäss RT-Konzept vom {datum_erste_rt} - {datum_letzte_rt} geplant. Nach Gabe der Systemtherapie wird diese im ambulanten Setting weiter erfolgen.",
             f"Die etwaig vorbestehende Medikation wird unverändert fortgeführt.",
             f"Zum aktuellen Zeitpunkt liegt eine adäquate Schmerzkompensation unter Einnahme von ___ vor; sollte es zu einer Aggravation der Schmerzen kommen, ist bis auf Weiteres der Ausbau der Analgesie nach WHO-Stufenschema anzustreben.",
-            f"Nach stationärer Gabe der Chemotherapie ist die Rückkehr in die Häuslichkeit respektive in das Alters- und Pflegeheim vorgesehen."]
+            f"Nach stationärer Gabe der Systemtherapie ist die Rückkehr in die Häuslichkeit respektive in das Alters- und Pflegeheim vorgesehen."]
         
     elif eintritt_typ == 4: # Palliative Care
         print("Definiere Placeholder-Texte für Eintritt Palli (Typ 4)...")
@@ -433,7 +433,7 @@ def define_berrao_texte(bericht_typ, entity, patdata, glossary):
     chemo = f' mit {chemotherapeutikum}' if rct == 'Radiochemotherapie' else ''
     prof_dr = "Prof." if oberarzt.lower() in ["guckenberger", "andratschke", "balermpas"] else "Dr."
     if rct == 'Radiochemotherapie':
-        chemo_in_dt = f'Chemotherapie im Rahmen der Hospitalisation: {chemotherapeutikum}, Zyklus ____ zuletzt am _____ verabreicht.'
+        chemo_in_dt = f'Systemtherapie im Rahmen der Hospitalisation: {chemotherapeutikum}, Zyklus ____ zuletzt am _____ verabreicht.'
     else:
         chemo_in_dt = ""
     beschreibung_ecog = {0: 'altersentsprechendem', 1: 'leicht reduziertem', 2: 'reduziertem', 3: 'deutlich reduziertem', 4: 'stark reduziertem'}
@@ -735,7 +735,7 @@ def define_wochenendeintrag(patdata, eintrittsdatum):
     chemo = f' mit {chemotherapeutikum}' if rct == 'Radiochemotherapie' else ''
     prof_dr = "Prof." if oberarzt.lower() in ["guckenberger", "andratschke", "balermpas"] else "Dr."
     if rct == 'Radiochemotherapie':
-        chemo_in_dt = f'Chemotherapie im Rahmen der Hospitalisation: {chemotherapeutikum}, Zyklus ____ zuletzt am _____ verabreicht.'
+        chemo_in_dt = f'Systemtherapie im Rahmen der Hospitalisation: {chemotherapeutikum}, Zyklus ____ zuletzt am _____ verabreicht.'
     else:
         chemo_in_dt = ""
     beschreibung_ecog = {0: 'altersentsprechendem', 1: 'leicht reduziertem', 2: 'reduziertem', 3: 'deutlich reduziertem', 4: 'stark reduziertem'}
