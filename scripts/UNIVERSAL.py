@@ -4370,7 +4370,7 @@ def prozent_zoom_100():
         return False
     print("button_prozent_confirm gefunden, versuche button_100_prozent.png")
     time.sleep(0.2)
-    if not find_button('button_100_prozent.png', base_path=local_screenshots_dir, max_attempts=5, interval=0.1):
+    if not find_button('button_100_prozent.png', base_path=local_screenshots_dir, max_attempts=5, interval=0.1, confidence=0.95):
         print("button_100_prozent nicht gefunden. Stelle Zoom manuell auf 100%.")
         time.sleep(0.2)
         if not find_and_click_button_offset(image_name='button_prozent_confirm.png', base_path=local_screenshots_dir, x_offset=-10): print("button_prozent_confirm nicht gefunden."); return False

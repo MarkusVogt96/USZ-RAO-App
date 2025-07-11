@@ -139,69 +139,37 @@ def check_for_next_KG():
         return True
 
 def main():
-    KGs_geschlossen= False
-    kontrolle = ""
-    kontrolle = input("\n\n\nBitte sicherstellen, dass nur Patienten in der oberen Leiste geöffnet sind, für welche ein Wochenend-Eintrag angelegt werden soll. \nDies erfolgt für alles offenen Akten!\nBitte Voraussetzung mit [j] bestätigen: ")
-    if kontrolle == 'j':
-        print("User hat Startpunkt bestätigt, beginne Skript...")
-    else:
-        print("User hat Startpunkt nicht bestätigt, beende Skript.")
-        sys.exit()
-
-    while True:
-        UNIVERSAL.KISIM_im_vordergrund()
-        global nachname, vorname, geburtsdatum, alter, geschlecht, patientennummer, eintrittsdatum, patdata
-        placeholder1, placeholder2, geburtsdatum, alter, geschlecht, patientennummer, eintrittsdatum = UNIVERSAL.auslesen_patdata_KISIMzeile()
-        patdata = UNIVERSAL.load_json(patientennummer)
-        dictionary_ohne_None()
-        pruefe_wichtige_variablen()
-        global rea, ips
-        rea, ips = UNIVERSAL.auslesen_reaips()
-
-        oeffne_verlaufsbericht_radioonkologie()
-        
-        if not UNIVERSAL.find_and_click_button("button_neuer_abschnitt.png", base_path=local_screenshots_dir): print("button_neuer_abschnitt.png nicht gefunden.")
-        
-        #Navigiert in heading von neuem Abschnitt
-        UNIVERSAL.ctrl_tabs(26)
-        heading = f"Übergabe für das Wochenende vom {samstag} und {sonntag}"
-        clipboard.copy(heading)
-        pyautogui.hotkey('ctrl', 'v')
-
-        #Navigiert in fliesstext
-        UNIVERSAL.ctrl_tabs(1)
-        eintrag = fliesstexte.define_wochenendeintrag(patdata, eintrittsdatum=eintrittsdatum)
-        clipboard.copy(eintrag)
-        pyautogui.hotkey('ctrl', 'v')
-        pyautogui.press('enter')
-        pyautogui.hotkey('ctrl', 'shift', '.')
-        pyautogui.hotkey('ctrl', 'a')
-        pyautogui.hotkey('ctrl', 'shift', 'j')
-
-        if not UNIVERSAL.find_and_click_button("button_speichern_verlaufsbericht.png", base_path=local_screenshots_dir): 
-                print("Konnte button_bericht_confirm nicht finden. Versuche, button_speichern_verlaufsbericht.png zu finden")
-        
-        pyautogui.rightClick(340, 34) #click auf erste KG neben "Klinik für Radio-Onkologie"
-        if not UNIVERSAL.find_and_click_button('button_kgschliessen.png', base_path=local_screenshots_dir): print('button_kgschliessen.png konnte nicht gefunden werden.')
-
-        #Warten, bis geschlossen confirmed, dann überprüfen, ob noch welche offen sind.
-        if not UNIVERSAL.find_button('button_kg_geschlossen_confirm.png', base_path=local_screenshots_dir): print('button_kg_geschlossen_confirm.png konnte nicht gefunden werden.')
-
-        KGs_geschlossen = check_for_next_KG()
-        if not KGs_geschlossen:
-            print(f"final KGs_geschlossen = {KGs_geschlossen}, continue Loop")
-            print("klicke auf x=340, y=34 für nächste Akte..")
-            pyautogui.click(340, 34)
-            pyautogui.click(340, 5)
-            if not UNIVERSAL.find_button('button_neue_kg_offen.png', base_path=local_screenshots_dir, max_attempts=120, confidence=0.95): print('button_neue_kg_offen.png konnte nicht gefunden werden.'); sys.exit()
-            time.sleep(1)
-            continue
-        else:
-            print(f"final KGs_geschlossen = {KGs_geschlossen}, break Loop")
-            break
     
-    print("While-Loop durchbrochen, alle KGs sind bearbeitet und geschlossen.")
-    print("main() finished.")
+
+    UNIVERSAL.KISIM_im_vordergrund()
+    global nachname, vorname, geburtsdatum, alter, geschlecht, patientennummer, eintrittsdatum, patdata
+    placeholder1, placeholder2, geburtsdatum, alter, geschlecht, patientennummer, eintrittsdatum = UNIVERSAL.auslesen_patdata_KISIMzeile()
+    patdata = UNIVERSAL.load_json(patientennummer)
+    dictionary_ohne_None()
+    pruefe_wichtige_variablen()
+    global rea, ips
+    rea, ips = UNIVERSAL.auslesen_reaips()
+
+    oeffne_verlaufsbericht_radioonkologie()
+    
+    if not UNIVERSAL.find_and_click_button("button_neuer_abschnitt.png", base_path=local_screenshots_dir): print("button_neuer_abschnitt.png nicht gefunden.")
+    
+    #Navigiert in heading von neuem Abschnitt
+    UNIVERSAL.ctrl_tabs(26)
+    heading = f"Übergabe für das Wochenende vom {samstag} und {sonntag}"
+    clipboard.copy(heading)
+    pyautogui.hotkey('ctrl', 'v')
+
+    #Navigiert in fliesstext
+    UNIVERSAL.ctrl_tabs(1)
+    eintrag = fliesstexte.define_wochenendeintrag(patdata, eintrittsdatum=eintrittsdatum)
+    clipboard.copy(eintrag)
+    pyautogui.hotkey('ctrl', 'v')
+    pyautogui.press('enter')
+    pyautogui.hotkey('ctrl', 'shift', '.')
+    pyautogui.hotkey('ctrl', 'a')
+    pyautogui.hotkey('ctrl', 'shift', 'j')
+    
 
 
 

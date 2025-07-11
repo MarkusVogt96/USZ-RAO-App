@@ -212,8 +212,19 @@ def main(patientennummer_param=None):
             pyautogui.press('enter')
             if not UNIVERSAL.diagnose_uebernehmen(): print("UNIVERSAL.diagnose_uebernehmen() fehlgeschlagen, bitte manuell übernehmen.")
 
-        print("Führe 3x ctrl-tabs aus, um zu DT-Feld zu gelangen")
-        UNIVERSAL.ctrl_tabs(3)
+        time.sleep(0.1)
+        if not find_and_click_austritt("button_wir_berichten.png", retries=10): print("button_wir_berichten nicht gefunden, beende."); sys.exit("Abbruch: button_wir_berichten.png nicht gefunden")
+        
+        for i in range(30):
+            try:
+                pyautogui.scroll(-100) # Scrollen, um sicherzustellen, dass der Button sichtbar ist
+                if find_and_click_austritt("button_dt.png", retries=1, confidence=0.9):
+                    print("button_dt.png gefunden und angeklickt.")
+                    break
+            except Exception as e:
+                print(f"Fehler beim Suchen von button_dt.png: {e}")
+                time.sleep(0.05)
+                sys.exit("Abbruch: button_dt.png nicht gefunden nach 30 Versuchen")
         
         print("Fülle DT...")
         # --- Verwende die Variable text_dt, die von fliesstexte.py kam ---
