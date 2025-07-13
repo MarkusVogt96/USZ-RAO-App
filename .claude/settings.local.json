@@ -3,7 +3,8 @@
     "allow": [
       "WebFetch(domain:docs.anthropic.com)",
       "Bash(python:*)",
-      "Bash(timeout:*)"
+      "Bash(timeout:*)",
+      "Bash(git restore:*)"
     ],
     "deny": []
   }
