@@ -1,4 +1,4 @@
-from PyQt6.QtWidgets import QWidget, QGridLayout, QLabel, QVBoxLayout, QPushButton, QHBoxLayout, QDialog, QLineEdit, QMessageBox, QFormLayout
+from PyQt6.QtWidgets import QWidget, QGridLayout, QLabel, QVBoxLayout, QPushButton, QHBoxLayout, QDialog, QLineEdit, QMessageBox, QFormLayout, QScrollArea
 from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QFont, QIcon
 from components.widgets import SmallTile
@@ -10,25 +10,36 @@ import subprocess # For opening folder
 import logging # Import logging module
 from scripts.UNIVERSAL import get_benutzerdaten, save_benutzerdaten # Added QDialog, QLineEdit, QMessageBox, QFormLayout
 
-# --- Script Definitions (Order determines tile display) ---
-script_definitions = [
-    ("Create PatData JSON", "patdata.py"),
-    ("View JSON", "viewjson.py"),
-    ("Bericht Radioonkologie", "berrao.py"),
-    ("Station: Eintrittsbericht", "eintritt.py"),
-    ("Station: Austrittsbericht", "austritt.py"),
-    ("PallCare Kons", "konspall.py"),
-    ("Wochenendübergabe", "wochenende.py"),
-    ("Stationsliste ergänzen", "liste.py"),
-    ("Standardlabor", "lab.py"),
-    ("Rehaantrag", "reha.py"),
-    ("Spitex", "spitex.py"),
-    ("Sozialberatung (stat)", "sb.py"),
-    ("Physio (stat)", "physio.py"),
-    ("Planungs-CT/MRI", "planungsbildgebung.py"),
-    ("Verlaufseintrag Visite", "sop_station.py"),
-    ("Tumorboard Export", "createtumorboardpdf.py"),
-]
+# --- Script Definitions organized by sections ---
+script_sections = {
+    "General": [
+        ("Create PatData JSON", "patdata.py"),
+        ("View JSON", "viewjson.py"),
+        ("Standardlabor", "lab.py"),
+        ("Tumorboard Export", "createtumorboardpdf.py"),
+    ],
+    "Poliklinik": [
+        ("Bericht Radioonkologie", "berrao.py"),
+        ("Planungs-CT/MRI", "planungsbildgebung.py"),
+    ],
+    "Station": [
+        ("Station: Eintrittsbericht", "eintritt.py"),
+        ("Station: Austrittsbericht", "austritt.py"),
+        ("PallCare Kons", "konspall.py"),
+        ("Wochenendübergabe", "wochenende.py"),
+        ("Stationsliste ergänzen", "liste.py"),
+        ("Rehaantrag", "reha.py"),
+        ("Spitex", "spitex.py"),
+        ("Sozialberatung (stat)", "sb.py"),
+        ("Physio (stat)", "physio.py"),
+        ("Verlaufseintrag Visite", "sop_station.py"),
+    ]
+}
+
+# Create flattened script_definitions for backward compatibility
+script_definitions = []
+for section_name, scripts in script_sections.items():
+    script_definitions.extend(scripts)
 
 # ---------------------------------------------------------
 # Helper function to generate script keys from tile names
@@ -56,74 +67,99 @@ class KisimPage(QWidget):
         logging.info("KisimPage UI setup complete.")
         
     def setup_ui(self):
-        # Main vertical layout
-        main_layout = QVBoxLayout()
+        # Main layout for the entire page
+        page_layout = QVBoxLayout()
+        page_layout.setContentsMargins(0, 0, 0, 0)
+        self.setLayout(page_layout)
+        
+        # Create scroll area
+        scroll_area = QScrollArea()
+        scroll_area.setWidgetResizable(True)
+        scroll_area.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
+        scroll_area.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        scroll_area.setStyleSheet("""
+            QScrollArea {
+                border: none;
+                background-color: transparent;
+            }
+            QScrollBar:vertical {
+                background-color: #2a2a2a;
+                width: 8px;
+                border-radius: 4px;
+            }
+            QScrollBar::handle:vertical {
+                background-color: #555555;
+                border-radius: 4px;
+                min-height: 20px;
+            }
+            QScrollBar::handle:vertical:hover {
+                background-color: #666666;
+            }
+        """)
+        
+        # Create content widget for the scroll area
+        content_widget = QWidget()
+        main_layout = QVBoxLayout(content_widget)
         main_layout.setSpacing(20)
-        main_layout.setContentsMargins(10, 0, 40, 40)
-        self.setLayout(main_layout)
+        main_layout.setContentsMargins(10, 10, 40, 40)
         
         # Define the path to the scripts directory relative to this file
         scripts_dir = os.path.normpath(os.path.join(os.path.dirname(__file__), os.pardir, "scripts"))
         
-        # Header with title and open folder button
-        header_layout = QHBoxLayout()
-        
-        # Page title
-        title_label = QLabel("KISIM Scripts")
-        title_label.setFont(QFont("Helvetica", 24, QFont.Weight.Bold))
-        title_label.setStyleSheet("color: white; margin-bottom: 20px;")
-        header_layout.addWidget(title_label)
-        
-        # Add spacer to push button to the right
-        header_layout.addStretch()
-    
-        
-        # Add header to main layout
-        main_layout.addLayout(header_layout)
-
-        # Grid layout for script tiles
-        grid_layout = QGridLayout()
-        grid_layout.setSpacing(15)  # Smaller spacing for smaller tiles
-        
-        # Create script tiles based on script_definitions order
-        num_definitions = len(script_definitions)
-        max_tiles = 20 # Target total tiles including placeholders
-
-        for i in range(max_tiles):
-            row = i // 5
-            col = i % 5
-
-            tile_name = "Placeholder"
-            filename = None
-            script_exists = False
-
-            if i < num_definitions:
-                # Get data from the definitions list
-                tile_name, filename = script_definitions[i]
+        # Create sections with headers and tiles
+        for section_name, scripts in script_sections.items():
+            # Section header
+            section_label = QLabel(section_name)
+            section_label.setFont(QFont("Helvetica", 18, QFont.Weight.Bold))
+            section_label.setStyleSheet("color: white; margin-top: 30px; margin-bottom: 15px;")
+            main_layout.addWidget(section_label)
+            
+            # Container widget for left-aligned tiles
+            section_container = QWidget()
+            section_container_layout = QHBoxLayout(section_container)
+            section_container_layout.setContentsMargins(0, 0, 0, 0)
+            
+            # Grid layout for this section's tiles
+            section_grid = QGridLayout()
+            section_grid.setHorizontalSpacing(20)  # Horizontal spacing between tiles
+            section_grid.setVerticalSpacing(25)    # Increased vertical spacing between rows
+            section_grid.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignTop)
+            
+            # Create tiles for this section
+            for i, (tile_name, filename) in enumerate(scripts):
+                row = i // 5
+                col = i % 5
+                
+                script_exists = False
                 if filename:
                     full_script_path = os.path.join(scripts_dir, filename)
                     script_exists = os.path.exists(full_script_path)
                     if not script_exists:
-                        # Optional: Generate key only for the warning message
                         script_key_for_warning = generate_script_key(tile_name)
                         logging.warning(f"Script file not found for tile '{tile_name}' (key: '{script_key_for_warning}') at '{full_script_path}'")
                         print(f"Warning: Script file not found for tile '{tile_name}' (key: '{script_key_for_warning}') at '{full_script_path}'")
                 else:
-                     # Optional: Generate key only for the warning message
                     script_key_for_warning = generate_script_key(tile_name)
                     logging.warning(f"Filename missing in script_definitions for tile '{tile_name}' (key: '{script_key_for_warning}')")
                     print(f"Warning: Filename missing in script_definitions for tile '{tile_name}' (key: '{script_key_for_warning}')")
 
-            # Pass info to SmallTile
-            tile = SmallTile(tile_name, filename=filename, script_exists=script_exists)
-            # Connect signal using the tile_name from the definition (or "Placeholder")
-            tile.clicked.connect(lambda checked, name=tile_name: self.open_script(name))
-            grid_layout.addWidget(tile, row, col)
+                # Create and configure tile
+                tile = SmallTile(tile_name, filename=filename, script_exists=script_exists)
+                tile.clicked.connect(lambda checked, name=tile_name: self.open_script(name))
+                section_grid.addWidget(tile, row, col)
             
-        # Add grid layout to main layout
-        main_layout.addLayout(grid_layout)
+            # Add grid to container layout and stretch to push tiles left
+            section_container_layout.addLayout(section_grid)
+            section_container_layout.addStretch()
+            
+            # Add section container to main layout
+            main_layout.addWidget(section_container)
+            
         main_layout.addStretch()
-            
+        
+        # Set the content widget to the scroll area and add scroll area to page
+        scroll_area.setWidget(content_widget)
+        page_layout.addWidget(scroll_area)
 
     def open_script(self, script_name):
         # Define placeholder names

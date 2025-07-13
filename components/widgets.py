@@ -53,7 +53,7 @@ class StaticTile(QPushButton):
 class SmallTile(QPushButton):
     def __init__(self, text, filename=None, script_exists=True, image_path=None, parent=None):
         super().__init__(parent)
-        self.setFixedSize(220, 160)
+        self.setFixedSize(220, 130)
 
         # Set basic button styling
         self.setStyleSheet("""
@@ -73,8 +73,8 @@ class SmallTile(QPushButton):
 
         # Create layout for button content
         layout = QVBoxLayout(self)
-        layout.setContentsMargins(8, 12, 8, 12)
-        layout.setSpacing(6)
+        layout.setContentsMargins(8, 8, 8, 8)
+        layout.setSpacing(4)
         self.setLayout(layout)
 
         # Main text label (Tile Name) - Color changes based on script_exists
