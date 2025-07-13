@@ -20,18 +20,18 @@ script_sections = {
     ],
     "Poliklinik": [
         ("Bericht Radioonkologie", "berrao.py"),
-        ("Planungs-CT/MRI", "planungsbildgebung.py"),
+        ("Planungsbildgebung", "planungsbildgebung.py"),
     ],
     "Station": [
-        ("Station: Eintrittsbericht", "eintritt.py"),
-        ("Station: Austrittsbericht", "austritt.py"),
+        ("Eintrittsbericht", "eintritt.py"),
+        ("Austrittsbericht", "austritt.py"),
         ("PallCare Kons", "konspall.py"),
         ("Wochenendübergabe", "wochenende.py"),
         ("Stationsliste ergänzen", "liste.py"),
         ("Rehaantrag", "reha.py"),
         ("Spitex", "spitex.py"),
-        ("Sozialberatung (stat)", "sb.py"),
-        ("Physio (stat)", "physio.py"),
+        ("Sozialberatung", "sb.py"),
+        ("Physio", "physio.py"),
         ("Verlaufseintrag Visite", "sop_station.py"),
     ]
 }
