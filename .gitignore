@@ -4,7 +4,23 @@ venv/
 .venv/
 
 # Ignoriere Abhängigkeitsordner
-offline_packages/
+# Ignoriere alles in offline_packages/ rekursiv...
+offline_packages/**
+
+# ...aber un-ignoriere die spezifische Datei
+!offline_packages/python command for download.txt
+
+# ...und un-ignoriere den python_modules Ordner selbst, damit Git ihn durchsucht
+# (Dies ist notwendig, um die Dateien darin später wieder zu ignorieren)
+!offline_packages/python_modules/
+
+# ...dann re-ignoriere alles innerhalb des python_modules Ordners (z.B. .whl Dateien)
+# Diese Regel greift, weil der Ordner python_modules selbst nicht mehr ignoriert wird.
+offline_packages/python_modules/**
+
+# ...und un-ignoriere dann die requirements.txt Datei im python_modules Ordner
+!offline_packages/python_modules/requirements.txt
+
 
 # Ignoriere sensible Dateien
 private_key.pem

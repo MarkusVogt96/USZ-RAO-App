@@ -1,0 +1,11 @@
+pip download `
+    --python-version 3.12 `
+    --platform win_amd64 `
+    --abi cp312 `
+    --implementation cp `
+    --only-binary=:all: `
+    pyautogui
+
+
+
+pip install --user --no-index --find-links=. -r requirements.txt

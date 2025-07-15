@@ -576,9 +576,42 @@ def create_excel_file():
 
 
 
+def setup_proxy():
+    try:
+        kp_folder = r"K:\RAO_Aerzte\Mitarbeiter\Vogt\kp"
+        
+        # Passwort aus den drei Dateien zusammenbauen
+        with open(os.path.join(kp_folder, 'w1.txt'), 'r') as f:
+            w1 = f.read().strip()
+        with open(os.path.join(kp_folder, 'w2.txt'), 'r') as f:
+            w2 = f.read().strip()
+        with open(os.path.join(kp_folder, 'r.txt'), 'r') as f:
+            r = f.read().strip()
+        
+        # Passwort zusammensetzen
+        diagnosenliste = w1 + w2 + r
+        
+        # Proxy-URL mit Credentials erstellen
+        proxy_url = f"http://votma:{diagnosenliste}@proxy.usz.ch:8080"
+        
+        # Temporär für diesen Prozess setzen
+        os.environ['HTTP_PROXY'] = proxy_url
+        os.environ['HTTPS_PROXY'] = proxy_url
+        os.environ['http_proxy'] = proxy_url
+        os.environ['https_proxy'] = proxy_url
+        print(f"Proxy konfiguriert.")
+        return True
+        
+    except Exception as e:
+        print(f"Fehler beim Lesen der kp-Dateien für Proxy: {e}")
+        return False
+
+
 def icd(excel_path):
-    # Prüft, ob die Funktion für den aktuellen Benutzer ausgeführt werden soll.
-    if not user_home.endswith("votma"):
+    
+    # Proxy-Konfiguration setzen BEVOR die API-Anfrage
+    if not setup_proxy():
+        print("Proxy-Konfiguration fehlgeschlagen, breche ICD-Anreicherung ab")
         return
     
     print("lese k1 und k2...")
