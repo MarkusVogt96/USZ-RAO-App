@@ -587,9 +587,9 @@ def setup_proxy():
             w2 = f.read().strip()
         with open(os.path.join(kp_folder, 'r.txt'), 'r') as f:
             r = f.read().strip()
-        
+        global j
         # Passwort zusammensetzen
-        diagnosenliste = w1 + w2 + r
+        diagnosenliste = w1 + w2 + j + r
         
         # Proxy-URL mit Credentials erstellen
         proxy_url = f"http://votma:{diagnosenliste}@proxy.usz.ch:8080"
@@ -726,7 +726,7 @@ def main():
         print("Fehler: KISIM ist nicht im Vordergrund.")
         sys.exit(1)
 
-    
+    jahr = "2025"    
     open_tumorboard()
     tumorboard_nach_nachname_sortieren()
     als_pdf_speichern()
@@ -740,6 +740,8 @@ def main():
         # Wenn die Excel-Datei erfolgreich erstellt wurde, starte die ICD-10-Anreicherung
         if excel_path:
             print(f"excel_path: {excel_path}; start icd...")
+            global j
+            j = jahr
             icd(excel_path)
     else:
         print("Keine Patienten gefunden - Überspringe PDF-Umbenennung und Excel-Erstellung.")
