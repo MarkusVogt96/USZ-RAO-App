@@ -267,7 +267,7 @@ uaw_mapping = {
     # --- Urogenital ---
     'Nierenzellkarzinom': '',
     'Urothelkarzinom der Blase': '',
-    'Prostatakarzinom': '',
+    'Prostatakarzinom': 'Dysurie und Pollakisurie, imperativer Harndrang, Harnverhalt, Hämaturie und Urethrastriktur, Proktitis mit konsekutiver Diarrhoe sowie Erektionsstörungen und Veränderung der Ejakulation (z.B. reduziertes Ejakulatvolumen)',
 
     # --- Gynäkologie ---
     'Mammakarzinom': '',

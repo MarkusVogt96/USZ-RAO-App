@@ -18,7 +18,7 @@ class TumorboardsPage(QWidget):
             "Gyn Mamma",
             "HCC",
             "HPB",
-            "Melanom",
+            "Derma",
             "Neuro",
             "NET",
             "KHT",
@@ -36,9 +36,9 @@ class TumorboardsPage(QWidget):
             "GI": "OPS B24",
             "Gyn Becken": "NORD1 C307",
             "Gyn Mamma": "NORD1 C307",
-            "HCC": "{placeholder}",
+            "HCC": "OPS B26",
             "HPB": "Kleiner Hörsaal Pathologie",
-            "Melanom": "OPS B26",
+            "Derma": "OPS B26",
             "Neuro": "NORD1 C225",
             "NET": "B OPS Demonstrationssaal 3",
             "KHT": "NORD2 B811",
@@ -88,6 +88,7 @@ class TumorboardsPage(QWidget):
             ],
             "Donnerstag": [
                 {'name': 'HPB', 'time': '07:30'},
+                {'name': 'HCC', 'time': '12:00'},
                 {'name': 'Sarkom', 'time': '15:30'},
             ],
             "Freitag": [

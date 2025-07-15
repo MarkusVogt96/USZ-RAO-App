@@ -394,6 +394,11 @@ class CmdScriptsPage(QWidget):
             # Database manager is in utils folder, not scripts folder
             utils_dir = os.path.normpath(os.path.join(os.path.dirname(__file__), os.pardir, "utils"))
             script_path = os.path.join(utils_dir, script_name)
+        # Special handling for tumorboard_export (from Backoffice)
+        elif script_key == "tumorboard_export":
+            script_name = "createtumorboardpdf.py"
+            found_mapping = True
+            script_path = os.path.join(scripts_dir, script_name)
         else:
             # Regular KISIM scripts
             for tile_name, fname in script_definitions:

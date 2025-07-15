@@ -26,15 +26,13 @@ local_screenshots_dir = os.path.join(screenshots_dir, "tumorboards")
 # Define the absolute path to patdata in the user's home directory
 user_home = os.path.expanduser("~")
 
-
-#Definne global variables
 alle_tumorboards = [
     "GI",
     "Gyn Becken",
     "Gyn Mamma",
     "HCC",
     "HPB",
-    "Melanom",
+    "Derma",
     "Neuro",
     "NET",
     "KHT",
@@ -54,19 +52,19 @@ tumorboard_auswahl = None
 tumorboard_png_mapping = {
     "GI": "button_tumorboard_gi.png",
     "Gyn Becken": "button_tumorboard_gynbecken.png",
-    "Gyn Mamma": "button_tumorboard_XXX.png",
+    "Gyn Mamma": "button_tumorboard_mamma.png",
     "HCC": "button_tumorboard_hcc.png",
-    "HPB": "button_tumorboard_XXX.png",
-    "Melanom": "button_tumorboard_melanom.png",
+    "HPB": "button_tumorboard_hpb.png",
+    "Derma": "button_tumorboard_derma.png",
     "Neuro": "button_tumorboard_neuro.png",
     "NET": "button_tumorboard_net.png",
     "KHT": "button_tumorboard_kht.png",
     "Pädiatrie": "button_tumorboard_XXX.png",
-    "Hypophyse": "button_tumorboard_XXX.png",
+    "Hypophyse": "button_tumorboard_hypophyse.png",
     "Lymphom": "button_tumorboard_llmz.png",
     "Sarkom": "button_tumorboard_sarkom.png",
     "Schädelbasis": "button_tumorboard_schaedelbasis.png",
-    "Schilddrüse": "button_tumorboard_XXX.png",
+    "Schilddrüse": "button_tumorboard_schild.png",
     "Thorax": "button_tumorboard_thorax.png",
     "Uro": "button_tumorboard_uro.png"
 }
@@ -176,9 +174,14 @@ def als_pdf_speichern():
         print("Konnte nicht unter Erledigt am rechtsklicken.")
         return False
     
-    if not UNIVERSAL.find_and_click_button("button_aufgaben_drucken.png", base_path=local_screenshots_dir, confidence=0.95, max_attempts=80): print("Fehler: Konnte button_als_pdf_speichern.png nicht klicken."); return False
+    if not UNIVERSAL.find_and_click_button("button_aufgaben_drucken.png", base_path=local_screenshots_dir, confidence=0.95, max_attempts=80):
+        print("Fehler: Konnte button_als_pdf_speichern.png nicht klicken."); return False
 
-    if not UNIVERSAL.find_and_click_button_offset("button_drucker.png", base_path=local_screenshots_dir, confidence=0.95, x_offset=170): print("Fehler: Konnte button_drucker.png nicht klicken."); return False
+    if not UNIVERSAL.find_and_click_button_offset("button_drucker.png", base_path=local_screenshots_dir, confidence=0.9, x_offset=170):
+        if UNIVERSAL.find_button("button_keine_druckbaren.png", base_path=local_screenshots_dir, confidence=0.9, max_attempts=5):
+            print("\n\n CAVE: Es gibt keine Patienten in diesem Tumorboard Briefkasten."); return False
+        else:
+            print("Fehler: Konnte button_drucker.png nicht klicken."); return False
     if not UNIVERSAL.find_button("button_druckeinrichtung_confirm.png", base_path=local_screenshots_dir, confidence=0.95, max_attempts=80): 
         print("Fehler: button_druckeinrichtung_confirm.png nicht gefunden. Beende Skript."); return False
 
@@ -528,11 +531,12 @@ def icd(excel_path):
     
     print("lese k1 und k2...")
     try:
-        with open(os.path.join(user_home, 'kp', 'k1.txt'), 'r') as f:
+        kp_folder = r"K:\RAO_Aerzte\Mitarbeiter\Vogt\kp"
+        with open(os.path.join(kp_folder, 'k1.txt'), 'r') as f:
             k1 = f.read().strip()
-        with open(os.path.join(user_home, 'kp', 'k2.txt'), 'r') as f:
+        with open(os.path.join(kp_folder, 'k2.txt'), 'r') as f:
             k2 = f.read().strip()
-        with open(os.path.join(user_home, 'kp', 'p_dg.txt'), 'r') as f:
+        with open(os.path.join(kp_folder, 'p_dg.txt'), 'r') as f:
             p_dg = f.read().strip()
         from google import genai
     except Exception as e:

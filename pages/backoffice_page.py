@@ -686,6 +686,27 @@ class BackofficePage(QWidget):
         """)
         erstkonsultationen_button.clicked.connect(self.open_erstkonsultationen)
         nav_layout.addWidget(erstkonsultationen_button)
+        
+        # Tumorboard Export button
+        tumorboard_export_button = QPushButton("📋 Tumorboard Export")
+        tumorboard_export_button.setFont(QFont("Helvetica", 14, QFont.Weight.Bold))
+        tumorboard_export_button.setFixedHeight(50)
+        tumorboard_export_button.setCursor(Qt.CursorShape.PointingHandCursor)
+        tumorboard_export_button.setStyleSheet("""
+            QPushButton {
+                background-color: #114473;
+                color: white;
+                border: none;
+                border-radius: 8px;
+                padding: 10px 20px;
+                text-align: left;
+            }
+            QPushButton:pressed {
+                background-color: #0d3355;
+            }
+        """)
+        tumorboard_export_button.clicked.connect(self.open_tumorboard_export)
+        nav_layout.addWidget(tumorboard_export_button)
 
         parent_layout.addWidget(nav_frame)
 
@@ -798,6 +819,23 @@ class BackofficePage(QWidget):
         
         self.main_window.stacked_widget.setCurrentWidget(erstkonsultationen_page)
         logging.info("Navigated to BackofficePageErstkonsultationen.")
+
+    def open_tumorboard_export(self):
+        """Open the Tumorboard Export script via terminal page"""
+        logging.info("Opening Tumorboard Export script...")
+        
+        # Check if we came from session navigation
+        if not self.main_window.check_tumorboard_session_before_navigation():
+            return  # User cancelled navigation
+        
+        # Open the terminal page with the tumorboard export script
+        if self.main_window and hasattr(self.main_window, 'open_cmd_scripts_page'):
+            self.main_window.open_cmd_scripts_page('tumorboard_export')
+        else:
+            logging.error("Cannot access main_window.open_cmd_scripts_page for tumorboard export")
+            QMessageBox.critical(self, "Fehler", "Tumorboard Export konnte nicht geöffnet werden.")
+        
+        logging.info("Tumorboard Export script launched.")
 
 
 

@@ -16,7 +16,6 @@ script_sections = {
         ("Create PatData JSON", "patdata.py"),
         ("View JSON", "viewjson.py"),
         ("Standardlabor", "lab.py"),
-        ("Tumorboard Export", "createtumorboardpdf.py"),
     ],
     "Poliklinik": [
         ("Bericht Radioonkologie", "berrao.py"),
