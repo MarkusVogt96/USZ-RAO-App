@@ -544,6 +544,14 @@ class TumorGuideApp(QMainWindow):
                     add_separator();add_button("Developer Area",DeveloperAreaPage);add_separator();add_label(script_name)
                 except ImportError:
                     add_separator();add_label("Developer Area");add_separator();add_label(script_name)
+            # Check if this script was launched from Backoffice
+            elif hasattr(current_widget, 'launched_from_backoffice') and current_widget.launched_from_backoffice:
+                # Import the BackofficePage class for breadcrumb button
+                try:
+                    from pages.backoffice_page import BackofficePage
+                    add_separator();add_button("Backoffice",BackofficePage);add_separator();add_label(script_name)
+                except ImportError:
+                    add_separator();add_label("Backoffice");add_separator();add_label(script_name)
             else:
                 add_separator();add_button("KISIM Scripts",KisimPage);add_separator();add_label(script_name)
         else:add_separator();add_label(page_name.replace('Page',''))
@@ -734,6 +742,10 @@ class TumorGuideApp(QMainWindow):
         print(f"{APP_PREFIX}Attempting to open CmdScriptsPage for script key: {script_key}")
         if not script_key:print(f"ERROR: {APP_PREFIX}No script key provided for CmdScriptsPage.");QMessageBox.warning(self,"Navigation Error","No script selected to run.");return
         if self.cmd_scripts_page is None:print(f"{APP_PREFIX}Creating CmdScriptsPage instance.");self.cmd_scripts_page=CmdScriptsPage(self);self.stacked_widget.addWidget(self.cmd_scripts_page)
+        
+        # Reset backoffice flag since this is from regular KISIM Scripts
+        self.cmd_scripts_page.launched_from_backoffice = False
+        
         self.stacked_widget.setCurrentWidget(self.cmd_scripts_page);print(f"{APP_PREFIX}Switched to CmdScriptsPage.");self.cmd_scripts_page.run_script_by_key(script_key)
         
         # Update menu based on script origin
@@ -741,6 +753,20 @@ class TumorGuideApp(QMainWindow):
             self._update_active_menu("Developer Area")
         else:
             self._update_active_menu("KISIM Scripts")
+    
+    def open_cmd_scripts_page_from_backoffice(self,script_key:str):
+        """Open CmdScriptsPage from Backoffice context (keeps Backoffice breadcrumb and menu active)"""
+        print(f"{APP_PREFIX}Attempting to open CmdScriptsPage from Backoffice for script key: {script_key}")
+        if not script_key:print(f"ERROR: {APP_PREFIX}No script key provided for CmdScriptsPage.");QMessageBox.warning(self,"Navigation Error","No script selected to run.");return
+        if self.cmd_scripts_page is None:print(f"{APP_PREFIX}Creating CmdScriptsPage instance.");self.cmd_scripts_page=CmdScriptsPage(self);self.stacked_widget.addWidget(self.cmd_scripts_page)
+        
+        # Mark that this script was launched from Backoffice
+        self.cmd_scripts_page.launched_from_backoffice = True
+        
+        self.stacked_widget.setCurrentWidget(self.cmd_scripts_page);print(f"{APP_PREFIX}Switched to CmdScriptsPage from Backoffice.");self.cmd_scripts_page.run_script_by_key(script_key)
+        
+        # Keep Backoffice menu active
+        self._update_active_menu("Backoffice")
     
     def navigate_back_to_excel_viewer(self, tumorboard_name, date_str):
         """Navigate back to excel viewer page and refresh it to show timestamp"""

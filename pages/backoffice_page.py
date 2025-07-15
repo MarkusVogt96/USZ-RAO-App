@@ -828,11 +828,11 @@ class BackofficePage(QWidget):
         if not self.main_window.check_tumorboard_session_before_navigation():
             return  # User cancelled navigation
         
-        # Open the terminal page with the tumorboard export script
-        if self.main_window and hasattr(self.main_window, 'open_cmd_scripts_page'):
-            self.main_window.open_cmd_scripts_page('tumorboard_export')
+        # Open the terminal page with the tumorboard export script (from Backoffice context)
+        if self.main_window and hasattr(self.main_window, 'open_cmd_scripts_page_from_backoffice'):
+            self.main_window.open_cmd_scripts_page_from_backoffice('tumorboard_export')
         else:
-            logging.error("Cannot access main_window.open_cmd_scripts_page for tumorboard export")
+            logging.error("Cannot access main_window.open_cmd_scripts_page_from_backoffice for tumorboard export")
             QMessageBox.critical(self, "Fehler", "Tumorboard Export konnte nicht geöffnet werden.")
         
         logging.info("Tumorboard Export script launched.")

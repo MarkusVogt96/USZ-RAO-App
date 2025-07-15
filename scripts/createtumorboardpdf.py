@@ -321,7 +321,7 @@ def create_excel_file():
         
         diagnose = ""
         # Definiere den Ankertext, der für die Positionierung entscheidend ist
-        anchor_text = "Ergänzungen und neue Inhalte werden nicht automatisch in die Tumordokumentation zurückgeschrieben"
+        anchor_text = "werden nicht automatisch in die Tumordokumentation"
         
         try:
             # --- Extraktion der Stammdaten (Name, Nummer etc.) ---
@@ -353,15 +353,41 @@ def create_excel_file():
             idx_anchor = text.find(anchor_text)
             if idx_anchor != -1:
                 text_after_anchor = text[idx_anchor + len(anchor_text):]
-                idx_diag_heading = text_after_anchor.lower().find("diagnose")
-                if idx_diag_heading != -1:
-                    text_after_heading = text_after_anchor[idx_diag_heading + len("diagnose"):].lstrip()
-                    lines = text_after_heading.splitlines()
-                    for line in lines:
-                        cleaned_line = line.strip()
-                        if cleaned_line:
-                            diagnose = cleaned_line
+                lines_after_anchor = text_after_anchor.splitlines()
+                
+                # Suche nach einer Zeile, die nur "Diagnose" enthält (case-insensitive)
+                diagnose_line_idx = -1
+                for i, line in enumerate(lines_after_anchor):
+                    cleaned_line = line.strip()
+                    if cleaned_line.lower() == "diagnose":
+                        diagnose_line_idx = i
+                        break
+                
+                if diagnose_line_idx != -1:
+                    # Suche nach der ersten nicht-leeren Zeile nach der "Diagnose"-Zeile
+                    first_line_found = False
+                    first_line_idx = -1
+                    
+                    for i in range(diagnose_line_idx + 1, len(lines_after_anchor)):
+                        cleaned_line = lines_after_anchor[i].strip()
+                        if cleaned_line and not first_line_found:
+                            first_line_found = True
+                            first_line_idx = i
                             break
+                    
+                    if first_line_found:
+                        # Nimm die erste nicht-leere Zeile und die Zeile danach
+                        diagnose_parts = []
+                        diagnose_parts.append(lines_after_anchor[first_line_idx].strip())
+                        
+                        # Füge die nächste Zeile hinzu, falls vorhanden
+                        if first_line_idx + 1 < len(lines_after_anchor):
+                            next_line = lines_after_anchor[first_line_idx + 1].strip()
+                            if next_line:  # Nur hinzufügen wenn nicht leer
+                                diagnose_parts.append(next_line)
+                        
+                        # Verbinde die Zeilen mit einem Leerzeichen
+                        diagnose = ' '.join(diagnose_parts)
 
             # --- VALIDIERUNG durch Zählen der Buchstaben ---
             # Entferne alle Nicht-Buchstaben und prüfe die Länge des Ergebnisses.
@@ -395,15 +421,41 @@ def create_excel_file():
                 idx_anchor_ocr = ocr_text.find(anchor_text)
                 if idx_anchor_ocr != -1:
                     text_after_anchor_ocr = ocr_text[idx_anchor_ocr + len(anchor_text):]
-                    idx_diag_heading_ocr = text_after_anchor_ocr.lower().find("diagnose")
-                    if idx_diag_heading_ocr != -1:
-                        text_after_heading_ocr = text_after_anchor_ocr[idx_diag_heading_ocr + len("diagnose"):].lstrip()
-                        lines_ocr = text_after_heading_ocr.splitlines()
-                        for line in lines_ocr:
-                            cleaned_line_ocr = line.strip().replace('e ', '• ')
-                            if cleaned_line_ocr:
-                                diagnose = cleaned_line_ocr
+                    lines_after_anchor_ocr = text_after_anchor_ocr.splitlines()
+                    
+                    # Suche nach einer Zeile, die nur "Diagnose" enthält (case-insensitive)
+                    diagnose_line_idx_ocr = -1
+                    for i, line in enumerate(lines_after_anchor_ocr):
+                        cleaned_line_ocr = line.strip()
+                        if cleaned_line_ocr.lower() == "diagnose":
+                            diagnose_line_idx_ocr = i
+                            break
+                    
+                    if diagnose_line_idx_ocr != -1:
+                        # Suche nach der ersten nicht-leeren Zeile nach der "Diagnose"-Zeile
+                        first_line_found_ocr = False
+                        first_line_idx_ocr = -1
+                        
+                        for i in range(diagnose_line_idx_ocr + 1, len(lines_after_anchor_ocr)):
+                            cleaned_line_ocr = lines_after_anchor_ocr[i].strip().replace('e ', '• ')
+                            if cleaned_line_ocr and not first_line_found_ocr:
+                                first_line_found_ocr = True
+                                first_line_idx_ocr = i
                                 break
+                        
+                        if first_line_found_ocr:
+                            # Nimm die erste nicht-leere Zeile und die Zeile danach
+                            diagnose_parts_ocr = []
+                            diagnose_parts_ocr.append(lines_after_anchor_ocr[first_line_idx_ocr].strip().replace('e ', '• '))
+                            
+                            # Füge die nächste Zeile hinzu, falls vorhanden
+                            if first_line_idx_ocr + 1 < len(lines_after_anchor_ocr):
+                                next_line_ocr = lines_after_anchor_ocr[first_line_idx_ocr + 1].strip().replace('e ', '• ')
+                                if next_line_ocr:  # Nur hinzufügen wenn nicht leer
+                                    diagnose_parts_ocr.append(next_line_ocr)
+                            
+                            # Verbinde die Zeilen mit einem Leerzeichen
+                            diagnose = ' '.join(diagnose_parts_ocr)
                 
                 # --- FINALE VALIDIERUNG nach OCR ---
                 letter_count_ocr = len(re.sub(r'[^a-zA-Z]', '', str(diagnose)))
@@ -645,14 +697,19 @@ def main():
     open_tumorboard()
     tumorboard_nach_nachname_sortieren()
     als_pdf_speichern()
-    # Nach dem Verschieben der PDFs aufrufen:
-    pdfs_umbenennen(dated_folder)
-    excel_path = create_excel_file()
     
-    # Wenn die Excel-Datei erfolgreich erstellt wurde, starte die ICD-10-Anreicherung
-    if excel_path:
-        print(f"excel_path: {excel_path}; start icd...")
-        icd(excel_path)
+    # Prüfe, ob dated_folder definiert wurde (nur wenn Patienten gefunden wurden)
+    if 'dated_folder' in globals():
+        # Nach dem Verschieben der PDFs aufrufen:
+        pdfs_umbenennen(dated_folder)
+        excel_path = create_excel_file()
+        
+        # Wenn die Excel-Datei erfolgreich erstellt wurde, starte die ICD-10-Anreicherung
+        if excel_path:
+            print(f"excel_path: {excel_path}; start icd...")
+            icd(excel_path)
+    else:
+        print("Keine Patienten gefunden - Überspringe PDF-Umbenennung und Excel-Erstellung.")
 
     print("\nProzess abgeschlossen.")
 
