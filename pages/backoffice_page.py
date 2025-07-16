@@ -371,7 +371,7 @@ class BackofficePage(QWidget):
             if not unbilled_tumorboards:
                 return {
                     'text': "alles bearbeitet",
-                    'color': '#4CAF50'  # Green (same as categories)
+                    'color': '#1ff52c'  # Green (same as categories)
                 }
             else:
                 # Create description with tumorboard names
@@ -444,7 +444,7 @@ class BackofficePage(QWidget):
                     text = "keine Konsil-Eingänge ausstehend"
                 else:
                     text = "keine Erstkons-Aufgebote ausstehend"
-                color = '#4CAF50'  # Green
+                color = '#1ff52c'  # Green
             else:
                 # Determine category based on filename with precise matching to avoid substring collisions
                 if "Kat_III" in filename:
