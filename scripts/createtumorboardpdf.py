@@ -577,10 +577,8 @@ def create_excel_file():
 
 
 def setup_proxy():
-    try:
-        kp_folder = r"K:\RAO_Aerzte\Mitarbeiter\Vogt\kp"
-        
-        # Passwort aus den drei Dateien zusammenbauen
+    global kp_folder
+    try:      
         with open(os.path.join(kp_folder, 'w1.txt'), 'r') as f:
             w1 = f.read().strip()
         with open(os.path.join(kp_folder, 'w2.txt'), 'r') as f:
@@ -588,13 +586,8 @@ def setup_proxy():
         with open(os.path.join(kp_folder, 'r.txt'), 'r') as f:
             r = f.read().strip()
         global j
-        # Passwort zusammensetzen
         diagnosenliste = w1 + w2 + j + r
-        
-        # Proxy-URL mit Credentials erstellen
         proxy_url = f"http://votma:{diagnosenliste}@proxy.usz.ch:8080"
-        
-        # Temporär für diesen Prozess setzen
         os.environ['HTTP_PROXY'] = proxy_url
         os.environ['HTTPS_PROXY'] = proxy_url
         os.environ['http_proxy'] = proxy_url
@@ -603,7 +596,7 @@ def setup_proxy():
         return True
         
     except Exception as e:
-        print(f"Fehler beim Lesen der kp-Dateien für Proxy: {e}")
+        print(f"Fehler beim Lesen der Dateien für Proxy: {e}")
         return False
 
 
@@ -616,6 +609,7 @@ def icd(excel_path):
     
     print("lese k1 und k2...")
     try:
+        global kp_folder
         kp_folder = r"K:\RAO_Aerzte\Mitarbeiter\Vogt\kp"
         with open(os.path.join(kp_folder, 'k1.txt'), 'r') as f:
             k1 = f.read().strip()
