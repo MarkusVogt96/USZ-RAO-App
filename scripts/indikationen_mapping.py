@@ -611,6 +611,10 @@ EAU Guidelines, STAMPEDE, Parker et al. Lancet 2018
 Die stereotaktische Radiotherapie von Oligometastasen (≤5, ossär und viszeral) bei kontrolliertem Primärtumor verbessert das Gesamtüberleben (HR 0.57).
 SABR-COMET (Parker et al.) Lancet 2019
 
+Prostata - ADT:
+Bei Prostatakarzinom mit high-risk und unfavourable intermediate-risk-Konstellation verbessert die Kombination der Radiotherapie mit einer ADT signifikant das Gesamtüberleben (HR 0.6) und reduziert hochsignifikant die krankheitsspezifische Mortaliät. Somit ist in der gegebenen Risikokonstellation die Kombination der primären Radiotherapie mit einer ADT ein Standard. 
+Weiterhin zeigt eine Kombination von Radiotherapie, ADT und Abiraterone/Prednison über 2 Jahre einen signifikanten Überlebensvorteil gegenüber der Standardbehandlung (alleinige RT & ADT), sodass wir dies ebenfalls mit dem Patienten besprachen.  
+
 
 M72.2, M76.6, M61.9, H06.2, M77.1, M72.0, M72.2, N48.6, M77.9, M75.9, M17.9, M19.9, N62, L91.0:
 
