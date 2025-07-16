@@ -45,7 +45,7 @@ class TumorboardsPage(QWidget):
             "Pädiatrie": "Kispi/Online",
             "Hypophyse": "Online",
             "Lymphom": "PATH B82",
-            "Sarkom": "HOER B 15",
+            "Sarkom": "OPS B 26",
             "Schädelbasis": "NORD2",
             "Schilddrüse": "NUK A 33",
             "Thorax": "OPS B 26",
