@@ -549,9 +549,8 @@ class BackofficeKatIPage(QWidget):
                 # Log the reversion
                 self.log_status_reversion(patient)
             
-            # Update Excel file
-            base_path = Path.home() / "tumorboards"
-            backoffice_dir = base_path / "_Backoffice"
+            # Update Excel file using centralized path management
+            backoffice_dir, using_network = BackofficePathManager.get_backoffice_path(show_warnings=False)
             excel_path = backoffice_dir / self.excel_filename
             
             if not excel_path.exists():

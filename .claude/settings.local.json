@@ -4,7 +4,9 @@
       "WebFetch(domain:docs.anthropic.com)",
       "Bash(python:*)",
       "Bash(timeout:*)",
-      "Bash(git restore:*)"
+      "Bash(git restore:*)",
+      "Bash(dir:*)",
+      "Bash(ls:*)"
     ],
     "deny": []
   }

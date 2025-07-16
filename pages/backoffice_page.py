@@ -1,7 +1,7 @@
 from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton, 
                              QFrame, QMessageBox, QGridLayout, QScrollArea)
 from PyQt6.QtCore import Qt
-from PyQt6.QtGui import QFont
+from PyQt6.QtGui import QFont, QShowEvent
 import os
 import logging
 from pathlib import Path
@@ -21,6 +21,13 @@ class BackofficePage(QWidget):
         self.billing_tracker = BillingTracker()
         self.setup_ui()
         logging.info("BackofficePage Dashboard initialization complete.")
+
+    def showEvent(self, event: QShowEvent):
+        """Handle show event to refresh status when page becomes visible"""
+        super().showEvent(event)
+        if event.isAccepted():
+            logging.info("BackofficePage became visible, refreshing status...")
+            self.refresh_status()
 
     def refresh_status(self):
         """Refresh the status of all task categories"""
@@ -45,34 +52,56 @@ class BackofficePage(QWidget):
     def create_open_tasks_section_refresh(self, billing_status, kat_i_status, kat_ii_status, kat_iii_status):
         """Refresh the open tasks section with new status data"""
         try:
-            # Find the main layout and the tasks frame
+            # Find the scroll area content widget
             main_layout = self.layout()
             if main_layout is None:
                 return
                 
-            # Find and remove the old tasks frame
-            tasks_frame_to_remove = None
+            # Find the scroll area
+            scroll_area = None
             for i in range(main_layout.count()):
                 item = main_layout.itemAt(i)
+                if item and item.widget() and isinstance(item.widget(), QScrollArea):
+                    scroll_area = item.widget()
+                    break
+            
+            if scroll_area is None:
+                logging.error("Could not find scroll area for refresh")
+                return
+                
+            # Get the content widget inside the scroll area
+            content_widget = scroll_area.widget()
+            if content_widget is None:
+                logging.error("Could not find content widget in scroll area")
+                return
+                
+            content_layout = content_widget.layout()
+            if content_layout is None:
+                logging.error("Could not find content layout")
+                return
+                
+            # Find and remove the old tasks title and frame
+            items_to_remove = []
+            for i in range(content_layout.count()):
+                item = content_layout.itemAt(i)
                 if item and item.widget():
                     widget = item.widget()
-                    # Look for the tasks frame by checking its children
-                    if hasattr(widget, 'layout') and widget.layout():
-                        layout = widget.layout()
-                        if layout.count() > 0:
-                            first_item = layout.itemAt(0)
-                            if first_item and first_item.widget():
-                                first_widget = first_item.widget()
-                                if isinstance(first_widget, QLabel) and "Offene Aufgaben" in first_widget.text():
-                                    tasks_frame_to_remove = widget
-                                    break
+                    # Look for the tasks title or tasks frame
+                    if isinstance(widget, QLabel) and "Offene Aufgaben" in widget.text():
+                        items_to_remove.append((i, widget))
+                    elif isinstance(widget, QFrame):
+                        # Check if this is the tasks frame by looking at its background color
+                        style = widget.styleSheet()
+                        if "#1a2633" in style and "border-radius: 8px" in style:
+                            items_to_remove.append((i, widget))
             
-            if tasks_frame_to_remove:
-                main_layout.removeWidget(tasks_frame_to_remove)
-                tasks_frame_to_remove.deleteLater()
+            # Remove items in reverse order to maintain indices
+            for i, widget in reversed(items_to_remove):
+                content_layout.removeWidget(widget)
+                widget.deleteLater()
                 
-                # Create new tasks section with updated data
-                self.create_open_tasks_section_with_data(main_layout, billing_status, kat_i_status, kat_ii_status, kat_iii_status)
+            # Create new tasks section with updated data at the beginning
+            self.create_open_tasks_section_with_data_at_position(content_layout, billing_status, kat_i_status, kat_ii_status, kat_iii_status)
                 
         except Exception as e:
             logging.error(f"Error refreshing open tasks section: {e}")
@@ -107,6 +136,36 @@ class BackofficePage(QWidget):
 
         parent_layout.insertWidget(2, tasks_frame)  # Insert after the title
 
+    def create_open_tasks_section_with_data_at_position(self, parent_layout, billing_status, kat_i_status, kat_ii_status, kat_iii_status):
+        """Create the open tasks section with provided status data at position 0"""
+        # Section title
+        tasks_title = QLabel("📋 Offene Aufgaben - Übersicht")
+        tasks_title.setFont(QFont("Helvetica", 20, QFont.Weight.Bold))
+        tasks_title.setStyleSheet("color: #FFA500; margin-bottom: 10px;")
+        parent_layout.insertWidget(0, tasks_title)  # Insert at the beginning
+
+        # Tasks frame
+        tasks_frame = QFrame()
+        tasks_frame.setStyleSheet("""
+            QFrame {
+                background-color: #1a2633;
+                border: 1px solid #425061;
+                border-radius: 8px;
+                padding: 25px;
+            }
+        """)
+        
+        tasks_layout = QVBoxLayout(tasks_frame)
+        tasks_layout.setSpacing(15)
+
+        # Create status buttons with provided data
+        self.create_status_button(tasks_layout, "Abrechnungen", billing_status, self.open_leistungsabrechnungen)
+        self.create_status_button(tasks_layout, "Kategorie I", kat_i_status, self.open_kategorie_i)
+        self.create_status_button(tasks_layout, "Kategorie II", kat_ii_status, self.open_kategorie_ii)
+        self.create_status_button(tasks_layout, "Kategorie III", kat_iii_status, self.open_kategorie_iii)
+
+        parent_layout.insertWidget(1, tasks_frame)  # Insert after the title
+
     def setup_ui(self):
         """Setup the dashboard user interface"""
         # Main layout
@@ -115,12 +174,45 @@ class BackofficePage(QWidget):
         main_layout.setSpacing(20)
         self.setLayout(main_layout)
 
+        # Header with title and refresh button
+        header_layout = QHBoxLayout()
+        header_layout.setSpacing(15)
+
         # Title
         title_label = QLabel("Backoffice Dashboard")
         title_label.setFont(QFont("Helvetica", 28, QFont.Weight.Bold))
         title_label.setStyleSheet("color: white; margin-bottom: 10px;")
         title_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        main_layout.addWidget(title_label)
+        header_layout.addWidget(title_label)
+        header_layout.addStretch()
+        
+        # Refresh button
+        self.refresh_button = QPushButton("⟲ Aktualisieren")
+        self.refresh_button.setFont(QFont("Helvetica", 12))
+        self.refresh_button.setFixedSize(140, 40)
+        self.refresh_button.setStyleSheet("""
+            QPushButton {
+                background-color: #114473;
+                color: white;
+                border: none;
+                border-radius: 6px;
+                padding: 8px 15px;
+            }
+            QPushButton:hover {
+                background-color: #1a5a9e;
+            }
+            QPushButton:pressed {
+                background-color: #0d3355;
+            }
+            QPushButton:disabled {
+                background-color: #425061;
+                color: #888888;
+            }
+        """)
+        self.refresh_button.clicked.connect(self.refresh_status)
+        header_layout.addWidget(self.refresh_button)
+
+        main_layout.addLayout(header_layout)
 
         # Scrollable area for the dashboard content
         scroll_area = QScrollArea()
