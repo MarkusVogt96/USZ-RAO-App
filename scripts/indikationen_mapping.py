@@ -592,7 +592,9 @@ kurative Therapieoption. Somit ist für das Prostatakarzinom die primäre allein
 ProtecT, NEJM 2016
 
 Prostata – Primäre SBRT:
+Low- und fav.-intermed. risk:
 Mehrere randomisierte prospektive Phase-III Studien haben ein sehr gutes onkologisches Outcome der Stereotaktischen Bestrahlung der Prostata gezeigt. In einer radomisierten Studie mit über 800 Patienten konnte dabei nach 5 Jahren ein biochemisches Rezidiv-freies Überleben von 95.8% gezeigt werden. Somit ist die SBRT bei Patienten mit low- oder Favourable intermediate-risk Prostatakarzinom eine kurative Therapieoption (Kishan, Jama 2019; van As, NEJM 2024).
+Unfav.-intermed. und high-risk:
 Mehrere randomisierte prospektive Phase-III Studien haben ein sehr gutes onkologisches Outcome (5y 84%) mit wenig Nebenwirkungen nach SBRT der Prostata bei unfavourable intermediate und high-risk Prostatakarzinom gezeigt. Somit ist die SBRT bei Patienten mit unfavourable intermediate und high-risk Prostatakarzinom eine kurative Therapieoption (Widmark, Lancet 2019).
 
 Prostata – Adjuvante Radiotherapie:

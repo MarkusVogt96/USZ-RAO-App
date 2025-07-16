@@ -601,16 +601,14 @@ def setup_proxy():
 
 
 def icd(excel_path):
-    
-    # Proxy-Konfiguration setzen BEVOR die API-Anfrage
+    global kp_folder
+    kp_folder = r"K:\RAO_Aerzte\Mitarbeiter\Vogt\kp"
     if not setup_proxy():
         print("Proxy-Konfiguration fehlgeschlagen, breche ICD-Anreicherung ab")
         return
     
     print("lese k1 und k2...")
     try:
-        global kp_folder
-        kp_folder = r"K:\RAO_Aerzte\Mitarbeiter\Vogt\kp"
         with open(os.path.join(kp_folder, 'k1.txt'), 'r') as f:
             k1 = f.read().strip()
         with open(os.path.join(kp_folder, 'k2.txt'), 'r') as f:
