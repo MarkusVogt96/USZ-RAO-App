@@ -3024,7 +3024,15 @@ def icd_check(icd_code=None):
         return False
     if not find_and_click_button("button_speichern_und_schliessen_icd.png", base_path=local_screenshot_base_path): print("ERROR button button_speichern_und_schliessen_icd nicht gefunden")
     print("\n\n Funktion UNIVERSAL.icd_check erfolgreich abgeschlossen, ICD wurde eingetragen\n\n")
+    for _ in range(20):
+        if find_button("button_icd_noch_offen.png", base_path=local_screenshot_base_path, max_attempts=1): 
+            print("icd Fenster noch offen...")
+        else:
+            print("icd Fenster geschlossen...")
+            break
+    time.sleep(0.1)
     return True
+
 ###################################
 ###################################
 
@@ -3032,19 +3040,20 @@ def alle_kgs_schliessen():
     local_screenshot_base_path = os.path.join(screenshots_dir, "UNIVERSAL", "KG_management")
     pyautogui.rightClick(350, 35)
     time.sleep(0.1)
-    if not find_and_click_button("button_alle_kgs_schliessen.png", base_path=local_screenshot_base_path): 
-        print("ERROR button button_alle_kgs_schliessen nicht gefunden")
-        return False
+    for _ in range(5):
+        pyautogui.press("down")
+    pyautogui.press("enter")
+
     if not find_button("button_keinekgoffen.png", base_path=local_screenshot_base_path):
         print("\n\n\nACHTUNG!: Es sind nicht alle KGs geschlossen, bitte manuell KG schliessen! (10s Zeit für manuelles Schliessen)")
         time.sleep(10)
         if not find_button("button_keinekgoffen.png", base_path=local_screenshot_base_path, max_attempts=3, interval=0.05):
             print("\n\n\n Offene KGs wurden auch manuell nicht geschlossen, breche Skript ab...)")
-            sys.exit()
+            return False
         
     return True
     
-    
+
 
 
 
