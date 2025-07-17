@@ -2793,38 +2793,62 @@ def leistung_eintragen(bericht_typ, icd_code=None, secondary_icd_code=None):
     if not navigiere_bereich_leistungen(): print("FEHLER: Navigation zu Leistungen fehlgeschlagen."); return False
     if not find_and_click_button("button_neu.png", "Neu Button", base_path=local_screenshot_base_path): return False
     if not find_and_click_button("button_tmambulant.png", "TM ambulant Button", base_path=local_screenshot_base_path): return False
+    if not find_button("button_zeile_leistungen.png", base_path=local_screenshot_base_path): return False
+    time.sleep(0.3) # Kurze Pause nach dem Klicken
+    if not find_and_click_button("button_radioonkologie_ats.png", "Radioonkologie ATS Button", base_path=local_screenshot_base_path):
+            print("FEHLER: Button 'Radioonkologie ATS' nicht gefunden.")
+            return False
+    if not find_and_click_button("button_konsultationen.png", "Konsultationen Button", base_path=local_screenshot_base_path):
+            print("FEHLER: Button 'Konsultationen' nicht gefunden.")
+            return False
 
-    #versuche, in persfav zu navigieren, falls nicht schon vorhanden
 
-    for _ in range(50):
-        try:
-            if not find_and_click_button("button_persfav.png", base_path=local_screenshot_base_path, max_attempts=1): print("button_persfav.png nicht gefunden")
-            if find_button("button_persfav_confirm.png", base_path=local_screenshot_base_path, max_attempts=1):
-                print("button_persfav_confirm.png gefunden, break")
-                break
-            else:
-                print(f"button_persfav_confirm noch nicht gefunden")
-                time.sleep(0.3) #Pause hier macht Sinn, um Laden abzuwarten.
-                continue
-        except Exception as e: 
-            print(f"Fehler {e}: button_persfav.png und button_persfav_confirm.png nicht gefunden, loope erneut")
-            time.sleep(0.1)
-            continue
+    #je nach leistung_code, indivuduelle Buttons
+    if leistung_code == 'em':       
+        if not find_and_click_button("button_erstkonsultationen.png", "Erstkonsultationen Button", base_path=local_screenshot_base_path):
+            print("FEHLER: Button 'Erstkonsultationen' nicht gefunden.")
+            return False
+        if not find_and_click_button("button_erstkons_maligne.png", "Erstkonsultationen maligne Button", base_path=local_screenshot_base_path):
+            print("FEHLER: Button 'Erstkonsultationen maligne' nicht gefunden.")
+            return False
+        
+    elif leistung_code == 'eb':
+        
+        if not find_and_click_button("button_erstkonsultationen.png", "Erstkonsultationen Button", base_path=local_screenshot_base_path):
+            print("FEHLER: Button 'Erstkonsultationen' nicht gefunden.")
+            return False
+        if not find_and_click_button("button_erstkons_benigne.png", "Erstkonsultationen benigne Button", base_path=local_screenshot_base_path):
+            print("FEHLER: Button 'Erstkonsultationen benigne' nicht gefunden.")
+            return False
+    
+    elif leistung_code == 'w':
+        if not find_and_click_button("button_woko.png", "Wochenkontrolle Button", base_path=local_screenshot_base_path):
+            print("FEHLER: Button 'Wochenkontrolle' nicht gefunden.")
+            return False
+        if not find_and_click_button("button_wochenkontrolle.png", "Wochenkontrolle Button", base_path=local_screenshot_base_path):
+            print("FEHLER: Button 'Wochenkontrolle' nicht gefunden.")
+            return False
 
-    leistung_buttons = {
-        'em': ("button_erstkons_maligne.png", "Erstkons. maligne Button"),
-        'eb': ("button_erstkons_benigne.png", "Erstkons. benigne Button"),
-        'a': ("button_abschlusskontrolle.png", "Abschlusskontrolle Button"),
-        'k': ("button_verlaufskontrolle_klinisch.png", "Verlaufskontrolle klinisch Button"),
-        't': ("button_verlaufskontrolle_telefonisch.png", "Verlaufskontrolle telefonisch Button"),
-        'w': ("button_woko.png", "Wochenkontrolle Button")
-    }
-    if leistung_code in leistung_buttons:
-        image, desc = leistung_buttons[leistung_code]
-        if not find_and_click_button(image, desc, base_path=local_screenshot_base_path):
-            print(f"FEHLER: Konnte Button '{desc}' nicht finden."); return False
-    else:
-        print(f"FEHLER: Kein Button für Code '{leistung_code}' definiert."); return False
+    elif leistung_code == 'a':
+        if not find_and_click_button("button_abschluss.png", "Abschluss Button", base_path=local_screenshot_base_path):
+            print("FEHLER: Button 'Abschluss' nicht gefunden.")
+            return False
+        if not find_and_click_button("button_abschlusskontrolle.png", "Abschlusskontrolle Button", base_path=local_screenshot_base_path):
+            print("FEHLER: Button 'Abschlusskontrolle' nicht gefunden.")
+            return False
+        
+    elif leistung_code == 'k':
+        if not find_and_click_button("button_verlaufskontrollen.png", "Verlaufskontrollen Button", base_path=local_screenshot_base_path):
+            print("FEHLER: Button 'Verlaufskontrollen' nicht gefunden.")
+            return False
+        if not find_and_click_button("button_verlaufskontrolle_klinisch.png", "Verlaufskontrolle klinisch Button", base_path=local_screenshot_base_path):
+            print("FEHLER: Button 'Verlaufskontrolle klinisch' nicht gefunden.")
+            return False
+        
+    elif leistung_code == 't':
+        if not find_and_click_button("button_verlaufskontrolle_telefonisch.png", "Verlaufskontrolle telefonisch Button", base_path=local_screenshot_base_path):
+            print("FEHLER: Button 'Verlaufskontrolle telefonisch' nicht gefunden.")
+            return False
 
 
     # --- Prüfung ICD & Speichern ---
@@ -2959,16 +2983,78 @@ def leistung_eintragen(bericht_typ, icd_code=None, secondary_icd_code=None):
     return False
 
 
+def icd_check(icd_code=None):
+    local_screenshot_base_path = os.path.join(screenshots_dir, "UNIVERSAL", "bereich_leistungen")
+    anker_icd = None
+    for i in range(50):
+        if find_button("button_icd_komplett.png", base_path=local_screenshot_base_path, max_attempts=1):
+            print("button_icd_komplett.png gefunden, ICD bereits eingetragen")
+            anker_icd = True
+            break
+        elif find_button("button_icd_fehlt.png", base_path=local_screenshot_base_path, max_attempts=1):
+            print("button_icd_fehlt.png gefunden, ICD muss eingetragen werden")
+            anker_icd = False
+            break
+        else:
+            print(f"Nach Versuch {i}:Weder ICD komplett noch ICD fehlt gefunden, versuche erneut.")
+
+    if anker_icd == None:
+        print("nach 50 Versuchen kein ICD anker gefunden")
+        return False
+    elif anker_icd == True:
+        print("ICD bereits gesetzt. Return True")
+        return True
+    elif anker_icd == False:
+        print("ICD nicht gesetzt, fahre fort mich Ausfüllen...\n\n\n")
+
+    if icd_code == None:
+        print("\n\nERROR: ICD ist nicht eingetragen, aber es wurde kein icd_code der Funktion UNIVERSAL.icd_check() gepassed. ICD eintragen erfolglos!\n\n")
+        return False
+    if not find_and_click_button("button_icd_fehlt.png", base_path=local_screenshot_base_path): print("button ICD fehlt nicht gefunden")
+    if not find_and_click_button("button_ICD_feld.png", base_path=local_screenshot_base_path): print("ERROR button ICD Feld nicht gefunden")
+    pyautogui.typewrite(icd_code)
+    time.sleep(0.1)
+    pyautogui.press("enter")
+    if find_button("button_icd_fehler.png", base_path=local_screenshot_base_path, max_attempts=5):
+        print("\n\neingegebener ICD Code nicht akzeptiert")
+        time.sleep(0.1)
+        pyautogui.hotkey("alt, f4")
+        time.sleep(0.1)
+        pyautogui.press("enter")
+        return False
+    if not find_and_click_button("button_speichern_und_schliessen_icd.png", base_path=local_screenshot_base_path): print("ERROR button button_speichern_und_schliessen_icd nicht gefunden")
+    print("\n\n Funktion UNIVERSAL.icd_check erfolgreich abgeschlossen, ICD wurde eingetragen\n\n")
+    return True
+###################################
+###################################
+
+def alle_kgs_schliessen():
+    local_screenshot_base_path = os.path.join(screenshots_dir, "UNIVERSAL", "KG_management")
+    pyautogui.rightClick(350, 35)
+    time.sleep(0.1)
+    if not find_and_click_button("button_alle_kgs_schliessen.png", base_path=local_screenshot_base_path): 
+        print("ERROR button button_alle_kgs_schliessen nicht gefunden")
+        return False
+    if not find_button("button_keinekgoffen.png", base_path=local_screenshot_base_path):
+        print("\n\n\nACHTUNG!: Es sind nicht alle KGs geschlossen, bitte manuell KG schliessen! (10s Zeit für manuelles Schliessen)")
+        time.sleep(10)
+        if not find_button("button_keinekgoffen.png", base_path=local_screenshot_base_path, max_attempts=3, interval=0.05):
+            print("\n\n\n Offene KGs wurden auch manuell nicht geschlossen, breche Skript ab...)")
+            sys.exit()
+        
+    return True
+    
+    
+
+
+
+    
+
 
 
 
 ###################################
 ###################################
-#hier kommen mehrere def function()... , die man in patdata.py und viewjson.py callen kann, um immer Variablen im selben Standard-Stil zu definieren.
-
-# ==============================================================================
-#  Zentralisierte User-Input Funktionen (ursprünglich aus patdata.py)
-# ==============================================================================
 
 def userinput_freitext(prompt):
     """

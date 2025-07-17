@@ -716,7 +716,7 @@ class BackofficePageLeistungsabrechnungen(QWidget):
         """Execute the billing automation script"""
         try:
             # Get the script path
-            script_path = Path(__file__).parent.parent / "scripts" / "abrechnung.py"
+            script_path = Path(__file__).parent.parent / "scripts" / "tumorboard_abrechnung.py"
             
             if not script_path.exists():
                 # Warning message with custom styling
