@@ -4061,14 +4061,14 @@ def nachsorgeformular_anlegen(nachsorgeformular_typ, bericht_typ, chemotherapie,
                                     "button_symptomblock_bone_extremities.png": 7, 
                                     "button_symptomblock_breast.png": 6}
             
-            #je nach mapping: number of tx
-            number_tox = mapping_number_tox.get(symptom_button_image, 6) if symptom_button_image else 6
-            print(f"\n\n\n führe {number_tox} loops aus, um die spezifischen Toxizitäten für {symptom_button_image} zu erfassen.")
-            for _ in range(number_tox):
-                pyautogui.press('down')
-                ctrl_tabs(6) #Navigation auf nächste 0
-                pyautogui.press('enter') #Auswahl 0
-                time.sleep(0.05)    
+                #je nach mapping: number of tx
+                number_tox = mapping_number_tox.get(symptom_button_image, 6) if symptom_button_image else 6
+                print(f"\n\n\n führe {number_tox} loops aus, um die spezifischen Toxizitäten für {symptom_button_image} zu erfassen.")
+                for _ in range(number_tox):
+                    pyautogui.press('down')
+                    ctrl_tabs(6) #Navigation auf nächste 0
+                    pyautogui.press('enter') #Auswahl 0
+                    time.sleep(0.05)    
 
 
             pyautogui.press('down'); ctrl_tabs(5); pyautogui.press('enter') #leitlinien-gerechte Nachsorge ja
@@ -4145,14 +4145,14 @@ def nachsorgeformular_anlegen(nachsorgeformular_typ, bericht_typ, chemotherapie,
                                     "button_symptomblock_bone_extremities.png": 7, 
                                     "button_symptomblock_breast.png": 6}
             
-            #je nach mapping: number of tx
-            number_tox = mapping_number_tox.get(symptom_button_image, 6) if symptom_button_image else 6
-            print(f"\n\n\n führe {number_tox} loops aus, um die spezifischen Toxizitäten für {symptom_button_image} zu erfassen.")
-            for _ in range(number_tox):
-                pyautogui.press('down')
-                ctrl_tabs(6) #Navigation auf nächste 0
-                pyautogui.press('enter') #Auswahl 0
-                time.sleep(0.05)   
+                #je nach mapping: number of tx
+                number_tox = mapping_number_tox.get(symptom_button_image, 6) if symptom_button_image else 6
+                print(f"\n\n\n führe {number_tox} loops aus, um die spezifischen Toxizitäten für {symptom_button_image} zu erfassen.")
+                for _ in range(number_tox):
+                    pyautogui.press('down')
+                    ctrl_tabs(6) #Navigation auf nächste 0
+                    pyautogui.press('enter') #Auswahl 0
+                    time.sleep(0.05)   
 
             ctrl_tabs(13); pyautogui.press('enter') #leitlinien-gerechte Nachsorge ja
 
@@ -4322,14 +4322,14 @@ def nachsorgeformular_anlegen(nachsorgeformular_typ, bericht_typ, chemotherapie,
                                         "button_symptomblock_bone_extremities.png": 7, 
                                         "button_symptomblock_breast.png": 6}
                 
-                #je nach mapping: number of tx
-                number_tox = mapping_number_tox.get(symptom_button_image, 6) if symptom_button_image else 6
-                print(f"\n\n\n führe {number_tox} loops aus, um die spezifischen Toxizitäten für {symptom_button_image} zu erfassen.")
-                for _ in range(number_tox):
-                    pyautogui.press('down')
-                    ctrl_tabs(6) #Navigation auf nächste 0
-                    pyautogui.press('enter') #Auswahl 0
-                    time.sleep(0.05)    
+                    #je nach mapping: number of tx
+                    number_tox = mapping_number_tox.get(symptom_button_image, 6) if symptom_button_image else 6
+                    print(f"\n\n\n führe {number_tox} loops aus, um die spezifischen Toxizitäten für {symptom_button_image} zu erfassen.")
+                    for _ in range(number_tox):
+                        pyautogui.press('down')
+                        ctrl_tabs(6) #Navigation auf nächste 0
+                        pyautogui.press('enter') #Auswahl 0
+                        time.sleep(0.05)    
 
 
                 pyautogui.press('down'); ctrl_tabs(5); pyautogui.press('enter') #leitlinien-gerechte Nachsorge ja
@@ -4405,14 +4405,14 @@ def nachsorgeformular_anlegen(nachsorgeformular_typ, bericht_typ, chemotherapie,
                                         "button_symptomblock_bone_extremities.png": 7, 
                                         "button_symptomblock_breast.png": 6}
                 
-                #je nach mapping: number of tx
-                number_tox = mapping_number_tox.get(symptom_button_image, 6) if symptom_button_image else 6
-                print(f"\n\n\n führe {number_tox} loops aus, um die spezifischen Toxizitäten für {symptom_button_image} zu erfassen.")
-                for _ in range(number_tox):
-                    pyautogui.press('down')
-                    ctrl_tabs(6) #Navigation auf nächste 0
-                    pyautogui.press('enter') #Auswahl 0
-                    time.sleep(0.05)    
+                    #je nach mapping: number of tx
+                    number_tox = mapping_number_tox.get(symptom_button_image, 6) if symptom_button_image else 6
+                    print(f"\n\n\n führe {number_tox} loops aus, um die spezifischen Toxizitäten für {symptom_button_image} zu erfassen.")
+                    for _ in range(number_tox):
+                        pyautogui.press('down')
+                        ctrl_tabs(6) #Navigation auf nächste 0
+                        pyautogui.press('enter') #Auswahl 0
+                        time.sleep(0.05)    
 
 
                 ctrl_tabs(13); pyautogui.press('enter') #leitlinien-gerechte Nachsorge ja
@@ -4460,17 +4460,23 @@ def prozent_zoom_100():
         print("button_leiste_kurz nicht gefunden.")
         return False
     time.sleep(0.3)
-    if not find_button('button_prozent_confirm.png', base_path=local_screenshots_dir, max_attempts=20, interval=0.1):
+    if not find_and_click_button('button_prozent.png', base_path=local_screenshots_dir, max_attempts=20, interval=0.1):
         print("button_prozent_confirm nicht gefunden.")
         return False
-    print("button_prozent_confirm gefunden, versuche button_100_prozent.png")
-    time.sleep(0.2)
-    if not find_button('button_100_prozent.png', base_path=local_screenshots_dir, max_attempts=5, interval=0.1, confidence=0.95):
-        print("button_100_prozent nicht gefunden. Stelle Zoom manuell auf 100%.")
-        time.sleep(0.2)
-        if not find_and_click_button_offset(image_name='button_prozent_confirm.png', base_path=local_screenshots_dir, x_offset=-10): print("button_prozent_confirm nicht gefunden."); return False
-        if not find_and_click_button_offset(image_name='button_100_prozent_auswahl.png', base_path=local_screenshots_dir, x_offset=-10): print("button_100_prozent_auswahl nicht gefunden."); return False
-        return True
+    time.sleep(0.05)
+    pyautogui.press("down")
+    pyautogui.press("enter")
+    if not find_button('button_prozent_100_confirm.png', base_path=local_screenshots_dir, max_attempts=5, interval=0.1, confidence=0.95):
+        print("button_100_prozent nicht gefunden. Versucher erneut...")
+        if not find_and_click_button('button_prozent.png', base_path=local_screenshots_dir, max_attempts=20, interval=0.1):
+            print("button_prozent_confirm nicht gefunden.")
+            return False
+        time.sleep(0.05)
+        pyautogui.press("down")
+        pyautogui.press("enter")
+        if not find_and_click_button('button_prozent.png', base_path=local_screenshots_dir, max_attempts=20, interval=0.1):
+            print("100% auch beim 2. Versuch nicht einstellbar.")
+            return False
     else:
         print("100% Zoom bereits ausgewählt.")
         return True

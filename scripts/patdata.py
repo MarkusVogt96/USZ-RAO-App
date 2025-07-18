@@ -109,6 +109,138 @@ def screenshot_rtkonzept():
         logging.error(f"screenshot_rtkonzept: Error during screenshot creation/saving: {e}", exc_info=True)
         traceback.print_exc()
         return False
+    
+def screenshot_diagnose():
+    print("Versuche Screenshot der Diagnose...")
+    try:
+        # Pfad zum button_mit_codierung.png
+        bereich_berichte_path = os.path.join(screenshots_dir, 'UNIVERSAL', 'bereich_berichte')
+        button_mit_codierung_path = os.path.join(bereich_berichte_path, 'button_mit_codierung.png')
+        
+        # Suche nach dem button_mit_codierung.png auf dem Bildschirm
+        print(f"Suche nach 'button_mit_codierung.png' auf dem Bildschirm...")
+        try:
+            location = pyautogui.locateOnScreen(button_mit_codierung_path, confidence=0.8)
+        except FileNotFoundError:
+            print(f"Fehler: Die Bilddatei '{button_mit_codierung_path}' wurde nicht gefunden.")
+            return False
+        except Exception as e:
+            print(f"Ein unerwarteter Fehler bei der Bildsuche ist aufgetreten: {e}")
+            return False
+        
+        # Überprüfe, ob das Bild gefunden wurde
+        if location is not None:
+            print(f"button_mit_codierung.png gefunden bei: {location}")
+            
+            # Extrahiere die Koordinaten und Dimensionen des gefundenen Bildes
+            left, top, width, height = location
+            
+            # Berechne die Koordinaten der rechten unteren Ecke des gefundenen Bildes
+            right_bottom_x = left + width
+            right_bottom_y = top + height
+            
+            # Berechne den Screenshot-Bereich: 960 Pixel nach links, 23 Pixel nach unten
+            screenshot_left = right_bottom_x - 960
+            screenshot_top = right_bottom_y
+            screenshot_width = 960
+            screenshot_height = 23
+            
+            # Definiere den Screenshot-Bereich als Tupel (links, oben, breite, höhe)
+            screenshot_region = (int(screenshot_left), int(screenshot_top), int(screenshot_width), int(screenshot_height))
+            
+            print(f"Berechneter Screenshot-Bereich (links, oben, breite, höhe): {screenshot_region}")
+            
+            # Nimm den Screenshot des definierten Bereichs auf
+            screenshot_diagnose = pyautogui.screenshot(region=screenshot_region)
+            
+            # Verwende die vorverarbeitete Version wie in screenshot_rtkonzept
+            screenshot_diagnose_preprocessed = UNIVERSAL.PIL_image_preprocessing_Zoom_Contrast_Sharpen(screenshot_diagnose)
+            
+            # Speichere die Screenshots
+            save_dir = os.path.join(screenshots_dir, 'UNIVERSAL', 'image_preprocessing')
+            os.makedirs(save_dir, exist_ok=True)
+            
+            # Speichere den originalen Screenshot
+            original_save_path = os.path.join(save_dir, 'screenshot_diagnose_original.png')
+            screenshot_diagnose.save(original_save_path)
+            print(f"Original Screenshot gespeichert unter {original_save_path}")
+            
+            print("(Vorverarbeiteter Screenshot wird von UNIVERSAL-Funktion gespeichert)")
+            return True
+            
+        else:
+            print("button_mit_codierung.png konnte nicht auf dem Bildschirm gefunden werden.")
+            return False
+            
+    except Exception as e:
+        print(f"Fehler beim Erstellen/Speichern des Screenshots: {e}")
+        logging.error(f"screenshot_diagnose: Error during screenshot creation/saving: {e}", exc_info=True)
+        traceback.print_exc()
+        return False
+
+
+def easyocr_screenshot_diagnose():
+    print("Führe EasyOCR für Diagnose-Screenshot durch...")
+    
+    # Pfad zum vorverarbeiteten Screenshot
+    screenshot_path = os.path.join(screenshots_dir, 'UNIVERSAL', 'image_preprocessing', 'image_preprocessed_from_function_PIL_image_preprocessing_Zoom_Contrast_Sharpen().png')
+    
+    # Prüfe ob die Datei existiert
+    if not os.path.exists(screenshot_path):
+        print(f"Vorverarbeitete Screenshot-Datei nicht gefunden: {screenshot_path}")
+        logging.error(f"easyocr_screenshot_diagnose: Preprocessed screenshot not found at {screenshot_path}")
+        return None
+    
+    try:
+        # Führe OCR mit der UNIVERSAL-Funktion durch
+        results_easyocr = UNIVERSAL.ocr_mit_easyocr(screenshot_path)
+        
+        if results_easyocr:
+            # Verbinde alle erkannten Texte zu einem String
+            diagnose_text = "\n".join(results_easyocr)
+            print("EasyOCR für Diagnose erfolgreich, erkannter Text:")
+            print(diagnose_text)
+            return diagnose_text
+        elif results_easyocr is None:
+            print("EasyOCR für Diagnose ist fehlgeschlagen (Rückgabewert None).")
+            logging.warning("easyocr_screenshot_diagnose: UNIVERSAL.ocr_mit_easyocr returned None (indicating failure).")
+            return None
+        else:  # results_easyocr is an empty list []
+            print("EasyOCR hat keinen Text in der Diagnose erkannt.")
+            return ""
+            
+    except Exception as e:
+        print(f"Fehler während EasyOCR für Diagnose: {e}")
+        logging.error(f"easyocr_screenshot_diagnose: Exception during OCR call: {e}", exc_info=True)
+        traceback.print_exc()
+        return None
+
+
+def diagnose_auslesen():
+    global diagnosentext
+    diagnosentext = ""
+    
+    print("\nMache Screenshot der Diagnose...")
+    try:
+        if screenshot_diagnose():
+            print("Screenshot der Diagnose erfolgreich erstellt. Führe OCR durch...")
+            diagnosentext = easyocr_screenshot_diagnose()
+            if diagnosentext:
+                print(f"Diagnose-Text erkannt: {diagnosentext}")
+                return True
+            else:
+                print("Keine Diagnose-Text erkannt oder OCR fehlgeschlagen.")
+                diagnosentext = ""
+                return False
+        else:
+            print("Screenshot der Diagnose konnte nicht erstellt werden.")
+            return False
+    except Exception as e:
+        print(f"Fehler beim Auslesen der Diagnose: {e}")
+        logging.error(f"diagnose_auslesen: Error during diagnosis extraction: {e}", exc_info=True)
+        diagnosentext = ""
+        return False
+
 
 def easyocr_screenshot_rtkonzept():
 
@@ -517,7 +649,11 @@ def main():
 
     try:
         # --- 4. Get Basic Patient Data ---
-        stat = UNIVERSAL.userinput_stat("Stationärer Patient (j/n)? ")
+        bereich_berichte_path = os.path.join(screenshots_dir, "UNIVERSAL", "bereich_berichte")
+        if UNIVERSAL.find_button("button_fall_amb.PNG", base_path=bereich_berichte_path, confidence=0.9, max_attempts=5):
+            stat = "n"
+        else: 
+            stat = UNIVERSAL.userinput_stat("Stationärer Patient (j/n)? ")
         UNIVERSAL.KISIM_im_vordergrund()
         print("\nLese KISIM-Zeile nach Patientendaten aus...")
         nachname, vorname, geburtsdatum, alter, geschlecht, patientennummer, eintrittsdatum = UNIVERSAL.auslesen_patdata_KISIMzeile()
@@ -538,7 +674,12 @@ def main():
         print("\nVersuche RT-Konzept zu öffnen...")
         rtkonzept_offen = UNIVERSAL.rt_konzept_oeffnen()
         print(f"Ergebnis RT-Konzept öffnen: {'Erfolgreich' if rtkonzept_offen else 'Nicht erfolgreich/gefunden'}")
-        time.sleep(1)
+        time.sleep(0.5)
+
+        if UNIVERSAL.find_and_click_button("button_prozent_rtkonzept.png", base_path=bereich_berichte_path, confidence=0.9, max_attempts=3):
+            print("button_prozent_rtkonzept.png gefunden, stelle 100% ein")
+            pyautogui.press("down")
+            pyautogui.press("enter")
 
         # --- 6. Process based on RT Konzept Success ---
         if rtkonzept_offen is True:
@@ -564,6 +705,12 @@ def main():
                  print("WARNUNG: Datenextraktion aus RT-Konzept war nicht vollständig möglich (Screenshot oder OCR fehlgeschlagen).")
 
             simultane_chemotherapie_aus_ocr_auslesen()
+            if not UNIVERSAL.find_and_click_button_offset("button_mit_codierung.png", base_path=bereich_berichte_path, x_offset=40):
+                print("button_mit_codierung nicht gefunden. Backfall: button_usz_logo.png")
+                if not UNIVERSAL.find_and_click_button("button_usz_logo.png", base_path=bereich_berichte_path):
+                    print("button_usz_logo nicht gefunden.")
+
+            diagnose_auslesen()
             therapieintention = therapieintention_auslesen()
             print(f"Globale therapieintention definiert: {therapieintention}")
             fraktionen_woche = fraktionen_woche_auslesen()
@@ -597,7 +744,8 @@ def main():
                  else:
                      logging.info("main: User skipped manual chemo confirmation.")
             # --- Tumor-Eingabe ---
-            print("\n--- Tumorentität Erfassung ---")
+            
+            print(f"Ausgelesene 1. Diagnosenzeile (=Vorschlag zum Kopieren):\n\n{diagnosentext}\n")
             tumor = UNIVERSAL.userinput_freitext("Tumor-Freitext eingeben (in Dativ), z.B. 'sphenoidalem Meningeom rechts': ")
 
             # --- Primäre Entitäts-Erkennung/Validierung ---
