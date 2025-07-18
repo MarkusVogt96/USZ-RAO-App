@@ -58,6 +58,7 @@ entity_dictionary_icd = {
     'Cholangiocellulärem Karzinom': 'C24.9', # Bösartige Neubildung der Gallenwege, nicht näher bezeichneter Teil
     'Hepatocellulärem Karzinom': 'C22.0', # Leberzellkarzinom
     'Ösophaguskarzinom': 'C15.9', # Bösartige Neubildung des Ösophagus, nicht näher bezeichneter Teil
+    'Magenkarzinom': '16.9', # Bösartige Neubildung des Magens, nicht näher bezeichneter Teil
     'Pankreaskarzinom': 'C25.9', # Bösartige Neubildung des Pankreas, nicht näher bezeichneter Teil
     'Kolonkarzinom': 'C18.9', # Bösartige Neubildung des Kolons, nicht näher bezeichneter Teil
     'Rektumkarzinom': 'C20', # Bösartige Neubildung des Rektums
@@ -78,7 +79,7 @@ entity_dictionary_icd = {
     # --- Andere Erkrankungen ---
     'Fasciitis plantaris': 'M72.2', # Fasciitis plantaris
     'Achillodynie': 'M76.6', # Tendinitis der Achillessehne
-    'Heterotope Ossifikation': 'M61.9', # Verkalkung und Verknöcherung von Muskeln, nicht näher bezeichnet
+    'Heterotope Ossifikation': 'M61.99', # Verkalkung und Verknöcherung von Muskeln, nicht näher bezeichnet
     'Endokrine Orbitopathie': 'H06.2', # Exophthalmus bei Störungen der Schilddrüsenfunktion
     'Epicondylopathia humeri': 'M77.1', # Epicondylitis radialis humeri [Tennisellenbogen] (häufigste Form)
     'Morbus Dupuytren': 'M72.0', # Fibromatose der Palmarfaszie [Dupuytren-Kontraktur]
@@ -87,7 +88,7 @@ entity_dictionary_icd = {
     'Enthesiopathie': 'M77.9', # Enthesiopathie, nicht näher bezeichnet
     'Periarthropathia humeroscapularis': 'M75.9', # Schulterläsion, nicht näher bezeichnet
     'Gonarthrose': 'M17.9', # Gonarthrose, nicht näher bezeichnet
-    'Arthrose': 'M19.9', # Arthrose, nicht näher bezeichnet
+    'Arthrose': 'M19.99', # Arthrose, nicht näher bezeichnet
     'Gynäkomastie': 'N62', # Gynäkomastie
     'Keloid': 'L91.0', # Keloidnarbe
 }
@@ -158,7 +159,8 @@ entity_keywords = {
     # --- Abdomen / Gastrointestinal ---
     'Cholangiocellulärem Karzinom': ['cholangio', 'ccc', 'gallenweg', 'gallengang'],
     'Hepatocellulärem Karzinom': ['hepatocellulärem karzinom', 'hcc', 'leberkarzinom', 'hepatozellu', 'hepatocellu'],
-    'Ösophaguskarzinom': ['ösophaguskarzinom', 'ösophagus', 'speiseröhre', 'esophagus', 'oesophagus'],
+    'Ösophaguskarzinom': ['ösophaguskarzinom', 'ösophagus', 'speiseröhre', 'esophagus', 'oesophagus', 'aeg I', 'aeg 1'],
+    'Magenkarzinom': ['magen', 'aeg III', 'aeg 3', 'aeg II', 'aeg 2'],
     'Pankreaskarzinom': ['pankreaskarzinom', 'pankreas', 'pdac'],
     'Kolonkarzinom': ['kolonkarzinom', 'kolon', 'colon'],
     'Rektumkarzinom': ['rektumkarzinom', 'rektum', 'rectum', 'mastdarm'],
