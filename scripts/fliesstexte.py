@@ -581,7 +581,7 @@ def define_berrao_texte(bericht_typ, entity, patdata, glossary):
                                         f"Dosiskonzept: {therapieintention_klein} Radiotherapie bei {tumor or '_______'}\n\n"
                                         f"{konzept_alle_serien}\n\n"
                                         f"Fraktionen: {fraktionen_woche or '__'}\n\n"
-                                        f"Technik: Nach CT/MR-gestützer Planung erfolgte die Radiotherapie im Bereich oben genannter Lokalisationen am Linearbeschleuniger mit 6 MV Photonen in VMAT/Rapid Arc-Technik.")
+                                        f"Technik: Nach CT/MR-gestützter Planung erfolgte die Radiotherapie im Bereich oben genannter Lokalisationen am Linearbeschleuniger mit 6 MV Photonen in VMAT/Rapid Arc-Technik.")
         texte["fliesstext_verlauf_unter_therapie"] = (f"Die Radiotherapie konnte im o.g. Zeitraum zeitgerecht und -bis auf eine mild ausgeprägte _____ - komplikationslos durchgeführt werden.")
         texte["fliesstext_beurteilung"] = (f"Regelrechte Abschlusskontrolle nach erfolgter Radiotherapie.\nZum aktuellen Zeitpunkt präsentieren sich keine interventionsbedürftigen Akuttoxizitäten. ")
         texte["fliesstext_procedere"] = [f"Eine erste ambulante Verlaufskontrolle im Rahmen der radioonkologischen Therapienachsorge wird in ca. 6 Wochen in der ambulanten Sprechstunde von {prof_dr} {oberarzt} angestrebt. {g('artikel_nominativ_gross','Der/Die')} {g('patient_nominativ','Patient/in')} erhält zeitnah das entsprechende, direkte Aufgebot.",
@@ -595,7 +595,7 @@ def define_berrao_texte(bericht_typ, entity, patdata, glossary):
         texte["fliesstext_onkologischer_krankheitsverlauf"] = (f" ")
         texte["fliesstext_aktueller_onkologischer_status"] = (f"St. n. durchgeführter Radiotherapie im Rahmen der onkologischen Grunderkrankung eines {tumor or '_________'} vom {datum_erste_rt or '__.__.2025'} bis {datum_letzte_rt or '__.__.2025'}.")
         texte["fliesstext_indikation"] = (f" ")
-        texte["fliesstext_anamnese"] = (f"{g('herrfrau','Herr/Frau')} {nachname} stellte sich planmässig zur heutigen klinischen Verlaufskontrolle im Rahmen der tumorspezifschen Nachsorge vor.\n\nAktuell berichtet {g('artikel_nominativ_klein','der/die')} {g('patient_nominativ','Patient/in')} über \n-")
+        texte["fliesstext_anamnese"] = (f"{g('herrfrau','Herr/Frau')} {nachname} stellte sich planmässig zur heutigen klinischen Verlaufskontrolle im Rahmen der tumorspezifschen Nachsorge vor.\n\nAktuell berichtet {g('artikel_nominativ_klein','der/die')} {g('patient_nominativ','Patient/in')} über ")
         texte["fliesstext_allgemeinstatus"] = (f"{alter}-{g('jährig_nominativ','jährige/r')} {g('patient_nominativ','Patient/in')} in {beschreibung_ecog.get(ecog, "____")} Allgemeinzustand (ECOG {ecog}) und normalem Ernährungszustand. "
                                       f"{g('artikel_nominativ_gross','Der/Die')} {g('patient_nominativ','Patient/in')} zeigt sich wach und kooperativ, sowie zu allen Qualitäten orientiert. "
                                       f"Klinisch präsentiert sich {g('artikel_nominativ_klein','der/die')} {g('patient_nominativ','Patient/in')} normokard und eupnoeisch, sowie in Ruhe kardiopulmonal kompensiert."
