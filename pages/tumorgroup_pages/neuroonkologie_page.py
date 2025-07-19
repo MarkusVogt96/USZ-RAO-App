@@ -37,23 +37,34 @@ class NeuroonkologiePage(QWidget):
 
         # Define Neuroonkologie entities
         entities = [
-            "Meningeom", "Vestibularisschwannom", "Schwannom",
-            "Anaplastisches Astrozytom", "Glioblastom", "Oligodendrogliom",
-            # "Hirnmetastasen" is moved to FernmetastasenPage
-        ]
+            "Meningeom", "Vestibularisschwannom", "Hochgradige Gliome", "Arteriovenöse Malformation"]
         
-        # Path to assets (though specific entity images aren't defined yet)
-        assets_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "assets")
+        # Path to assets - corrected path using three dirname calls like working implementation
+        assets_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "assets")
 
         for i, entity in enumerate(entities):
-            # Set image path based on entity type (if available, otherwise None)
-            # TODO: Add specific images for these entities when available
+            # Set image path based on entity type
             image_path = None 
-            if entity == "Meningeom": # Keep existing image for Meningeom
-                meningeom_path = os.path.join(assets_dir, "meningeoma.png")
-                if os.path.exists(meningeom_path):
-                     image_path = meningeom_path
-            # Add more specific image checks here if needed later
+            contours_dir = os.path.join(assets_dir, "contours_images")
+            
+            if entity == "Meningeom":
+                image_path = os.path.join(contours_dir, "contour_meningeoma.PNG")
+            elif entity == "Vestibularisschwannom":
+                image_path = os.path.join(contours_dir, "contour_vestibularisschwannoma.PNG")
+            elif entity == "Hochgradige Gliome":
+                image_path = os.path.join(contours_dir, "contour_glioma.PNG")
+            elif entity == "Arteriovenöse Malformation":
+                image_path = os.path.join(contours_dir, "contour_avm.PNG")
+            
+            # Debug output
+            logging.info(f"Entity: {entity}, Image path: {image_path}")
+            if image_path:
+                logging.info(f"Image exists: {os.path.exists(image_path)}")
+            
+            # Check if image exists, otherwise use None
+            if image_path and not os.path.exists(image_path):
+                logging.warning(f"Image not found: {image_path}")
+                image_path = None
             
             # Create tile (no image for most yet)
             tile = StaticTile(entity, image_path)

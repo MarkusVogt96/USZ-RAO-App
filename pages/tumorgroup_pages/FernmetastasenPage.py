@@ -36,16 +36,20 @@ class FernmetastasenPage(QWidget):
              "Hirnmetastasen", "SBRT extrakranieller Hirnmetastasen", "palliative RT von Knochenmetastasen"
         ]
         
-        assets_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "assets")
+        assets_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "assets")
 
         for i, entity in enumerate(entities):
-            # TODO: Add specific images if available
             image_path = None 
-            # Special case for Hirnmetastasen to potentially reuse old image
+            contours_dir = os.path.join(assets_dir, "contours_images")
+            
             if entity == "Hirnmetastasen":
-                 old_bm_path = os.path.join(assets_dir, "brain_metastasis.png")
-                 if os.path.exists(old_bm_path):
-                     image_path = old_bm_path
+                image_path = os.path.join(contours_dir, "contour_brain_metastasis.PNG")
+            elif entity == "palliative RT von Knochenmetastasen":
+                image_path = os.path.join(contours_dir, "contour_bone_metastasis.PNG")
+            
+            # Check if image exists, otherwise use None
+            if image_path and not os.path.exists(image_path):
+                image_path = None
                      
             tile = StaticTile(entity, image_path)
             tile.clicked.connect(lambda checked, e=entity: self.open_entity_page(e))

@@ -1,0 +1,74 @@
+{
+  "comment": "Mapping von Tumor-Entitäten zu Contouring Guidelines PDFs. Für jede Entität können mehrere PDF-Dateinamen (aus assets/guidelines/) eingetragen werden.",
+  
+  "Fernmetastasen": {
+    "Hirnmetastasen": [],
+    "SBRT extrakranieller Hirnmetastasen": [],
+    "palliative RT von Knochenmetastasen": []
+  },
+  
+  "Gastrointestinale Tumore": {
+    "Ösophagus-Ca": [],
+    "HCC": [],
+    "CCC": [],
+    "Pankreas-Ca": [],
+    "Rektum-Ca": [],
+    "Anal-Ca": []
+  },
+  
+  "Gutartige Erkrankungen": {
+    "Gutartige Erkrankungen": []
+  },
+  
+  "Gynäkologische Tumore": {
+    "Mamma-Ca": [],
+    "Endometrium-Ca": [],
+    "Cervix-Ca": [],
+    "Vulva-Ca": []
+  },
+  
+  "Hauttumore": {
+    "BCC und cSCC": [],
+    "Melanom": [],
+    "Merkelzell-Ca": []
+  },
+  
+  "Kopf-Hals-Tumore": {
+    "Nasenkarzinom": [],
+    "Nasopharynxkarzinom": [],
+    "Larynx und Hypopharynx": [],
+    "Oropharynxkarzinom": [],
+    "Speicheldrüsenkarzinom": []
+  },
+  
+  "Lymphome": {
+    "DLBCL": [],
+    "Hodgkin-Lymphom": [],
+    "MALT": [],
+    "Plasmozytom": []
+  },
+  
+  "Neuroonkologie": {
+    "Meningeom": ["ESTRO ACROP guideline - skull base (pituitary tumor, meningeoma, craniopharyngeoma, vestibular schwannoma, chordoma)_2021.pdf"],
+    "Vestibularisschwannom": ["ESTRO ACROP guideline - skull base (pituitary tumor, meningeoma, craniopharyngeoma, vestibular schwannoma, chordoma)_2021.pdf"],
+    "Hochgradige Gliome": [],
+    "Arteriovenöse Malformation": []
+  },
+  
+  "Thorakale Tumore": {
+    "NSCLC": [],
+    "SCLC": [],
+    "Mesotheliom": []
+  },
+  
+  "Urogenitale Tumore": {
+    "Prostata-Ca": ["ESTRO ACROP guideline - postoperative Salvage-RT_2023.pdf", "ESTRO ACROP guideline - primary RT of localized prostate cancer_2018.pdf"],
+    "Blasen-Ca": [],
+    "RCC": []
+  },
+  
+  "Bindegewebstumore": {
+    "Sarkom Extremitäten": [],
+    "Sarkom Retroperitoneal": []
+  }
+}

@@ -36,11 +36,21 @@ class UrogenitaleTumorePage(QWidget):
             "Prostata-Ca", "Blasen-Ca", "RCC"
         ]
         
-        assets_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "assets")
+        assets_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "assets")
 
         for i, entity in enumerate(entities):
-            # TODO: Add specific images if available
             image_path = None 
+            contours_dir = os.path.join(assets_dir, "contours_images")
+            
+            if entity == "Prostata-Ca":
+                image_path = os.path.join(contours_dir, "contour_prostate.PNG")
+            elif entity == "Blasen-Ca":
+                image_path = os.path.join(contours_dir, "contour_bladder.PNG")
+            
+            # Check if image exists, otherwise use None
+            if image_path and not os.path.exists(image_path):
+                image_path = None
+                
             tile = StaticTile(entity, image_path)
             tile.clicked.connect(lambda checked, e=entity: self.open_entity_page(e))
             grid_layout.addWidget(tile, i // 3, i % 3) 

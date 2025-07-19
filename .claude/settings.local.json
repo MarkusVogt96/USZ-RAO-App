@@ -6,7 +6,8 @@
       "Bash(timeout:*)",
       "Bash(git restore:*)",
       "Bash(dir:*)",
-      "Bash(ls:*)"
+      "Bash(ls:*)",
+      "Bash(mkdir:*)"
     ],
     "deny": []
   }

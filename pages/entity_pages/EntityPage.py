@@ -4,6 +4,7 @@ from PyQt6.QtGui import QFont, QPixmap, QIcon
 from pages.pdf_reader import PdfReaderPage
 import os
 import logging
+import json
 
 class EntityPage(QWidget):
     def __init__(self, main_window, entity_name, group_name):
@@ -13,7 +14,10 @@ class EntityPage(QWidget):
         self.entity_name = entity_name
         self.group_name = group_name
         self.sop_pdf_files = [] # Initialize list to store found PDF paths
+        self.guideline_pdf_files = [] # Initialize list to store guideline PDF paths
         self.find_sop_pdfs() # Call the new method to find PDFs
+        self.load_guideline_mapping() # Load JSON mapping for guidelines
+        self.find_contouring_guidelines() # Find available guideline PDFs
         self.setup_ui()
         logging.info(f"EntityPage UI setup complete for {entity_name}.")
 
@@ -44,6 +48,57 @@ class EntityPage(QWidget):
         except Exception as e:
             logging.error(f"Error finding SOP PDFs for {self.entity_name} in {self.group_name}: {e}", exc_info=True)
             self.sop_pdf_files = [] # Ensure list is empty on error
+
+    def load_guideline_mapping(self):
+        """Loads the JSON mapping file for guideline PDFs."""
+        try:
+            base_dir = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
+            mapping_file_path = os.path.join(base_dir, 'assets', 'json', 'mapping_guidelines.json')
+            logging.info(f"Loading guideline mapping from: {mapping_file_path}")
+            
+            if not os.path.exists(mapping_file_path):
+                logging.warning(f"Guideline mapping file not found: {mapping_file_path}")
+                self.guideline_mapping = {}
+                return
+            
+            with open(mapping_file_path, 'r', encoding='utf-8') as f:
+                self.guideline_mapping = json.load(f)
+                logging.info(f"Successfully loaded guideline mapping with {len(self.guideline_mapping)} groups.")
+                
+        except Exception as e:
+            logging.error(f"Error loading guideline mapping: {e}", exc_info=True)
+            self.guideline_mapping = {}
+
+    def find_contouring_guidelines(self):
+        """Finds available guideline PDF files for this entity based on the JSON mapping."""
+        try:
+            # Get the list of PDF filenames for this entity from the mapping
+            mapped_pdfs = []
+            if hasattr(self, 'guideline_mapping') and self.group_name in self.guideline_mapping:
+                if self.entity_name in self.guideline_mapping[self.group_name]:
+                    mapped_pdfs = self.guideline_mapping[self.group_name][self.entity_name]
+                    logging.info(f"Found {len(mapped_pdfs)} mapped PDFs for {self.entity_name}: {mapped_pdfs}")
+            
+            # Check which of the mapped PDFs actually exist in the guidelines directory
+            base_dir = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
+            guidelines_dir_path = os.path.join(base_dir, 'assets', 'guidelines')
+            
+            self.guideline_pdf_files = []
+            for pdf_filename in mapped_pdfs:
+                if pdf_filename:  # Skip empty strings
+                    full_path = os.path.join(guidelines_dir_path, pdf_filename)
+                    if os.path.exists(full_path):
+                        self.guideline_pdf_files.append(full_path)
+                        logging.info(f"Found guideline PDF: {full_path}")
+                    else:
+                        logging.warning(f"Mapped guideline PDF not found: {full_path}")
+            
+            if not self.guideline_pdf_files:
+                logging.info(f"No guideline PDFs found for {self.entity_name} in {self.group_name}.")
+                
+        except Exception as e:
+            logging.error(f"Error finding guideline PDFs for {self.entity_name} in {self.group_name}: {e}", exc_info=True)
+            self.guideline_pdf_files = []
 
     def setup_ui(self):
         layout = QVBoxLayout()
@@ -110,15 +165,55 @@ class EntityPage(QWidget):
             # Optional: Hide the empty layout itself? Or just leave it.
             # self.sop_files_layout.hide() # Might cause issues if header is there
 
-        # --- Contouring Instructions Section ---
-        contouring_header = QLabel("Contouring Instructions")
+        # --- Contouring Guidelines Section ---
+        contouring_header = QLabel("Contouring Guidelines")
         contouring_header.setFont(QFont('Arial', 16, QFont.Weight.Bold))
         contouring_header.setStyleSheet("color: white; margin-top: 20px; margin-bottom: 5px;")
         layout.addWidget(contouring_header)
 
-        contouring_placeholder = QLabel("Aktuell Work in Progress")
-        contouring_placeholder.setStyleSheet("color: grey; font-style: italic; margin-left: 20px;")
-        layout.addWidget(contouring_placeholder)
+        # Layout for guideline file buttons (indented)
+        self.guidelines_layout = QVBoxLayout()
+        self.guidelines_layout.setContentsMargins(20, 0, 0, 0) # Indentation via left margin
+        self.guidelines_layout.setSpacing(8) # Slightly increased spacing for buttons
+        layout.addLayout(self.guidelines_layout)
+
+        # Dynamically add buttons for found guideline PDFs
+        if self.guideline_pdf_files:
+            # Sort files alphabetically for consistent order
+            self.guideline_pdf_files.sort()
+            for pdf_path in self.guideline_pdf_files:
+                # Extract filename for button text
+                pdf_filename = os.path.basename(pdf_path)
+                button = QPushButton(pdf_filename)
+                button.setStyleSheet("""
+                    QPushButton {
+                        background-color: #4a4a4a; /* Dark grey background */
+                        color: white;
+                        border: 1px solid #5a5a5a;
+                        padding: 8px 12px;
+                        text-align: left; /* Align text to the left */
+                        border-radius: 4px;
+                        font-size: 14px;
+                    }
+                    QPushButton:hover {
+                        background-color: #5a5a5a;
+                    }
+                    QPushButton:pressed {
+                        background-color: #6a6a6a;
+                    }
+                """)
+                # Set cursor to pointing hand on hover
+                button.setCursor(Qt.CursorShape.PointingHandCursor)
+                
+                # Connect button click to open_guideline_pdf, passing the specific path
+                button.clicked.connect(lambda checked, path=pdf_path: self.open_guideline_pdf(path))
+                
+                self.guidelines_layout.addWidget(button)
+        else:
+            # Display a message if no guideline PDFs were found
+            no_guidelines_label = QLabel("Keine Contouring Guidelines gefunden.")
+            no_guidelines_label.setStyleSheet("color: grey; font-style: italic; margin-left: 20px;") # Matches indentation
+            layout.insertWidget(layout.indexOf(self.guidelines_layout) + 1, no_guidelines_label) # Insert label after the layout
 
         # Add stretch to push content upwards
         layout.addStretch()
@@ -165,3 +260,32 @@ class EntityPage(QWidget):
             logging.error(f"Failed to create or open PdfReaderPage for {pdf_path}: {e}", exc_info=True)
             # Optionally show an error message to the user (e.g., using QMessageBox)
             QMessageBox.critical(self, "Error", f"Could not open PDF viewer: {e}")
+
+    def open_guideline_pdf(self, pdf_path):
+        """Opens a guideline PDF in the PDF viewer."""
+        logging.info(f"Opening guideline PDF viewer for: {pdf_path}")
+        
+        # Extract filename for potential use in breadcrumbs or title
+        pdf_filename = os.path.basename(pdf_path)
+        
+        try:
+            # Pass group_name and entity_name to PdfReaderPage constructor
+            # Use same approach as SOP PDFs
+            pdf_viewer_page = PdfReaderPage(self.main_window, pdf_path, 
+                                            self.group_name, self.entity_name)
+            
+            # Add the new page to the stacked widget
+            new_index = self.main_window.stacked_widget.addWidget(pdf_viewer_page)
+            
+            # Navigate to the new page
+            self.main_window.stacked_widget.setCurrentIndex(new_index)
+            logging.info(f"Created and navigated to PdfReaderPage for guideline {pdf_filename}.")
+            
+            # Update breadcrumbs
+            self.main_window.update_breadcrumb(new_index)
+            logging.info("Called main_window.update_breadcrumb for guideline PDF")
+
+        except Exception as e:
+            logging.error(f"Failed to create or open PdfReaderPage for guideline {pdf_path}: {e}", exc_info=True)
+            # Show an error message to the user
+            QMessageBox.critical(self, "Error", f"Could not open guideline PDF viewer: {e}")

@@ -1,6 +1,6 @@
 from PyQt6.QtWidgets import QPushButton, QVBoxLayout, QLabel
-from PyQt6.QtGui import QFont, QPixmap
-from PyQt6.QtCore import Qt, QSize # Added QSize import
+from PyQt6.QtGui import QFont, QPixmap, QPainter, QPainterPath
+from PyQt6.QtCore import Qt, QSize, QRectF # Added QSize import
 import os # Needed for path joining
 
 class StaticTile(QPushButton):
@@ -43,12 +43,38 @@ class StaticTile(QPushButton):
             pixmap = QPixmap(image_path)
             # Scale image to fit within tile (max 280px height, maintaining aspect ratio)
             pixmap = pixmap.scaledToHeight(200, Qt.TransformationMode.SmoothTransformation)
-            image_label.setPixmap(pixmap)
+            
+            # Create rounded corners using QPainter
+            rounded_pixmap = self.create_rounded_pixmap(pixmap, 10)
+            
+            image_label.setPixmap(rounded_pixmap)
             image_label.setAlignment(Qt.AlignmentFlag.AlignHCenter)
+            image_label.setStyleSheet("background: transparent;")
             layout.addWidget(image_label)
             
         # Add stretch to push content to top
         layout.addStretch()
+    
+    def create_rounded_pixmap(self, pixmap, radius):
+        """Create a pixmap with rounded corners"""
+        # Create a new pixmap with transparent background
+        rounded = QPixmap(pixmap.size())
+        rounded.fill(Qt.GlobalColor.transparent)
+        
+        # Create painter
+        painter = QPainter(rounded)
+        painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+        
+        # Create rounded rectangle path
+        path = QPainterPath()
+        path.addRoundedRect(QRectF(rounded.rect()), radius, radius)
+        
+        # Set the clipping path and draw the original pixmap
+        painter.setClipPath(path)
+        painter.drawPixmap(0, 0, pixmap)
+        painter.end()
+        
+        return rounded
 
 class SmallTile(QPushButton):
     def __init__(self, text, filename=None, script_exists=True, image_path=None, parent=None):

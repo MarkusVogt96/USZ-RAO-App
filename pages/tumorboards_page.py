@@ -74,7 +74,7 @@ class TumorboardsPage(QWidget):
                 {'name': 'NET', 'time': '17:30'}
             ],
             "Dienstag": [
-                {'name': 'Melanom', 'time': '8:00'},
+                {'name': 'Derma', 'time': '8:00'},
                 {'name': 'Schädelbasis', 'time': '8:00'},
                 {'name': 'Gyn Becken', 'time': '15:00'},
                 {'name': 'Gyn Mamma', 'time': '15:00'},
