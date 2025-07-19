@@ -32,6 +32,7 @@ from pages.tumorgroup_pages.GutartigeErkrankungenPage import GutartigeErkrankung
 from pages.tumorgroup_pages.placeholder_group_page import PlaceholderGroupPage
 
 from pages.kisim_page import KisimPage
+from pages.utilities_page import UtilitiesPage
 from pages.cmdscripts_page import CmdScriptsPage
 from pages.pdf_reader import PdfReaderPage
 
@@ -191,7 +192,7 @@ class TumorGuideApp(QMainWindow):
         self.stacked_widget = QStackedWidget(); self.content_layout.addWidget(self.stacked_widget)
         self.main_layout.addWidget(content_widget); self.setCentralWidget(main_widget)
         self.tumor_group_page = TumorGroupPage(self); self.stacked_widget.addWidget(self.tumor_group_page)
-        self.kisim_page = None; self.cmd_scripts_page = None; self.tumorboards_page = None; self.backoffice_page = None; self.developer_area_page = None
+        self.kisim_page = None; self.utilities_page = None; self.cmd_scripts_page = None; self.tumorboards_page = None; self.backoffice_page = None; self.developer_area_page = None
         self.stacked_widget.currentChanged.connect(self.update_breadcrumb)
         self.stacked_widget.currentChanged.connect(self.handle_page_change)
         
@@ -400,7 +401,7 @@ class TumorGuideApp(QMainWindow):
         logo_layout.addWidget(version_label, 0, Qt.AlignmentFlag.AlignLeft)
 
         self.active_menu_style="QPushButton { background-color: #3292ea; color: white; font-weight: bold; font-size: 16px; text-align: left; padding-left: 15px; border: none; } QPushButton:hover { background-color: #4da2fa; }";self.inactive_menu_style="QPushButton { background-color: transparent; color: white; font-size: 15px; text-align: left; padding-left: 15px; border: none; border-bottom: 1px solid #2a3642; } QPushButton:hover { background-color: #2a3642; }"
-        menu_items=["Tumor navigator","Tumorboards", "KISIM Scripts","Backoffice","Developer Area"]
+        menu_items=["Tumor navigator","Tumorboards", "KISIM Scripts","Utilities","Backoffice","Developer Area"]
         for i,item_text in enumerate(menu_items):
             menu_button=QPushButton(item_text);menu_button.setCursor(Qt.CursorShape.PointingHandCursor);menu_button.setFixedHeight(60)
             if i==0:menu_button.setStyleSheet(self.active_menu_style);menu_button.clicked.connect(self.go_home)
@@ -408,6 +409,7 @@ class TumorGuideApp(QMainWindow):
                 menu_button.setStyleSheet(self.inactive_menu_style)
                 if item_text=="KISIM Scripts":menu_button.clicked.connect(self.open_kisim_page)
                 elif item_text=="Tumorboards":menu_button.clicked.connect(self.open_tumorboards_page)
+                elif item_text=="Utilities":menu_button.clicked.connect(self.open_utilities_page)
                 elif item_text=="Backoffice":menu_button.clicked.connect(self.open_backoffice_page)
                 elif item_text=="Developer Area":menu_button.clicked.connect(self.open_developer_area_page)
             self.menu_buttons[item_text]=menu_button;menu_layout.addWidget(menu_button)
@@ -464,6 +466,7 @@ class TumorGuideApp(QMainWindow):
         elif isinstance(current_widget,ExcelViewerPage):add_separator();add_button("Tumorboards",TumorboardsPage);add_separator();add_button(getattr(current_widget,'tumorboard_name','Tumorboard'),SpecificTumorboardPage,entity_name=getattr(current_widget,'tumorboard_name','Tumorboard'));add_separator();add_label(getattr(current_widget,'date_str','Datum'))
         elif isinstance(current_widget,TumorboardSessionPage):add_separator();add_button("Tumorboards",TumorboardsPage);add_separator();add_button(getattr(current_widget,'tumorboard_name','Tumorboard'),SpecificTumorboardPage,entity_name=getattr(current_widget,'tumorboard_name','Tumorboard'));add_separator();add_button(getattr(current_widget,'date_str','Datum'),ExcelViewerPage,entity_name=f"{getattr(current_widget,'tumorboard_name','Tumorboard')}_{getattr(current_widget,'date_str','Datum')}");add_separator();add_label("Session")
         elif isinstance(current_widget,KisimPage):add_separator();add_label("KISIM Scripts")
+        elif isinstance(current_widget,UtilitiesPage):add_separator();add_label("Utilities")
         elif current_widget.__class__.__name__ == "BackofficePage":add_separator();add_label("Backoffice")
         elif current_widget.__class__.__name__ == "BackofficeTumorboardsPage":
             # Import BackofficePage for breadcrumb button
@@ -611,6 +614,19 @@ class TumorGuideApp(QMainWindow):
         self.stacked_widget.setCurrentWidget(self.tumorboards_page)
         self._update_active_menu("Tumorboards")
         print(f"{APP_PREFIX}Navigated to Tumorboards page.")
+    
+    def open_utilities_page(self):        
+        if not self.check_tumorboard_session_before_navigation():
+            return  # User cancelled navigation
+            
+        if self.utilities_page is None:
+            print(f"{APP_PREFIX}Creating UtilitiesPage instance.")
+            self.utilities_page=UtilitiesPage(self)
+            self.stacked_widget.addWidget(self.utilities_page)
+        
+        self.stacked_widget.setCurrentWidget(self.utilities_page)
+        self._update_active_menu("Utilities")
+        print(f"{APP_PREFIX}Navigated to Utilities page.")
     
     def open_backoffice_page(self):        
         if not self.check_tumorboard_session_before_navigation():

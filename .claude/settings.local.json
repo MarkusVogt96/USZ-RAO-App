@@ -7,7 +7,9 @@
       "Bash(git restore:*)",
       "Bash(dir:*)",
       "Bash(ls:*)",
-      "Bash(mkdir:*)"
+      "Bash(mkdir:*)",
+      "WebFetch(domain:www.eqd2.de)",
+      "WebFetch(domain:radformation.com)"
     ],
     "deny": []
   }
