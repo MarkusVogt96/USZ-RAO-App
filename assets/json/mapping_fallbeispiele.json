@@ -1,0 +1,88 @@
+{
+  "comment": "Mapping von Tumor-Entitäten zu Fallbeispielen. Jede Entität kann mehrere Fälle haben mit Patientennummer, RT-Konzept und Konturbildgebung.",
+  
+  "Fernmetastasen": {
+    "Hirnmetastasen": [],
+    "SBRT extrakranieller Hirnmetastasen": [],
+    "palliative RT von Knochenmetastasen": []
+  },
+  
+  "Gastrointestinale Tumore": {
+    "Ösophagus-Ca": [],
+    "HCC": [],
+    "CCC": [],
+    "Pankreas-Ca": [],
+    "Rektum-Ca": [],
+    "Anal-Ca": []
+  },
+  
+  "Gutartige Erkrankungen": {
+    "Gutartige Erkrankungen": []
+  },
+  
+  "Gynäkologische Tumore": {
+    "Mamma-Ca": [],
+    "Endometrium-Ca": [],
+    "Cervix-Ca": [],
+    "Vulva-Ca": []
+  },
+  
+  "Hauttumore": {
+    "BCC und cSCC": [],
+    "Melanom": [],
+    "Merkelzell-Ca": []
+  },
+  
+  "Kopf-Hals-Tumore": {
+    "Nasenkarzinom": [],
+    "Nasopharynxkarzinom": [],
+    "Larynx und Hypopharynx": [],
+    "Oropharynxkarzinom": [],
+    "Speicheldrüsenkarzinom": []
+  },
+  
+  "Lymphome": {
+    "DLBCL": [],
+    "Hodgkin-Lymphom": [],
+    "MALT": [],
+    "Plasmozytom": []
+  },
+  
+  "Neuroonkologie": {
+    "Meningeom": [],
+    "Vestibularisschwannom": [
+      {
+        "patientennummer": "11213721",
+        "rt_konzept": "VS rechts mit 1 x 12 Gy @80%",
+        "workflow": "SRS am Edge-Linac",
+        "konturbildgebung": "CT_25-05-28, Fusion mit T1/T2_25-05-28t"
+      }
+    ],
+    "Hochgradige Gliome": [],
+    "Arteriovenöse Malformation": []
+  },
+  
+  "Thorakale Tumore": {
+    "NSCLC": [],
+    "SCLC": [],
+    "Mesotheliom": []
+  },
+  
+  "Urogenitale Tumore": {
+    "Prostata-Ca": [
+      {
+        "patientennummer": "07878427",
+        "rt_konzept": "Salvage-RT bei biochem. Rezidic T2c N0 M0 --> Prost.+SB-Loge mit 30 x 2 Gy und Boost auf Prost.-Loge mit 3 x 2 Gy, kum. bis 66 Gy",
+        "workflow": "MR-only Prostata am Edge-Linac",
+        "konturbildgebung": "Planungs MRI vom 19.07.2025"
+      }
+    ],
+    "Blasen-Ca": [],
+    "RCC": []
+  },
+  
+  "Bindegewebstumore": {
+    "Sarkom Extremitäten": [],
+    "Sarkom Retroperitoneal": []
+  }
+}
