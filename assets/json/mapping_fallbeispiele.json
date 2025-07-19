@@ -74,7 +74,7 @@
         "patientennummer": "07878427",
         "rt_konzept": "Salvage-RT bei biochem. Rezidic T2c N0 M0 --> Prost.+SB-Loge mit 30 x 2 Gy und Boost auf Prost.-Loge mit 3 x 2 Gy, kum. bis 66 Gy",
         "workflow": "MR-only Prostata am Edge-Linac",
-        "konturbildgebung": "Planungs MRI vom 19.07.2025"
+        "konturbildgebung": "sCT_25-07-16, Fusion mit T2_25-07-16s"
       }
     ],
     "Blasen-Ca": [],
